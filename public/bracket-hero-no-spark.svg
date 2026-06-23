@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 420" role="img" aria-labelledby="title desc">
+  <title id="title">Make decisions, Settle debates, Build brackets tournament bracket hero</title>
+  <desc id="desc">Three bold text lines arranged as a mini tournament bracket. Make decisions and Settle debates play in the first round; Build brackets receives a bye and wins the final.</desc>
+  <style>
+    :root { --cream: #fffaf0; }
+    text {
+      font-family: Inter, "Arial Black", Arial, Helvetica, sans-serif;
+      font-weight: 900;
+      fill: var(--cream);
+      letter-spacing: -0.035em;
+    }
+    .bracket {
+      fill: none;
+      stroke: var(--cream);
+      stroke-width: 18;
+      stroke-linecap: square;
+      stroke-linejoin: miter;
+    }
+  </style>
+
+  <text x="40" y="100" font-size="88">Make decisions</text>
+  <text x="40" y="218" font-size="88">Settle debates</text>
+  <text x="40" y="336" font-size="88">Build brackets</text>
+
+  <path class="bracket" d="M870 70 H1020 V188 H870" />
+  <path class="bracket" d="M1020 188 H1185 V246" />
+  <path class="bracket" d="M870 306 H1185 V246" />
+  <path class="bracket" d="M1185 246 H1515" />
+</svg>

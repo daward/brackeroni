@@ -1,0 +1,26 @@
+{
+  "name": "brackeroni",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "test": "node --test",
+    "db:migrate": "node scripts/run-migrations.mjs",
+    "db:check": "node scripts/check-db.mjs"
+  },
+  "dependencies": {
+    "next": "^16.0.0",
+    "next-auth": "^4.24.14",
+    "postgres": "^3.4.7",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "zod": "^4.1.5"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.13",
+    "tailwindcss": "^4.1.13"
+  }
+}
