@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
 import { signIn, signOut } from "next-auth/react";
 
 function getInitials(name, email) {
@@ -20,14 +21,20 @@ function getInitials(name, email) {
 }
 
 export function AuthControls({ user, googleConfigured, isDevShimActive }) {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
   if (user) {
     return <AccountMenu user={user} isDevShimActive={isDevShimActive} />;
   }
 
+  const query = searchParams?.toString();
+  const callbackUrl = query ? `${pathname}?${query}` : pathname || "/";
+
   return (
     <button
       type="button"
-      onClick={() => signIn("google", { callbackUrl: "/create" })}
+      onClick={() => signIn("google", { callbackUrl })}
       disabled={!googleConfigured}
       title={googleConfigured ? "Sign in with Google" : "Configure Google OAuth to sign in."}
       className="display-face border border-[var(--accent-2)] bg-[var(--accent-2)] px-4 py-3 text-sm font-bold uppercase tracking-[0.18em] text-black transition hover:border-[var(--accent-3)] hover:bg-[var(--accent-3)] disabled:cursor-not-allowed disabled:opacity-60"
