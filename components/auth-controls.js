@@ -37,7 +37,7 @@ export function AuthControls({ user, googleConfigured, isDevShimActive }) {
       onClick={() => signIn("google", { callbackUrl })}
       disabled={!googleConfigured}
       title={googleConfigured ? "Sign in with Google" : "Configure Google OAuth to sign in."}
-      className="display-face border border-[var(--accent-2)] bg-[var(--accent-2)] px-4 py-3 text-sm font-bold uppercase tracking-[0.18em] text-black transition hover:border-[var(--accent-3)] hover:bg-[var(--accent-3)] disabled:cursor-not-allowed disabled:opacity-60"
+      className="nav-link display-face appearance-none border border-[var(--line)] bg-[var(--panel)] px-4 py-3 text-sm font-bold uppercase tracking-[0.18em] transition hover:border-[var(--accent-2)] hover:bg-[var(--accent-2)] disabled:cursor-not-allowed disabled:opacity-60"
     >
       Sign In
     </button>
@@ -79,7 +79,7 @@ function AccountMenu({ user, isDevShimActive }) {
       <button
         type="button"
         onClick={() => setIsOpen((current) => !current)}
-        className="flex items-center gap-3 border border-[var(--line)] bg-[var(--panel)] px-3 py-2 transition hover:border-[var(--accent-2)]"
+        className="nav-link inline-flex items-center justify-center border border-[var(--line)] bg-[var(--panel)] px-3 py-2.5 transition hover:border-[var(--accent-2)] hover:bg-[var(--accent-2)]"
         aria-haspopup="menu"
         aria-expanded={isOpen}
       >
@@ -87,16 +87,13 @@ function AccountMenu({ user, isDevShimActive }) {
           <img
             src={user.imageUrl}
             alt={user.name || user.email || "Account avatar"}
-            className="h-10 w-10 rounded-full object-cover"
+            className="h-6 w-6 rounded-full object-cover"
           />
         ) : (
-          <span className="flex h-10 w-10 items-center justify-center rounded-full border border-[var(--line)] bg-[var(--panel-2)] text-xs font-bold uppercase tracking-[0.14em] text-[var(--accent-2)]">
+          <span className="flex h-6 w-6 items-center justify-center rounded-full border border-[var(--line)] bg-[var(--panel-2)] text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--accent-2)]">
             {getInitials(user.name, user.email)}
           </span>
         )}
-        <span className="display-face text-xs font-bold uppercase tracking-[0.18em] text-[var(--muted)]">
-          Account
-        </span>
       </button>
 
       {isOpen ? (

@@ -24,7 +24,7 @@ export function MainNav({ user, googleConfigured, isDevShimActive }) {
             [Have an Opinion] &#123;Settle the Score&#125;
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-3 md:justify-end">
+        <div className="flex flex-wrap items-center gap-2 md:justify-end">
           <nav className="flex flex-wrap gap-2">
             {links.map((link) => {
               const isActive = pathname === link.href;

@@ -26,6 +26,14 @@ function formatRoundLabel(match, tournament) {
   return `Round ${match.roundNumber}`;
 }
 
+function buildCreateReturnUrl(tournamentId, stage = "active") {
+  return `/create?stage=${stage}&tournament=${tournamentId}`;
+}
+
+function buildResultsUrl(tournamentId) {
+  return `/results/${tournamentId}`;
+}
+
 function orderResultEntries(entries, matches, tournament) {
   return [...entries].sort((left, right) => {
     if (tournament.resultMode === "winner_only") {
@@ -83,6 +91,7 @@ export function VoteScreenPanels({
   const [pendingVoteMatchId, setPendingVoteMatchId] = useState(null);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [transitionMessage, setTransitionMessage] = useState("");
   const [postRoundPollCount, setPostRoundPollCount] = useState(0);
 
   const focusedTournament =
@@ -178,7 +187,7 @@ export function VoteScreenPanels({
       return;
     }
 
-    router.replace("/create");
+    router.replace(buildCreateReturnUrl(focusedTournament.id, "active"));
   }, [shouldReturnToCreate, focusedTournament, focusedMatch, pendingVoteMatchId, router]);
 
   async function vote(matchId, tournamentId, selectedEntryId) {
@@ -188,6 +197,7 @@ export function VoteScreenPanels({
 
     setError("");
     setMessage("");
+    setTransitionMessage("");
     setPendingVoteMatchId(matchId);
 
     const response = await fetch(`/api/matches/${matchId}/votes`, {
@@ -200,7 +210,16 @@ export function VoteScreenPanels({
     const data = await response.json();
 
     if (!response.ok) {
+      if (response.status === 400 && data.error?.code === "MATCH_NOT_OPEN") {
+        setTransitionMessage("That round closed before your vote was submitted, so it did not count.");
+        await refreshTournamentState(tournamentId);
+        setMessage("That round already closed. Moving you to the latest bracket state.");
+        setPendingVoteMatchId(null);
+        return;
+      }
+
       if (response.status === 409 && data.error?.code === "ALREADY_VOTED") {
+        setTransitionMessage("");
         await refreshTournamentState(tournamentId);
         setMessage("That vote was already recorded. Moving to the next available matchup.");
         setPendingVoteMatchId(null);
@@ -237,15 +256,11 @@ export function VoteScreenPanels({
     }
 
     if (tournamentData.item.status === "complete") {
+      setTransitionMessage("");
       setActive((current) => current.filter((tournament) => tournament.id !== tournamentId));
       setCompleted((current) => [tournamentData.item, ...current]);
       setFocusedTournamentId(null);
-      if (shouldReturnToCreate) {
-        router.replace("/create");
-        return;
-      }
-      setMessage("Vote recorded. Bracket complete.");
-      setPendingVoteMatchId(null);
+      router.replace(buildResultsUrl(tournamentId));
       return;
     }
 
@@ -296,10 +311,7 @@ export function VoteScreenPanels({
       setActive((current) => current.filter((tournament) => tournament.id !== tournamentId));
       setCompleted((current) => [tournamentData.item, ...current]);
       setFocusedTournamentId(null);
-      if (shouldReturnToCreate) {
-        router.replace("/create");
-        return;
-      }
+      router.replace(buildResultsUrl(tournamentId));
       return;
     }
 
@@ -662,8 +674,13 @@ export function VoteScreenPanels({
                 Close
               </button>
             </div>
+            {transitionMessage ? (
+              <div className="border-b border-[var(--line)] bg-[var(--panel)] px-5 py-4">
+                <p className="text-sm leading-6 text-[var(--accent-2)]">{transitionMessage}</p>
+              </div>
+            ) : null}
 
-            <div className="grid gap-px bg-[var(--line)] lg:grid-cols-[1fr_auto_1fr]">
+            <div className="grid gap-px bg-[var(--line)] md:grid-cols-[1fr_auto_1fr]">
               <CandidateVoteCard
                 name={focusedMatch.leftName}
                 seed={focusedMatch.leftSeed}
@@ -703,6 +720,9 @@ export function VoteScreenPanels({
               </p>
             </div>
             <div className="space-y-5 px-5 py-6">
+              {transitionMessage ? (
+                <p className="text-sm leading-7 text-[var(--accent-2)]">{transitionMessage}</p>
+              ) : null}
               <p className="text-sm leading-7 text-[var(--ink)]">
                 Your current round is done. This page will keep checking for the next matchup and
                 update automatically when it opens.
@@ -788,19 +808,28 @@ function getEntryRecordStats(matches, entryId) {
   };
 }
 
-function CandidateVoteCard({ name, seed, description, imageUrl, onVote, disabled = false }) {
+function CandidateVoteCard({
+  name,
+  seed,
+  description,
+  imageUrl,
+  onVote,
+  disabled = false
+}) {
   return (
     <button
       type="button"
       onClick={onVote}
       disabled={disabled}
-      className="group bg-[var(--panel-2)] text-left transition hover:bg-[var(--panel)] disabled:cursor-wait disabled:opacity-70"
+      className={`group bg-[var(--panel-2)] text-left transition hover:bg-[var(--panel)] disabled:cursor-wait disabled:opacity-70 ${
+        imageUrl ? "" : "flex min-h-[17rem] flex-col"
+      }`}
     >
-      <div className="border-b border-[var(--line)] px-5 py-4">
+      <div className="border-b border-[var(--line)] px-4 py-3 sm:px-5 sm:py-4">
         <p className="text-xs uppercase tracking-[0.16em] text-[var(--accent-2)]">Seed {seed}</p>
       </div>
       {imageUrl ? (
-        <div className="aspect-[4/3] w-full bg-[var(--panel-3)]">
+        <div className="aspect-[5/2] w-full bg-[var(--panel-3)] md:aspect-[4/3]">
           <img
             src={proxiedImageUrl(imageUrl)}
             alt={name}
@@ -808,12 +837,12 @@ function CandidateVoteCard({ name, seed, description, imageUrl, onVote, disabled
           />
         </div>
       ) : null}
-      <div className="px-5 py-5">
-        <p className="display-face text-3xl font-black leading-tight">{name}</p>
+      <div className={`px-4 py-4 sm:px-5 sm:py-5 ${imageUrl ? "" : "mt-auto"}`}>
+        <p className="display-face text-2xl font-black leading-tight sm:text-3xl">{name}</p>
         {description ? (
-          <p className="mt-3 max-w-xl text-sm leading-6 text-[var(--muted)]">{description}</p>
+          <p className="mt-2 max-w-xl text-sm leading-6 text-[var(--muted)]">{description}</p>
         ) : null}
-        <p className="mt-5 display-face text-sm font-bold uppercase tracking-[0.18em] text-[var(--accent-3)]">
+        <p className="mt-4 display-face text-xs font-bold uppercase tracking-[0.18em] text-[var(--accent-3)]">
           {disabled ? "Recording Vote" : `Vote For ${name}`}
         </p>
       </div>

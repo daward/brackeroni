@@ -4,14 +4,30 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
+function getHeadline(item) {
+  if (item.accessState === "complete") {
+    return `${item.creatorName} wrapped up ${item.title}.`;
+  }
+
+  if (item.accessState === "link_inactive") {
+    return `This invite for ${item.title} is no longer active.`;
+  }
+
+  if (item.accessState === "not_invited") {
+    return `You are not on the voting list for ${item.title}.`;
+  }
+
+  return `${item.creatorName} wants your votes on ${item.title}.`;
+}
+
 function getStatusLine(item) {
   switch (item.accessState) {
     case "waiting":
-      return "You are on the list. This bracket has not started yet.";
+      return "Your bracket will start soon. Get ready to vote.";
     case "active":
-      return "The bracket is live now.";
+      return "Your bracket is live now.";
     case "complete":
-      return "This bracket has already finished.";
+      return "The bracket is complete. You can jump straight to the results.";
     case "link_inactive":
       return "This invite link is no longer active.";
     case "not_invited":
@@ -25,6 +41,7 @@ export function ShareLinkWaitingRoom({ token, initialItem }) {
   const router = useRouter();
   const [item, setItem] = useState(initialItem);
   const [pollCount, setPollCount] = useState(0);
+  const [secondsUntilPoll, setSecondsUntilPoll] = useState(10);
 
   const pollEnabled = useMemo(
     () => item.accessState === "waiting" && pollCount < 18,
@@ -36,6 +53,20 @@ export function ShareLinkWaitingRoom({ token, initialItem }) {
       router.replace(`/vote?tournament=${item.tournamentId}`);
     }
   }, [item.accessState, item.tournamentId, router]);
+
+  useEffect(() => {
+    if (!pollEnabled) {
+      return undefined;
+    }
+
+    setSecondsUntilPoll(10);
+
+    const timer = setInterval(() => {
+      setSecondsUntilPoll((current) => (current <= 1 ? 10 : current - 1));
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [pollEnabled, pollCount]);
 
   useEffect(() => {
     if (!pollEnabled) {
@@ -62,41 +93,25 @@ export function ShareLinkWaitingRoom({ token, initialItem }) {
 
   return (
     <div className="space-y-6">
-      <section className="grid gap-px border border-[var(--line)] bg-[var(--line)] sm:grid-cols-[minmax(0,1fr)_auto]">
-        <div className="bg-[var(--panel)] px-5 py-4">
-          <p className="display-face text-3xl font-black leading-none sm:text-4xl">
-            {item.title}
-          </p>
-        </div>
-        <div className="bg-[var(--panel-3)] px-5 py-4">
-          <p className="text-[11px] uppercase tracking-[0.22em] text-[var(--muted)]">Status</p>
-          <p className="display-face mt-2 text-2xl font-black text-[var(--accent-3)]">
-            {item.status}
-          </p>
-        </div>
-      </section>
-
-      <section className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
-        <div className="border border-[var(--line)] bg-[var(--panel-2)] p-5">
-          <p className="display-face text-xs font-bold uppercase tracking-[0.22em] text-[var(--accent-3)]">
-            Invite
-          </p>
-          <p className="mt-4 text-lg leading-8 text-[var(--ink)]">{getStatusLine(item)}</p>
-          <p className="mt-4 text-sm leading-7 text-[var(--muted)]">
-            Created by {item.creatorName}. {item.entryCount} entries
-            {item.sourcePoolName ? ` from ${item.sourcePoolName}.` : "."}
+      
+      <section className="border border-[var(--line)] bg-[var(--panel)]">
+        <div className="bg-[var(--panel)] px-6 py-10 text-center sm:px-8 sm:py-12">
+          <h1 className="display-face mx-auto max-w-4xl text-4xl font-black leading-tight sm:text-5xl">
+            {getHeadline(item)}
+          </h1>
+          <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-[var(--muted)] sm:text-xl">
+            {getStatusLine(item)}
           </p>
           {item.accessState === "waiting" ? (
-            <p className="mt-4 text-sm leading-7 text-[var(--muted)]">
-              This page will check for updates for a few minutes. Once the bracket starts, you will
-              be taken to voting automatically.
+            <p className="mt-4 text-sm uppercase tracking-[0.18em] text-[var(--muted)]">
+              Checking again in {secondsUntilPoll} second{secondsUntilPoll === 1 ? "" : "s"}.
             </p>
           ) : null}
-          <div className="mt-6 flex flex-wrap gap-3">
+          <div className="mt-8 flex flex-wrap justify-center gap-3">
             {item.accessState === "active" ? (
               <Link
                 href={`/vote?tournament=${item.tournamentId}`}
-                className="display-face border border-[var(--accent-2)] bg-[var(--accent-2)] px-4 py-3 text-sm font-bold uppercase tracking-[0.18em] text-black transition hover:border-[var(--accent-3)] hover:bg-[var(--accent-3)]"
+                className="display-face border border-[var(--accent-2)] bg-[var(--accent-2)] px-5 py-4 text-sm font-bold uppercase tracking-[0.18em] text-black transition hover:border-[var(--accent-3)] hover:bg-[var(--accent-3)]"
               >
                 Open Bracket
               </Link>
@@ -104,37 +119,11 @@ export function ShareLinkWaitingRoom({ token, initialItem }) {
             {item.accessState === "complete" ? (
               <Link
                 href={`/results/${item.tournamentId}`}
-                className="display-face border border-[var(--accent-2)] bg-[var(--accent-2)] px-4 py-3 text-sm font-bold uppercase tracking-[0.18em] text-black transition hover:border-[var(--accent-3)] hover:bg-[var(--accent-3)]"
+                className="display-face border border-[var(--accent-2)] bg-[var(--accent-2)] px-5 py-4 text-sm font-bold uppercase tracking-[0.18em] text-black transition hover:border-[var(--accent-3)] hover:bg-[var(--accent-3)]"
               >
                 View Results
               </Link>
             ) : null}
-            <Link
-              href="/"
-              className="display-face border border-[var(--line)] px-4 py-3 text-sm font-bold uppercase tracking-[0.18em] text-[var(--muted)] transition hover:border-[var(--accent)] hover:text-[var(--accent-2)]"
-            >
-              Home
-            </Link>
-          </div>
-        </div>
-
-        <div className="border border-[var(--line)] bg-[var(--panel)] p-5">
-          <p className="display-face text-xs font-bold uppercase tracking-[0.22em] text-[var(--accent-3)]">
-            Your Spot
-          </p>
-          <div className="mt-4 space-y-3">
-            <div className="border border-[var(--line)] bg-[var(--panel-2)] px-4 py-4">
-              <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--muted)]">Invite State</p>
-              <p className="display-face mt-2 text-xl font-black text-[var(--accent-2)]">
-                {item.isCreator ? "Creator" : item.joined ? item.inviteStatus || "Pending" : "Unavailable"}
-              </p>
-            </div>
-            <div className="border border-[var(--line)] bg-[var(--panel-2)] px-4 py-4">
-              <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--muted)]">Polling</p>
-              <p className="mt-2 text-sm leading-6 text-[var(--ink)]">
-                {pollEnabled ? "Checking every 10 seconds." : "Automatic checking paused."}
-              </p>
-            </div>
           </div>
         </div>
       </section>

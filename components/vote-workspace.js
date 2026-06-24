@@ -23,6 +23,49 @@ export function VoteWorkspace({ activeTournaments, completedTournaments }) {
     const data = await response.json();
 
     if (!response.ok) {
+      if (response.status === 400 && data.error?.code === "MATCH_NOT_OPEN") {
+        setMessage("That round already closed. Refreshing bracket state.");
+
+        const matchResponse = await fetch(`/api/tournaments/${tournamentId}/matches`, {
+          cache: "no-store"
+        });
+        const matchData = await matchResponse.json();
+
+        if (!matchResponse.ok) {
+          setError(matchData.error?.message || "Failed to refresh matches.");
+          return;
+        }
+
+        const tournamentResponse = await fetch(`/api/tournaments/${tournamentId}`, {
+          cache: "no-store"
+        });
+        const tournamentData = await tournamentResponse.json();
+
+        if (!tournamentResponse.ok) {
+          setError(tournamentData.error?.message || "Failed to refresh tournament.");
+          return;
+        }
+
+        if (tournamentData.item.status === "complete") {
+          setActive((current) => current.filter((tournament) => tournament.id !== tournamentId));
+          setCompleted((current) => [tournamentData.item, ...current]);
+          return;
+        }
+
+        setActive((current) =>
+          current.map((tournament) =>
+            tournament.id === tournamentId
+              ? {
+                  ...tournament,
+                  ...tournamentData.item,
+                  matches: matchData.items
+                }
+              : tournament
+          )
+        );
+        return;
+      }
+
       setError(data.error?.message || "Failed to record vote.");
       return;
     }
