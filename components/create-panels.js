@@ -16,6 +16,12 @@ const emptyPoolForm = {
   description: ""
 };
 
+const emptyPoolImportForm = {
+  name: "",
+  description: "",
+  text: ""
+};
+
 const emptyTournamentForm = {
   title: "",
   sourcePoolId: "",
@@ -31,6 +37,22 @@ function proxiedImageUrl(url) {
   }
 
   return `/api/image-proxy?url=${encodeURIComponent(url)}`;
+}
+
+function buildPoolImportPrompt(poolName) {
+  const trimmedName = poolName.trim();
+  const subject = trimmedName ? `"${trimmedName}"` : "the target pool";
+
+  return [
+    `Extract a candidate pool for ${subject}.`,
+    "Be exhaustive rather than selective.",
+    "If the source is a bulleted or numbered list, treat each distinct bullet or list item as a candidate unless it is clearly not one.",
+    "Return distinct candidate names only when they are directly supported by the source text.",
+    "Prefer canonical names over aliases.",
+    "Do not invent candidates or fill gaps with guesses.",
+    "If the same candidate appears more than once, include it once.",
+    "Keep rationale and excerpt very short so the full list can fit in the response."
+  ].join(" ");
 }
 
 function formatBracketDate(value) {
@@ -365,6 +387,7 @@ export function CreatePanels() {
   const [poolDetails, setPoolDetails] = useState({});
   const [expandedPoolId, setExpandedPoolId] = useState(null);
   const [isPoolModalOpen, setIsPoolModalOpen] = useState(false);
+  const [isPoolImportModalOpen, setIsPoolImportModalOpen] = useState(false);
   const [isTournamentModalOpen, setIsTournamentModalOpen] = useState(false);
   const [editingPool, setEditingPool] = useState(null);
   const [poolEditForm, setPoolEditForm] = useState(emptyPoolForm);
@@ -379,6 +402,7 @@ export function CreatePanels() {
   const [imageSuggestionLoading, setImageSuggestionLoading] = useState({});
   const [imageSuggestionQuery, setImageSuggestionQuery] = useState({});
   const [poolForm, setPoolForm] = useState(emptyPoolForm);
+  const [poolImportForm, setPoolImportForm] = useState(emptyPoolImportForm);
   const [tournamentForm, setTournamentForm] = useState(emptyTournamentForm);
   const [poolInlineDrafts, setPoolInlineDrafts] = useState({});
   const [tournamentInlineDrafts, setTournamentInlineDrafts] = useState({});
@@ -398,6 +422,7 @@ export function CreatePanels() {
   const [isPending, startTransition] = useTransition();
   const candidateFormRefs = useRef({});
   const tournamentCardRefs = useRef({});
+  const poolCardRefs = useRef({});
 
   function beginAction(actionKey) {
     setPendingActions((current) => ({
@@ -592,6 +617,14 @@ export function CreatePanels() {
   }, [workspaceView, tournaments]);
 
   useEffect(() => {
+    const requestedView = searchParams?.get("view");
+
+    if (requestedView === "pools" || requestedView === "tournaments") {
+      setWorkspaceView(requestedView);
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
     if (workspaceView !== "tournaments") {
       return;
     }
@@ -654,6 +687,33 @@ export function CreatePanels() {
 
     return () => clearTimeout(timer);
   }, [workspaceView, tournaments, searchParams]);
+
+  useEffect(() => {
+    if (workspaceView !== "pools") {
+      return;
+    }
+
+    const requestedPoolId = searchParams?.get("pool");
+    if (!requestedPoolId) {
+      return;
+    }
+
+    const requestedPool = pools.find((pool) => pool.id === requestedPoolId);
+    if (!requestedPool) {
+      return;
+    }
+
+    setExpandedPoolId(requestedPool.id);
+
+    const timer = setTimeout(() => {
+      poolCardRefs.current[requestedPool.id]?.scrollIntoView({
+        behavior: "smooth",
+        block: "start"
+      });
+    }, 50);
+
+    return () => clearTimeout(timer);
+  }, [workspaceView, pools, searchParams]);
 
   useEffect(() => {
     const timers = Object.entries(candidateDrafts).map(([poolId, draft]) => {
@@ -866,6 +926,55 @@ export function CreatePanels() {
       await loadWorkspace();
     } finally {
       endAction("create-pool");
+    }
+  }
+
+  function closePoolImportModal() {
+    setIsPoolImportModalOpen(false);
+    setPoolImportForm(emptyPoolImportForm);
+  }
+
+  async function handlePoolImportSubmit(event) {
+    event.preventDefault();
+    const actionKey = "import-pool";
+
+    if (isActionPending(actionKey)) {
+      return;
+    }
+
+    beginAction(actionKey);
+    setErrorMessage("");
+    setSuccessMessage("");
+
+    try {
+      const response = await fetch("/api/pools", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json"
+        },
+        body: JSON.stringify({
+          name: poolImportForm.name,
+          description: poolImportForm.description || null,
+          source: {
+            type: "extract",
+            prompt: buildPoolImportPrompt(poolImportForm.name),
+            text: poolImportForm.text
+          }
+        })
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        setErrorMessage(data.error?.message || "Failed to import pool.");
+        return;
+      }
+
+      setExpandedPoolId(data.item?.id ?? null);
+      closePoolImportModal();
+      setSuccessMessage("Pool imported.");
+      await loadWorkspace();
+    } finally {
+      endAction(actionKey);
     }
   }
 
@@ -1773,7 +1882,7 @@ export function CreatePanels() {
 
       {workspaceView === "pools" ? (
         <div className="space-y-3">
-          <div className="flex justify-start">
+          <div className="flex flex-wrap justify-start gap-3">
             <button
               type="button"
               onClick={() => createPoolRecord()}
@@ -1781,6 +1890,14 @@ export function CreatePanels() {
               className="ui-button ui-button-compact ui-button-primary"
             >
               Add Pool
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsPoolImportModalOpen(true)}
+              disabled={isActionPending("import-pool")}
+              className="ui-button ui-button-compact ui-button-muted"
+            >
+              {isActionPending("import-pool") ? "Importing" : "Import Pool"}
             </button>
           </div>
           <SectionCard>
@@ -1802,6 +1919,9 @@ export function CreatePanels() {
                 return (
                   <div
                     key={pool.id}
+                    ref={(node) => {
+                      poolCardRefs.current[pool.id] = node;
+                    }}
                     className={`border-b border-[var(--line)] bg-[var(--panel-2)] transition-opacity duration-150 last:border-b-0 ${
                       isExpanded ? "p-5" : "p-0"
                     } ${
@@ -2981,6 +3101,97 @@ export function CreatePanels() {
         </div>
       ) : null}
 
+      {isPoolImportModalOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
+          <div className="w-full max-w-2xl border border-[var(--line)] bg-[var(--panel)]">
+            <div className="flex items-center justify-between gap-4 border-b border-[var(--line)] bg-[var(--panel-3)] px-5 py-4">
+              <div>
+                <h2 className="display-face text-2xl font-black uppercase tracking-[0.1em]">
+                  Import Pool
+                </h2>
+                <p className="mt-1 text-xs uppercase tracking-[0.16em] text-[var(--muted)]">
+                  Paste source text and seed a pool with extracted candidates
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={closePoolImportModal}
+                className="display-face text-xs font-black uppercase tracking-[0.18em] text-[var(--accent-2)]"
+              >
+                Close
+              </button>
+            </div>
+            <div className="px-5 py-5">
+              <form className="space-y-4" onSubmit={handlePoolImportSubmit}>
+                <input
+                  value={poolImportForm.name}
+                  onChange={(event) =>
+                    setPoolImportForm((current) => ({ ...current, name: event.target.value }))
+                  }
+                  placeholder="Pool name"
+                  className="ui-field ui-field-modal"
+                />
+                <textarea
+                  value={poolImportForm.description}
+                  onChange={(event) =>
+                    setPoolImportForm((current) => ({
+                      ...current,
+                      description: event.target.value
+                    }))
+                  }
+                  placeholder="Pool description"
+                  rows={2}
+                  className="ui-field ui-field-modal"
+                />
+                <div className="space-y-2">
+                  <p className="display-face text-xs font-black uppercase tracking-[0.18em] text-[var(--accent-3)]">
+                    Source Text
+                  </p>
+                  <textarea
+                    value={poolImportForm.text}
+                    onChange={(event) =>
+                      setPoolImportForm((current) => ({ ...current, text: event.target.value }))
+                    }
+                    placeholder="Paste the source text, notes, article excerpt, or scraped content here."
+                    rows={14}
+                    className="ui-field ui-field-modal"
+                  />
+                  <p className="text-xs leading-5 text-[var(--muted)]">
+                    The importer will extract distinct candidate names from this text and create
+                    a seeded pool.
+                  </p>
+                </div>
+                <div className="border border-[var(--line)] bg-[var(--panel-2)] px-4 py-3">
+                  <p className="text-sm leading-6 text-[var(--muted)]">
+                    Or use a bookmarklet to build a pool from a web page.{" "}
+                    <Link href="/tools/import" className="text-[var(--accent-3)] underline">
+                      Set up page import
+                    </Link>
+                    .
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-3">
+                  <button
+                    type="submit"
+                    disabled={isPending || isActionPending("import-pool")}
+                    className="ui-button ui-button-accent-fill"
+                  >
+                    {isActionPending("import-pool") ? "Importing" : "Build Pool"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={closePoolImportModal}
+                    className="ui-button ui-button-muted"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       {isTournamentModalOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
           <div className="w-full max-w-2xl border border-[var(--line)] bg-[var(--panel)]">
@@ -3324,5 +3535,3 @@ function FlashMessages({ errorMessage, successMessage }) {
     </div>
   );
 }
-
-

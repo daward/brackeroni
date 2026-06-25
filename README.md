@@ -57,6 +57,45 @@ You must also configure the Google OAuth app with your local and deployed callba
 1. `http://localhost:3000/api/auth/callback/google`
 2. Your deployed `/api/auth/callback/google` URL
 
+## Gemini Extraction
+The app now supports Gemini-backed extraction as an optional `source` payload on `POST /api/pools`.
+
+Required environment variable:
+
+1. `GEMINI_API_KEY`
+
+Optional environment variable:
+
+1. `GEMINI_MODEL`
+
+Example request:
+
+```json
+{
+  "name": "Pixar favorites",
+  "description": "Seeded from prompt-driven extraction",
+  "source": {
+    "type": "extract",
+    "prompt": "Extract likely movie candidates. Prefer distinct titles, avoid duplicates, and include short rationale.",
+    "text": "Toy Story, Up, Ratatouille, and Coco are recurring favorites.",
+    "urls": [
+      "https://en.wikipedia.org/wiki/Toy_Story",
+      "https://en.wikipedia.org/wiki/Coco_(2017_film)"
+    ]
+  }
+}
+```
+
+## Bookmarklet Import
+For generic page import across sites like Wikipedia, Tripadvisor, news sites, and Board Game Arena, visit `/tools/import` while signed in.
+
+Behavior:
+
+1. Drag the generated `Import To Brackeroni` link to your bookmarks bar.
+2. On any page, highlight text first if you want to narrow the import.
+3. Click the bookmarklet.
+4. Brackeroni opens `/import` on your own domain, shows the captured content, and lets you submit the pool from a first-party review screen.
+
 ## Development Auth Shim
 For local development, the app can still resolve a current user from:
 

@@ -11,6 +11,195 @@ export const openApiDocument = {
       description: "Local development"
     }
   ],
+  components: {
+    schemas: {
+      Error: {
+        type: "object",
+        properties: {
+          error: {
+            type: "object",
+            properties: {
+              code: { type: "string" },
+              message: { type: "string" },
+              details: {}
+            },
+            required: ["code", "message"]
+          }
+        },
+        required: ["error"]
+      },
+      CandidateSummary: {
+        type: "object",
+        properties: {
+          id: { type: "string", format: "uuid" },
+          name: { type: "string" },
+          description: { type: ["string", "null"] },
+          imageUrl: { type: ["string", "null"], format: "uri" },
+          createdAt: { type: "string", format: "date-time" },
+          updatedAt: { type: "string", format: "date-time" }
+        },
+        required: ["id", "name", "description", "imageUrl", "createdAt", "updatedAt"]
+      },
+      CandidateListResponse: {
+        type: "object",
+        properties: {
+          items: {
+            type: "array",
+            items: { $ref: "#/components/schemas/CandidateSummary" }
+          },
+          meta: {
+            type: "object",
+            properties: {
+              count: { type: "integer" }
+            },
+            required: ["count"]
+          }
+        },
+        required: ["items", "meta"]
+      },
+      CandidateDetailResponse: {
+        type: "object",
+        properties: {
+          item: { $ref: "#/components/schemas/CandidateSummary" }
+        },
+        required: ["item"]
+      },
+      CandidateCreateRequest: {
+        type: "object",
+        properties: {
+          name: { type: "string", minLength: 1, maxLength: 120 },
+          description: { type: ["string", "null"], maxLength: 2000 },
+          imageUrl: { type: ["string", "null"], format: "uri", maxLength: 2048 }
+        },
+        required: ["name"]
+      },
+      PoolCandidate: {
+        type: "object",
+        properties: {
+          id: { type: "string", format: "uuid" },
+          name: { type: "string" },
+          description: { type: ["string", "null"] },
+          imageUrl: { type: ["string", "null"], format: "uri" },
+          displayOrder: { type: ["integer", "null"] }
+        },
+        required: ["id", "name", "description", "imageUrl", "displayOrder"]
+      },
+      Pool: {
+        type: "object",
+        properties: {
+          id: { type: "string", format: "uuid" },
+          name: { type: "string" },
+          description: { type: ["string", "null"] },
+          archivedAt: { type: ["string", "null"], format: "date-time" },
+          candidateCount: { type: "integer" },
+          createdAt: { type: "string", format: "date-time" },
+          updatedAt: { type: "string", format: "date-time" }
+        },
+        required: ["id", "name", "description", "archivedAt", "candidateCount", "createdAt", "updatedAt"]
+      },
+      PoolDetail: {
+        allOf: [
+          { $ref: "#/components/schemas/Pool" },
+          {
+            type: "object",
+            properties: {
+              candidates: {
+                type: "array",
+                items: { $ref: "#/components/schemas/PoolCandidate" }
+              }
+            },
+            required: ["candidates"]
+          }
+        ]
+      },
+      PoolListResponse: {
+        type: "object",
+        properties: {
+          items: {
+            type: "array",
+            items: { $ref: "#/components/schemas/Pool" }
+          },
+          meta: {
+            type: "object",
+            properties: {
+              count: { type: "integer" }
+            },
+            required: ["count"]
+          }
+        },
+        required: ["items", "meta"]
+      },
+      PoolDetailResponse: {
+        type: "object",
+        properties: {
+          item: { $ref: "#/components/schemas/PoolDetail" }
+        },
+        required: ["item"]
+      },
+      PoolSourceExtract: {
+        type: "object",
+        properties: {
+          type: { type: "string", enum: ["extract"] },
+          prompt: { type: "string", minLength: 1, maxLength: 12000 },
+          pageTitle: { type: ["string", "null"], maxLength: 300 },
+          pageUrl: { type: ["string", "null"], format: "uri", maxLength: 2048 },
+          text: { type: ["string", "null"] },
+          html: { type: ["string", "null"] },
+          urls: {
+            type: "array",
+            maxItems: 20,
+            items: { type: "string", format: "uri", maxLength: 2048 }
+          },
+          model: { type: "string", maxLength: 120 }
+        },
+        required: ["type", "prompt"]
+      },
+      PoolSourceItem: {
+        type: "object",
+        properties: {
+          name: { type: "string", minLength: 1, maxLength: 120 },
+          description: { type: ["string", "null"], maxLength: 2000 },
+          imageUrl: { type: ["string", "null"], format: "uri", maxLength: 2048 },
+          sourceUrl: { type: ["string", "null"], format: "uri", maxLength: 2048 }
+        },
+        required: ["name"]
+      },
+      PoolSourceItems: {
+        type: "object",
+        properties: {
+          type: { type: "string", enum: ["items"] },
+          items: {
+            type: "array",
+            minItems: 1,
+            maxItems: 1000,
+            items: { $ref: "#/components/schemas/PoolSourceItem" }
+          }
+        },
+        required: ["type", "items"]
+      },
+      PoolCreateRequest: {
+        type: "object",
+        properties: {
+          name: { type: "string", minLength: 1, maxLength: 120 },
+          description: { type: ["string", "null"], maxLength: 2000 },
+          source: {
+            oneOf: [
+              { $ref: "#/components/schemas/PoolSourceExtract" },
+              { $ref: "#/components/schemas/PoolSourceItems" }
+            ]
+          }
+        },
+        required: ["name"]
+      },
+      PoolCreateResponse: {
+        type: "object",
+        properties: {
+          item: { $ref: "#/components/schemas/PoolDetail" }
+        },
+        required: ["item"]
+      }
+    }
+  },
   paths: {
     "/api/health": {
       get: {
@@ -27,15 +216,33 @@ export const openApiDocument = {
         summary: "List candidates owned by the current user",
         responses: {
           "200": {
-            description: "Candidate collection"
+            description: "Candidate collection",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/CandidateListResponse" }
+              }
+            }
           }
         }
       },
       post: {
         summary: "Create a candidate",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/CandidateCreateRequest" }
+            }
+          }
+        },
         responses: {
           "201": {
-            description: "Candidate created"
+            description: "Candidate created",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/CandidateDetailResponse" }
+              }
+            }
           }
         }
       }
@@ -56,7 +263,12 @@ export const openApiDocument = {
         ],
         responses: {
           "200": {
-            description: "Candidate resource"
+            description: "Candidate resource",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/CandidateDetailResponse" }
+              }
+            }
           }
         }
       },
@@ -75,7 +287,12 @@ export const openApiDocument = {
         ],
         responses: {
           "200": {
-            description: "Candidate updated"
+            description: "Candidate updated",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/CandidateDetailResponse" }
+              }
+            }
           }
         }
       }
@@ -85,15 +302,57 @@ export const openApiDocument = {
         summary: "List candidate pools owned by the current user",
         responses: {
           "200": {
-            description: "Pool collection"
+            description: "Pool collection",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/PoolListResponse" }
+              }
+            }
           }
         }
       },
       post: {
-        summary: "Create a candidate pool",
+        summary: "Create a candidate pool, optionally seeded from extracted source material",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/PoolCreateRequest" }
+            }
+          }
+        },
         responses: {
           "201": {
-            description: "Pool created"
+            description: "Pool created",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/PoolCreateResponse" }
+              }
+            }
+          },
+          "400": {
+            description: "Validation error",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/Error" }
+              }
+            }
+          },
+          "401": {
+            description: "Unauthorized",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/Error" }
+              }
+            }
+          },
+          "502": {
+            description: "Gemini unavailable or invalid response",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/Error" }
+              }
+            }
           }
         }
       }
@@ -114,7 +373,12 @@ export const openApiDocument = {
         ],
         responses: {
           "200": {
-            description: "Pool resource"
+            description: "Pool resource",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/PoolDetailResponse" }
+              }
+            }
           }
         }
       },

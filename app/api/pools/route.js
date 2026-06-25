@@ -1,6 +1,8 @@
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { createPool, listPools } from "@/lib/data/pools";
 import { json, readJson, withRouteErrorHandling } from "@/lib/api/http";
+import { buildGenericPageImportPrompt } from "@/lib/bookmarklets/prompt";
+import { extractCandidatesWithGeminiForPools } from "@/lib/gemini/extract-pools-v2";
 import { poolCreateSchema } from "@/lib/validation/pool";
 
 export const GET = withRouteErrorHandling(async function GET(request) {
@@ -18,9 +20,38 @@ export const GET = withRouteErrorHandling(async function GET(request) {
 export const POST = withRouteErrorHandling(async function POST(request) {
   const user = await getCurrentUser(request);
   const payload = poolCreateSchema.parse(await readJson(request));
+  let candidates = [];
+
+  if (payload.source?.type === "extract") {
+    const extractionSource = {
+      ...payload.source,
+      prompt:
+        payload.source.prompt ||
+        buildGenericPageImportPrompt({
+          poolName: payload.name,
+          pageTitle: payload.source.pageTitle,
+          pageUrl: payload.source.pageUrl
+        })
+    };
+    const extracted = await extractCandidatesWithGeminiForPools(extractionSource);
+    candidates = extracted.candidates.map((candidate) => ({
+      name: candidate.label,
+      description: candidate.description || null,
+      imageUrl: candidate.imageUrl || null
+    }));
+  } else if (payload.source?.type === "items") {
+    candidates = payload.source.items.map((candidate) => ({
+      name: candidate.name,
+      description: candidate.description || null,
+      imageUrl: candidate.imageUrl || null
+    }));
+  }
+
   const pool = await createPool({
     creatorUserId: user.id,
-    ...payload
+    name: payload.name,
+    description: payload.description,
+    candidates
   });
 
   return json(
