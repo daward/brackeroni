@@ -26,6 +26,14 @@ function formatRoundLabel(match, tournament) {
   return `Round ${match.roundNumber}`;
 }
 
+function isContestedMatch(match) {
+  return Boolean(match.leftEntryId && match.rightEntryId);
+}
+
+function isVisibleHistoryMatch(match) {
+  return isContestedMatch(match) && match.status !== "auto_resolved";
+}
+
 function buildCreateReturnUrl(tournamentId, stage = "active") {
   return `/create?stage=${stage}&tournament=${tournamentId}`;
 }
@@ -103,7 +111,9 @@ export function VoteScreenPanels({
   const selectedResultHistory = selectedResultEntry
     ? resultsMatches.filter(
         (match) =>
-          match.leftEntryId === selectedResultEntry.id || match.rightEntryId === selectedResultEntry.id
+          isVisibleHistoryMatch(match) &&
+          (match.leftEntryId === selectedResultEntry.id ||
+            match.rightEntryId === selectedResultEntry.id)
       )
     : [];
   const waitingTournamentIds = active
@@ -495,36 +505,51 @@ export function VoteScreenPanels({
                         Match History
                       </p>
                       <div className="mt-4 space-y-3">
-                        {selectedResultHistory.map((match) => (
-                          <div
-                            key={match.id}
-                            className="border border-[var(--line)] bg-[var(--panel-2)] px-4 py-4"
-                          >
-                            <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--accent-2)]">
-                              {formatRoundLabel(match, resultsTournament)}
-                            </p>
-                            <div className="mt-3 flex items-start justify-between gap-4">
+                        {selectedResultHistory.length === 0 ? (
+                          <p className="text-sm text-[var(--muted)]">No played matches to show yet.</p>
+                        ) : (
+                          selectedResultHistory.map((match) => (
+                            <div
+                              key={match.id}
+                              className="border border-[var(--line)] bg-[var(--panel-2)] px-4 py-4"
+                            >
+                              <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--accent-2)]">
+                                {formatRoundLabel(match, resultsTournament)}
+                              </p>
+                              <div className="mt-3 flex items-start justify-between gap-4">
                               <div>
                                 <p className="display-face text-lg font-black">
                                   {describeHistoryResult(match, selectedResultEntry.id)}
                                 </p>
+                                {describeUserVote(match, selectedResultEntry.id) ? (
+                                  <p
+                                    className={`mt-1 text-xs uppercase tracking-[0.18em] ${
+                                      describeUserVote(match, selectedResultEntry.id).className
+                                    }`}
+                                  >
+                                    {describeUserVote(match, selectedResultEntry.id).label}
+                                  </p>
+                                ) : null}
                                 <p className="mt-1 text-xs uppercase tracking-[0.18em] text-[var(--accent-3)]">
                                   Vote tally {formatVoteTally(match, selectedResultEntry.id)}
                                 </p>
-                                <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-                                  {describeHistoryOpponent(match, selectedResultEntry.id)}
-                                </p>
+                                  <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+                                    {describeHistoryOpponent(match, selectedResultEntry.id)}
+                                  </p>
+                                </div>
+                                {getOpponentImageUrl(match, selectedResultEntry.id) ? (
+                                  <img
+                                    src={proxiedImageUrl(
+                                      getOpponentImageUrl(match, selectedResultEntry.id)
+                                    )}
+                                    alt={describeHistoryOpponent(match, selectedResultEntry.id)}
+                                    className="h-16 w-16 rounded-sm object-cover"
+                                  />
+                                ) : null}
                               </div>
-                              {getOpponentImageUrl(match, selectedResultEntry.id) ? (
-                                <img
-                                  src={proxiedImageUrl(getOpponentImageUrl(match, selectedResultEntry.id))}
-                                  alt={describeHistoryOpponent(match, selectedResultEntry.id)}
-                                  className="h-16 w-16 rounded-sm object-cover"
-                                />
-                              ) : null}
                             </div>
-                          </div>
-                        ))}
+                          ))
+                        )}
                       </div>
                     </div>
                   </>
@@ -770,6 +795,16 @@ function describeHistoryResult(match, entryId) {
   return match.winnerEntryId === entryId ? "Won" : "Lost";
 }
 
+function describeUserVote(match, entryId) {
+  if (!match.userVoteEntryId) {
+    return null;
+  }
+
+  return match.userVoteEntryId === entryId
+    ? { label: "✓ You voted for this pick", className: "text-[var(--accent-2)]" }
+    : { label: "✓ You voted against it", className: "text-[var(--accent)]" };
+}
+
 function getOpponentImageUrl(match, entryId) {
   const isLeft = match.leftEntryId === entryId;
   return isLeft ? match.rightImageUrl : match.leftImageUrl;
@@ -792,6 +827,7 @@ function formatRecord(matches, entryId) {
 function getEntryRecordStats(matches, entryId) {
   const relevantMatches = matches.filter(
     (match) =>
+      isVisibleHistoryMatch(match) &&
       (match.leftEntryId === entryId || match.rightEntryId === entryId) &&
       match.winnerEntryId
   );
@@ -829,11 +865,18 @@ function CandidateVoteCard({
         <p className="text-xs uppercase tracking-[0.16em] text-[var(--accent-2)]">Seed {seed}</p>
       </div>
       {imageUrl ? (
-        <div className="aspect-[5/2] w-full bg-[var(--panel-3)] md:aspect-[4/3]">
+        <div className="relative flex min-h-[11rem] items-center justify-center overflow-hidden bg-[var(--panel-3)] p-4 md:min-h-[14rem] md:p-5">
+          <img
+            src={proxiedImageUrl(imageUrl)}
+            alt=""
+            aria-hidden="true"
+            className="absolute inset-0 h-full w-full scale-110 object-cover opacity-35 blur-2xl saturate-125"
+          />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.06),rgba(15,15,15,0.12)_42%,rgba(15,15,15,0.75)_100%)]" />
           <img
             src={proxiedImageUrl(imageUrl)}
             alt={name}
-            className="h-full w-full object-cover transition duration-200 group-hover:scale-[1.01]"
+            className="relative z-10 max-h-[8rem] max-w-full object-contain shadow-[0_10px_30px_rgba(0,0,0,0.35)] transition duration-200 group-hover:scale-[1.03] md:max-h-[10rem]"
           />
         </div>
       ) : null}

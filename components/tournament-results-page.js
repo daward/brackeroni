@@ -19,9 +19,18 @@ function formatRoundLabel(match, tournament) {
   return `Round ${match.roundNumber}`;
 }
 
+function isContestedMatch(match) {
+  return Boolean(match.leftEntryId && match.rightEntryId);
+}
+
+function isVisibleHistoryMatch(match) {
+  return isContestedMatch(match) && match.status !== "auto_resolved";
+}
+
 function getEntryRecordStats(matches, entryId) {
   const relevantMatches = matches.filter(
     (match) =>
+      isVisibleHistoryMatch(match) &&
       (match.leftEntryId === entryId || match.rightEntryId === entryId) &&
       match.winnerEntryId
   );
@@ -85,6 +94,16 @@ function describeHistoryResult(match, entryId) {
   return match.winnerEntryId === entryId ? "Won" : "Lost";
 }
 
+function describeUserVote(match, entryId) {
+  if (!match.userVoteEntryId) {
+    return null;
+  }
+
+  return match.userVoteEntryId === entryId
+    ? { label: "✓ You voted for this pick", className: "text-[var(--accent-2)]" }
+    : { label: "✓ You voted against it", className: "text-[var(--accent)]" };
+}
+
 function describeHistoryOpponent(match, entryId) {
   const isLeft = match.leftEntryId === entryId;
   const opponentName = isLeft ? match.rightName : match.leftName;
@@ -117,7 +136,8 @@ export function TournamentResultsPage({ tournament, matches }) {
   const selectedEntryHistory = selectedEntry
     ? matches.filter(
         (match) =>
-          match.leftEntryId === selectedEntry.id || match.rightEntryId === selectedEntry.id
+          isVisibleHistoryMatch(match) &&
+          (match.leftEntryId === selectedEntry.id || match.rightEntryId === selectedEntry.id)
       )
     : [];
 
@@ -204,36 +224,49 @@ export function TournamentResultsPage({ tournament, matches }) {
                     Match History
                   </p>
                   <div className="mt-4 space-y-3">
-                    {selectedEntryHistory.map((match) => (
-                      <div
-                        key={match.id}
-                        className="border border-[var(--line)] bg-[var(--panel-2)] px-4 py-4"
-                      >
-                        <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--accent-2)]">
-                          {formatRoundLabel(match, tournament)}
-                        </p>
-                        <div className="mt-3 flex items-start justify-between gap-4">
-                          <div>
-                            <p className="display-face text-lg font-black">
-                              {describeHistoryResult(match, selectedEntry.id)}
-                            </p>
-                            <p className="mt-1 text-xs uppercase tracking-[0.18em] text-[var(--accent-3)]">
-                              Vote: {formatVoteTally(match, selectedEntry.id)}
-                            </p>
-                            <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-                              {describeHistoryOpponent(match, selectedEntry.id)}
-                            </p>
+                    {selectedEntryHistory.length === 0 ? (
+                      <p className="text-sm text-[var(--muted)]">No played matches to show yet.</p>
+                    ) : (
+                      selectedEntryHistory.map((match) => (
+                        <div
+                          key={match.id}
+                          className="border border-[var(--line)] bg-[var(--panel-2)] px-4 py-4"
+                        >
+                          <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--accent-2)]">
+                            {formatRoundLabel(match, tournament)}
+                          </p>
+                          <div className="mt-3 flex items-start justify-between gap-4">
+                            <div>
+                              <p className="display-face text-lg font-black">
+                                {describeHistoryResult(match, selectedEntry.id)}
+                              </p>
+                              {describeUserVote(match, selectedEntry.id) ? (
+                                <p
+                                  className={`mt-1 text-xs uppercase tracking-[0.18em] ${
+                                    describeUserVote(match, selectedEntry.id).className
+                                  }`}
+                                >
+                                  {describeUserVote(match, selectedEntry.id).label}
+                                </p>
+                              ) : null}
+                              <p className="mt-1 text-xs uppercase tracking-[0.18em] text-[var(--accent-3)]">
+                                Vote: {formatVoteTally(match, selectedEntry.id)}
+                              </p>
+                              <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+                                {describeHistoryOpponent(match, selectedEntry.id)}
+                              </p>
+                            </div>
+                            {getOpponentImageUrl(match, selectedEntry.id) ? (
+                              <img
+                                src={proxiedImageUrl(getOpponentImageUrl(match, selectedEntry.id))}
+                                alt={describeHistoryOpponent(match, selectedEntry.id)}
+                                className="h-16 w-16 rounded-sm object-cover"
+                              />
+                            ) : null}
                           </div>
-                          {getOpponentImageUrl(match, selectedEntry.id) ? (
-                            <img
-                              src={proxiedImageUrl(getOpponentImageUrl(match, selectedEntry.id))}
-                              alt={describeHistoryOpponent(match, selectedEntry.id)}
-                              className="h-16 w-16 rounded-sm object-cover"
-                            />
-                          ) : null}
                         </div>
-                      </div>
-                    ))}
+                      ))
+                    )}
                   </div>
                 </div>
               </>

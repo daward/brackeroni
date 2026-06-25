@@ -49,6 +49,16 @@ export default function HomePage() {
                   Review active brackets, cast votes, and check completed results.
                 </p>
               </Link>
+              <Link
+                href="/tools/import"
+                className="block border border-[var(--accent-3)] bg-[var(--panel)] px-4 py-4 transition hover:bg-[rgba(52,211,196,0.15)]"
+              >
+                <p className="display-face text-lg font-black">Don&apos;t start from scratch!</p>
+                <p className="mt-2 text-sm leading-7 text-[var(--muted)]">
+                  Found a great list, article, or ranking already? Install the bookmarklet and
+                  pull any web page straight into Brackeroni&apos;s import flow.
+                </p>
+              </Link>
             </div>
           </div>
         </div>
