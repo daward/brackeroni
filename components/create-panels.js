@@ -405,6 +405,7 @@ export function CreatePanels() {
   const [poolImportForm, setPoolImportForm] = useState(emptyPoolImportForm);
   const [tournamentForm, setTournamentForm] = useState(emptyTournamentForm);
   const [poolInlineDrafts, setPoolInlineDrafts] = useState({});
+  const [openPoolMergeMenuId, setOpenPoolMergeMenuId] = useState(null);
   const [tournamentInlineDrafts, setTournamentInlineDrafts] = useState({});
   const [workspaceView, setWorkspaceView] = useState("tournaments");
   const [tournamentStageView, setTournamentStageView] = useState("draft");
@@ -1193,6 +1194,44 @@ export function CreatePanels() {
       await loadWorkspace();
     } finally {
       endAction("create-tournament");
+    }
+  }
+
+  async function handleMergePool(poolId, sourcePoolId) {
+    if (!sourcePoolId) {
+      setErrorMessage("Choose a source pool to merge.");
+      return;
+    }
+
+    const actionKey = `merge-pool:${poolId}`;
+    if (isActionPending(actionKey)) {
+      return;
+    }
+
+    beginAction(actionKey);
+    setErrorMessage("");
+    setSuccessMessage("");
+
+    try {
+      const response = await fetch(`/api/pools/${poolId}/merge`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json"
+        },
+        body: JSON.stringify({ sourcePoolId })
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        setErrorMessage(data.error?.message || "Failed to merge pools.");
+        return;
+      }
+
+      setOpenPoolMergeMenuId(null);
+      setSuccessMessage("Pool merged.");
+      await loadWorkspace();
+    } finally {
+      endAction(actionKey);
     }
   }
 
@@ -2043,6 +2082,17 @@ export function CreatePanels() {
                             <button
                               type="button"
                               onClick={() =>
+                                setOpenPoolMergeMenuId((current) =>
+                                  current === pool.id ? null : pool.id
+                                )
+                              }
+                              className="ui-button ui-button-muted ui-button-stack"
+                            >
+                              {openPoolMergeMenuId === pool.id ? "Close Merge" : "Merge"}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() =>
                                 setExpandedPoolId((current) => (current === pool.id ? null : pool.id))
                               }
                               className="ui-button ui-button-muted ui-button-stack"
@@ -2050,6 +2100,37 @@ export function CreatePanels() {
                               Collapse
                             </button>
                           </div>
+                        </div>
+                        <div className="relative">
+                          {openPoolMergeMenuId === pool.id ? (
+                            <div className="absolute right-0 top-0 z-20 w-64 border border-[var(--line)] bg-[var(--panel)] p-2 shadow-[0_10px_30px_rgba(0,0,0,0.35)]">
+                              <div className="max-h-72 overflow-y-auto">
+                                {pools
+                                  .filter((candidatePool) => candidatePool.id !== pool.id)
+                                  .map((candidatePool) => (
+                                    <button
+                                      key={candidatePool.id}
+                                      type="button"
+                                      onClick={() => handleMergePool(pool.id, candidatePool.id)}
+                                      disabled={isActionPending(`merge-pool:${pool.id}`)}
+                                      className="flex w-full items-center justify-between gap-3 border-b border-[var(--line)] px-3 py-3 text-left transition hover:bg-[var(--panel-3)] last:border-b-0 disabled:opacity-60"
+                                    >
+                                      <span className="min-w-0">
+                                        <span className="block truncate text-sm">
+                                          {candidatePool.name}
+                                        </span>
+                                        <span className="mt-1 block text-[11px] uppercase tracking-[0.14em] text-[var(--muted)]">
+                                          {candidatePool.candidateCount} candidates
+                                        </span>
+                                      </span>
+                                      <span className="text-[11px] uppercase tracking-[0.18em] text-[var(--accent-3)]">
+                                        {isActionPending(`merge-pool:${pool.id}`) ? "Merging" : "Merge"}
+                                      </span>
+                                    </button>
+                                  ))}
+                              </div>
+                            </div>
+                          ) : null}
                         </div>
                         <CandidateManagerPanel
                           poolId={pool.id}
