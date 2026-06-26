@@ -23,6 +23,10 @@ function formatRoundLabel(match, tournament) {
     return `Ranking ${match.rankingTargetRank}: Round ${match.rankingRoundNumber}`;
   }
 
+  if (tournament.resultMode === "fast_full_rank") {
+    return `Swiss Round ${match.roundNumber}`;
+  }
+
   return `Round ${match.roundNumber}`;
 }
 
@@ -40,6 +44,29 @@ function buildCreateReturnUrl(tournamentId, stage = "active") {
 
 function buildResultsUrl(tournamentId) {
   return `/results/${tournamentId}`;
+}
+
+function getCurrentRoundProgress(tournament, focusedMatch, focusedOpenMatches) {
+  if (!tournament || !focusedMatch) {
+    return { completed: 0, total: 0, percent: 0 };
+  }
+
+  const currentRoundMatches = (tournament.matches || []).filter(
+    (match) => match.roundNumber === focusedMatch.roundNumber
+  );
+  const total = currentRoundMatches.length || focusedOpenMatches.length;
+
+  if (total === 0) {
+    return { completed: 0, total: 0, percent: 0 };
+  }
+
+  const completed = Math.max(total - focusedOpenMatches.length, 0);
+
+  return {
+    completed,
+    total,
+    percent: Math.max(0, Math.min((completed / total) * 100, 100))
+  };
 }
 
 function orderResultEntries(entries, matches, tournament) {
@@ -106,6 +133,11 @@ export function VoteScreenPanels({
     active.find((tournament) => tournament.id === focusedTournamentId) ?? null;
   const focusedMatches = focusedTournament ? openMatchesForTournament(focusedTournament) : [];
   const focusedMatch = focusedMatches[0] ?? null;
+  const currentRoundProgress = getCurrentRoundProgress(
+    focusedTournament,
+    focusedMatch,
+    focusedMatches
+  );
   const selectedResultEntry =
     resultsEntries.find((entry) => entry.id === selectedResultEntryId) ?? resultsEntries[0] ?? null;
   const selectedResultHistory = selectedResultEntry
@@ -453,7 +485,7 @@ export function VoteScreenPanels({
                       }`}
                     >
                       <span className="display-face w-12 text-lg font-black uppercase text-[var(--accent-2)]">
-                        {entry.finalRank ?? index + 1}
+                        {getDisplayRank(entry, resultsEntries, index)}
                       </span>
                       {entry.candidateImageUrl ? (
                         <img
@@ -475,7 +507,7 @@ export function VoteScreenPanels({
                 </div>
               </div>
 
-              <div className="bg-[var(--panel)] px-5 py-5 lg:self-start lg:sticky lg:top-4">
+              <div className="ui-scroll-subtle bg-[var(--panel)] px-5 py-5 lg:sticky lg:top-4 lg:self-start lg:max-h-[calc(100vh-5rem)] lg:overflow-y-auto">
                 {selectedResultEntry ? (
                   <>
                     <div className="flex items-start gap-4 border-b border-[var(--line)] pb-4">
@@ -494,7 +526,7 @@ export function VoteScreenPanels({
                           {selectedResultEntry.candidateName}
                         </h3>
                         <p className="mt-2 text-xs uppercase tracking-[0.14em] text-[var(--muted)]">
-                          Rank {selectedResultEntry.finalRank ?? "Unranked"} • Seed {selectedResultEntry.seed} •{" "}
+                          Rank {getDisplayRank(selectedResultEntry, resultsEntries)} • Seed {selectedResultEntry.seed} •{" "}
                           {formatRecord(selectedResultHistory, selectedResultEntry.id)}
                         </p>
                       </div>
@@ -543,7 +575,7 @@ export function VoteScreenPanels({
                                       getOpponentImageUrl(match, selectedResultEntry.id)
                                     )}
                                     alt={describeHistoryOpponent(match, selectedResultEntry.id)}
-                                    className="h-16 w-16 rounded-sm object-cover"
+                                    className="h-20 w-28 flex-shrink-0 rounded-sm object-cover object-center sm:h-24 sm:w-32"
                                   />
                                 ) : null}
                               </div>
@@ -687,9 +719,23 @@ export function VoteScreenPanels({
                 <h2 className="display-face mt-2 text-3xl font-black">
                   {focusedTournament.title}
                 </h2>
-                <p className="mt-2 text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
-                  {focusedMatches.length} open {focusedMatches.length === 1 ? "match" : "matches"} remain
-                </p>
+                {currentRoundProgress.total > 0 ? (
+                  <div className="mt-2 max-w-xs">
+                    <div className="h-2 overflow-hidden border border-[var(--line)] bg-[var(--panel)]">
+                      <div
+                        className="h-full bg-[var(--accent-3)] transition-[width] duration-300"
+                        style={{ width: `${currentRoundProgress.percent}%` }}
+                      />
+                    </div>
+                    <p className="mt-1 text-[10px] uppercase tracking-[0.18em] text-[var(--accent-3)]">
+                      {currentRoundProgress.completed} of {currentRoundProgress.total} settled
+                    </p>
+                  </div>
+                ) : (
+                  <p className="mt-2 text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
+                    {focusedMatches.length} open {focusedMatches.length === 1 ? "match" : "matches"} remain
+                  </p>
+                )}
               </div>
               <button
                 type="button"
@@ -818,6 +864,15 @@ function formatVoteTally(match, entryId) {
   return `${selectedVotes}-${opponentVotes}`;
 }
 
+function getDisplayRank(entry, orderedEntries, fallbackIndex = 0) {
+  if (entry?.finalRank) {
+    return entry.finalRank;
+  }
+
+  const orderedIndex = orderedEntries.findIndex((candidate) => candidate.id === entry?.id);
+  return (orderedIndex >= 0 ? orderedIndex : fallbackIndex) + 1;
+}
+
 function formatRecord(matches, entryId) {
   const { wins, losses } = getEntryRecordStats(matches, entryId);
 
@@ -857,15 +912,15 @@ function CandidateVoteCard({
       type="button"
       onClick={onVote}
       disabled={disabled}
-      className={`group bg-[var(--panel-2)] text-left transition hover:bg-[var(--panel)] disabled:cursor-wait disabled:opacity-70 ${
-        imageUrl ? "" : "flex min-h-[17rem] flex-col"
+      className={`group flex h-full min-h-[13.5rem] max-h-[16.5rem] flex-col overflow-hidden bg-[var(--panel-2)] text-left transition hover:bg-[var(--panel)] disabled:cursor-wait disabled:opacity-70 sm:min-h-[16rem] sm:max-h-[20rem] md:min-h-[20rem] md:max-h-[29rem] ${
+        imageUrl ? "" : ""
       }`}
     >
       <div className="border-b border-[var(--line)] px-4 py-3 sm:px-5 sm:py-4">
         <p className="text-xs uppercase tracking-[0.16em] text-[var(--accent-2)]">Seed {seed}</p>
       </div>
       {imageUrl ? (
-        <div className="relative flex min-h-[11rem] items-center justify-center overflow-hidden bg-[var(--panel-3)] p-4 md:min-h-[14rem] md:p-5">
+        <div className="relative min-h-0 max-h-[9rem] flex-1 overflow-hidden bg-[var(--panel-3)] sm:max-h-[12rem] md:max-h-none">
           <img
             src={proxiedImageUrl(imageUrl)}
             alt=""
@@ -876,7 +931,7 @@ function CandidateVoteCard({
           <img
             src={proxiedImageUrl(imageUrl)}
             alt={name}
-            className="relative z-10 max-h-[8rem] max-w-full object-contain shadow-[0_10px_30px_rgba(0,0,0,0.35)] transition duration-200 group-hover:scale-[1.03] md:max-h-[10rem]"
+            className="relative z-10 h-full w-full object-contain p-2 shadow-[0_10px_30px_rgba(0,0,0,0.35)] transition duration-200 group-hover:scale-[1.03] sm:p-3 md:p-5"
           />
         </div>
       ) : null}

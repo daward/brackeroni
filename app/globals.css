@@ -22,6 +22,8 @@ html {
   background: var(--page-bg);
   color: var(--ink);
   scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: #4f4a43 var(--panel-3);
 }
 
 body {
@@ -33,6 +35,31 @@ body {
     linear-gradient(180deg, var(--page-bg-2) 0%, var(--page-bg) 100%);
   color: var(--ink);
   font-family: Baskerville, "Book Antiqua", "Palatino Linotype", Georgia, serif;
+  scrollbar-width: thin;
+  scrollbar-color: #4f4a43 var(--panel-3);
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+html::-webkit-scrollbar-track,
+body::-webkit-scrollbar-track {
+  background: var(--panel-3);
+}
+
+html::-webkit-scrollbar-thumb,
+body::-webkit-scrollbar-thumb {
+  border: 2px solid var(--panel-3);
+  border-radius: 999px;
+  background: #4f4a43;
+}
+
+html::-webkit-scrollbar-thumb:hover,
+body::-webkit-scrollbar-thumb:hover {
+  background: #625c54;
 }
 
 body::before {
@@ -253,7 +280,7 @@ optgroup {
 
 .ui-scroll-subtle {
   scrollbar-width: thin;
-  scrollbar-color: #5a554d transparent;
+  scrollbar-color: #4f4a43 var(--panel-3);
 }
 
 .ui-scroll-subtle::-webkit-scrollbar {
@@ -261,17 +288,17 @@ optgroup {
 }
 
 .ui-scroll-subtle::-webkit-scrollbar-track {
-  background: transparent;
+  background: var(--panel-3);
 }
 
 .ui-scroll-subtle::-webkit-scrollbar-thumb {
-  border: 2px solid transparent;
+  border: 2px solid var(--panel-3);
   border-radius: 999px;
-  background: #5a554d;
+  background: #4f4a43;
   background-clip: padding-box;
 }
 
 .ui-scroll-subtle::-webkit-scrollbar-thumb:hover {
-  background: #6a655d;
+  background: #625c54;
   background-clip: padding-box;
 }

@@ -517,6 +517,7 @@ export function CreateWorkspace() {
                 >
                   <option value="winner_only">Winner Only</option>
                   <option value="full_ranking">Full Ranking</option>
+                  <option value="fast_full_rank">Fast Full Rank</option>
                 </select>
                 <select
                   value={tournamentForm.tieBreakMode}

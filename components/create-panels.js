@@ -2563,6 +2563,7 @@ export function CreatePanels() {
                           >
                             <option value="winner_only">Winner Only</option>
                             <option value="full_ranking">Full Ranking</option>
+                            <option value="fast_full_rank">Fast Full Rank</option>
                           </select>
                         </div>
                         <div className="space-y-2">
@@ -3436,6 +3437,7 @@ export function CreatePanels() {
                     >
                       <option value="winner_only">Winner Only</option>
                       <option value="full_ranking">Full Ranking</option>
+                      <option value="fast_full_rank">Fast Full Rank</option>
                     </select>
                   </div>
                   <div className="block space-y-2">
