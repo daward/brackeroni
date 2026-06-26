@@ -1107,6 +1107,58 @@ export function CreatePanels() {
     }
   }
 
+  async function createDraftBracketFromPool(pool) {
+    if (isActionPending("create-tournament")) {
+      return;
+    }
+
+    beginAction("create-tournament");
+    setErrorMessage("");
+    setSuccessMessage("");
+
+    try {
+      const response = await fetch("/api/tournaments", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json"
+        },
+        body: JSON.stringify({
+          title: `${pool.name} Bracket`,
+          description: null,
+          sourcePoolId: pool.id,
+          sharingMode: "private",
+          playStyle: "fixed_bracket",
+          resultMode: "winner_only",
+          tieBreakMode: "higher_seed_wins"
+        })
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        setErrorMessage(data.error?.message || "Failed to create bracket from pool.");
+        return;
+      }
+
+      setTournamentInlineDrafts((current) => ({
+        ...current,
+        [data.item.id]: {
+          title: data.item.title,
+          sourcePoolId: data.item.sourcePoolId || "",
+          sharingMode: data.item.sharingMode,
+          playStyle: data.item.playStyle,
+          resultMode: data.item.resultMode,
+          tieBreakMode: data.item.tieBreakMode
+        }
+      }));
+      setExpandedDraftTournamentId(data.item.id);
+      setWorkspaceView("tournaments");
+      setSuccessMessage(`Draft bracket created from ${pool.name}.`);
+      await loadWorkspace();
+    } finally {
+      endAction("create-tournament");
+    }
+  }
+
   async function handleTournamentSubmit(event) {
     event.preventDefault();
     if (isActionPending("create-tournament")) {
@@ -1966,6 +2018,14 @@ export function CreatePanels() {
                           <div className="flex w-28 flex-col items-stretch gap-2">
                             <button
                               type="button"
+                              onClick={() => createDraftBracketFromPool(pool)}
+                              disabled={isActionPending("create-tournament")}
+                              className="ui-button ui-button-primary ui-button-stack"
+                            >
+                              {isActionPending("create-tournament") ? "Creating" : "Start Bracket"}
+                            </button>
+                            <button
+                              type="button"
                               onClick={() => savePoolInline(pool.id)}
                               disabled={isActionPending(`update-pool:${pool.id}`)}
                               className="ui-button ui-button-accent ui-button-stack"
@@ -2342,8 +2402,8 @@ export function CreatePanels() {
                           <div className="flex items-center justify-between gap-4">
                             <div>
                               <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--muted)]">
-                                {bracketDraft.playStyle.replace("_", " ")} {" â€¢ "}
-                                {bracketDraft.resultMode.replace("_", " ")} {" â€¢ "}
+                                {bracketDraft.playStyle.replace("_", " ")} {" / "}
+                                {bracketDraft.resultMode.replace("_", " ")} {" / "}
                                 {bracketDraft.tieBreakMode.replace("_", " ")}
                               </p>
                             </div>
@@ -2806,9 +2866,9 @@ export function CreatePanels() {
                     ) : (
                       <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-3">
                         <p className="text-sm uppercase tracking-[0.14em] text-[var(--muted)]">
-                          {(tournament.sharingMode || "private").replaceAll("_", " ")} {" â€¢ "}
-                          {(tournament.playStyle || "fixed_bracket").replaceAll("_", " ")} {" â€¢ "}
-                          {(tournament.resultMode || "winner_only").replaceAll("_", " ")} {" â€¢ "}
+                          {(tournament.sharingMode || "private").replaceAll("_", " ")} {" / "}
+                          {(tournament.playStyle || "fixed_bracket").replaceAll("_", " ")} {" / "}
+                          {(tournament.resultMode || "winner_only").replaceAll("_", " ")} {" / "}
                           {tournament.entryCount} entries
                         </p>
                         <button
@@ -2982,13 +3042,13 @@ export function CreatePanels() {
                         {hasSourcePool ? (
                           <div className="flex flex-wrap gap-2 text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
                             <span>{tournament.sharingMode.replace("_", " ")}</span>
-                            <span>â€¢</span>
+                            <span>/</span>
                             <span>{tournament.playStyle.replace("_", " ")}</span>
-                            <span>â€¢</span>
+                            <span>/</span>
                             <span>{tournament.resultMode.replace("_", " ")}</span>
-                            <span>â€¢</span>
+                            <span>/</span>
                             <span>{tournament.tieBreakMode.replace("_", " ")}</span>
-                            <span>â€¢</span>
+                            <span>/</span>
                             <span>{tournament.entryCount} entries</span>
                           </div>
                         ) : null}
@@ -3022,11 +3082,11 @@ export function CreatePanels() {
                   {tournament.status !== "complete" && hasSourcePool && !isDraftExpanded ? (
                   <div className="mt-4 flex flex-wrap gap-2 text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
                     <span>{tournament.sharingMode.replace("_", " ")}</span>
-                    <span>â€¢</span>
+                    <span>/</span>
                     <span>{tournament.playStyle.replace("_", " ")}</span>
-                    <span>â€¢</span>
+                    <span>/</span>
                     <span>{tournament.resultMode.replace("_", " ")}</span>
-                    <span>â€¢</span>
+                    <span>/</span>
                     <span>{tournament.entryCount} entries</span>
                   </div>
                   ) : null}
