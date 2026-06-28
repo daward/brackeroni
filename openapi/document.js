@@ -3,15 +3,26 @@ export const openApiDocument = {
   info: {
     title: "Brackeroni API",
     version: "0.1.0",
-    description: "REST contract for the Brackeroni MVP."
+    description:
+      "REST contract for the Brackeroni MVP. Protected endpoints use the site's normal session cookie. In local development you can also use x-dev-user-email."
   },
-  servers: [
-    {
-      url: "http://localhost:3000",
-      description: "Local development"
-    }
-  ],
+  servers: [],
   components: {
+    securitySchemes: {
+      sessionCookie: {
+        type: "apiKey",
+        in: "cookie",
+        name: "next-auth.session-token",
+        description:
+          "Browser session cookie from signing in on this site. In production or secure deployments the cookie name may use the __Secure- prefix."
+      },
+      devUserEmail: {
+        type: "apiKey",
+        in: "header",
+        name: "x-dev-user-email",
+        description: "Local development auth shim."
+      }
+    },
     schemas: {
       Error: {
         type: "object",
@@ -200,6 +211,7 @@ export const openApiDocument = {
       }
     }
   },
+  security: [{ sessionCookie: [] }, { devUserEmail: [] }],
   paths: {
     "/api/health": {
       get: {

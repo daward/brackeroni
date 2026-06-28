@@ -1,5 +1,7 @@
 import { notFound } from "next/navigation";
-import { requireCurrentUserPage, getCurrentUser } from "@/lib/auth/current-user";
+import { getOptionalCurrentUser } from "@/lib/auth/current-user";
+import { cookies } from "next/headers";
+import { ANONYMOUS_VOTER_COOKIE } from "@/lib/auth/viewer";
 import { listMatchesForTournament } from "@/lib/data/matches";
 import { getAccessibleTournamentById } from "@/lib/data/tournaments";
 import { TournamentResultsPage } from "@/components/tournament-results-page";
@@ -16,19 +18,19 @@ export async function generateMetadata({ params }) {
 
 export default async function ResultsPage({ params }) {
   const { tournamentId } = await params;
-
-  await requireCurrentUserPage(`/results/${tournamentId}`);
-  const user = await getCurrentUser();
+  const user = await getOptionalCurrentUser();
+  const cookieStore = await cookies();
 
   try {
     const [tournament, matchResult] = await Promise.all([
       getAccessibleTournamentById({
         tournamentId,
-        userId: user.id
+        userId: user?.id ?? null
       }),
       listMatchesForTournament({
         tournamentId,
-        userId: user.id
+        userId: user?.id ?? null,
+        anonymousVoterToken: cookieStore.get(ANONYMOUS_VOTER_COOKIE)?.value ?? null
       })
     ]);
 

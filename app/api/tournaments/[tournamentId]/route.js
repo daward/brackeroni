@@ -1,4 +1,4 @@
-import { getCurrentUser } from "@/lib/auth/current-user";
+import { getCurrentUser, getOptionalCurrentUser } from "@/lib/auth/current-user";
 import {
   archiveTournament,
   getAccessibleTournamentById,
@@ -9,11 +9,11 @@ import { json, readJson, withRouteErrorHandling } from "@/lib/api/http";
 import { tournamentUpdateSchema } from "@/lib/validation/tournament";
 
 export const GET = withRouteErrorHandling(async function GET(request, { params }) {
-  const user = await getCurrentUser(request);
+  const user = await getOptionalCurrentUser(request);
   const { tournamentId } = await params;
   const tournament = await getAccessibleTournamentById({
     tournamentId,
-    userId: user.id
+    userId: user?.id ?? null
   });
 
   return json({ item: tournament });

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AuthControls } from "@/components/auth-controls";
 
-const links = [
+const baseLinks = [
   { href: "/", label: "Home" },
   { href: "/vote", label: "Vote" },
   { href: "/create", label: "Create" }
@@ -12,6 +12,10 @@ const links = [
 
 export function MainNav({ user, googleConfigured, isDevShimActive }) {
   const pathname = usePathname();
+  const links =
+    user?.email?.trim().toLowerCase() === "acheron0@gmail.com"
+      ? [...baseLinks, { href: "/admin", label: "Admin" }]
+      : baseLinks;
 
   return (
     <header className="border-y border-[var(--line)] bg-[var(--panel-3)]">

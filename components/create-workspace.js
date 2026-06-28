@@ -18,6 +18,8 @@ const emptyTournamentForm = {
   title: "",
   sourcePoolId: "",
   sharingMode: "private",
+  visibility: "private",
+  votingAccess: "signed_in_only",
   playStyle: "fixed_bracket",
   resultMode: "winner_only",
   tieBreakMode: "higher_seed_wins"
@@ -496,7 +498,31 @@ export function CreateWorkspace() {
                   className="w-full border border-[var(--line)] bg-[var(--panel-2)] px-4 py-3 text-sm text-[var(--ink)] outline-none focus:border-[var(--accent)]"
                 >
                   <option value="private">Private</option>
-                  <option value="with_friends">With Friends</option>
+                  <option value="with_friends">Friends</option>
+                </select>
+                <select
+                  value={tournamentForm.visibility}
+                  onChange={(event) =>
+                    setTournamentForm((current) => ({ ...current, visibility: event.target.value }))
+                  }
+                  className="w-full border border-[var(--line)] bg-[var(--panel-2)] px-4 py-3 text-sm text-[var(--ink)] outline-none focus:border-[var(--accent)]"
+                >
+                  <option value="private">Private Draft</option>
+                  <option value="public_listed">Public</option>
+                  <option value="public_unlisted">Public Unlisted</option>
+                </select>
+                <select
+                  value={tournamentForm.votingAccess}
+                  onChange={(event) =>
+                    setTournamentForm((current) => ({
+                      ...current,
+                      votingAccess: event.target.value
+                    }))
+                  }
+                  className="w-full border border-[var(--line)] bg-[var(--panel-2)] px-4 py-3 text-sm text-[var(--ink)] outline-none focus:border-[var(--accent)]"
+                >
+                  <option value="signed_in_only">Signed-In Voting</option>
+                  <option value="anyone">Anyone Can Vote</option>
                 </select>
                 <select
                   value={tournamentForm.playStyle}

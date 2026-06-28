@@ -13,12 +13,14 @@ const emptyCandidateForm = {
 
 const emptyPoolForm = {
   name: "",
-  description: ""
+  description: "",
+  visibility: "private"
 };
 
 const emptyPoolImportForm = {
   name: "",
   description: "",
+  visibility: "private",
   text: ""
 };
 
@@ -26,6 +28,8 @@ const emptyTournamentForm = {
   title: "",
   sourcePoolId: "",
   sharingMode: "private",
+  visibility: "private",
+  votingAccess: "signed_in_only",
   playStyle: "fixed_bracket",
   resultMode: "winner_only",
   tieBreakMode: "higher_seed_wins"
@@ -37,6 +41,118 @@ function proxiedImageUrl(url) {
   }
 
   return `/api/image-proxy?url=${encodeURIComponent(url)}`;
+}
+
+function describePoolVisibility(visibility) {
+  if (visibility === "public_listed") {
+    return "Published";
+  }
+
+  if (visibility === "public_unlisted") {
+    return "Published Unlisted";
+  }
+
+  return "Private Draft";
+}
+
+function PoolPublishWarning({ visibility }) {
+  if (visibility === "private") {
+    return null;
+  }
+
+  return (
+    <p className="border border-[var(--accent-2)] bg-[var(--panel-2)] px-4 py-3 text-xs leading-6 text-[var(--accent-2)]">
+      Publishing locks this pool. After it is published, only an admin can change its contents or
+      settings.
+    </p>
+  );
+}
+
+function describeTournamentVisibility(visibility) {
+  if (visibility === "public_listed") {
+    return "Public";
+  }
+
+  if (visibility === "public_unlisted") {
+    return "Public Unlisted";
+  }
+
+  return "Private Draft";
+}
+
+function getTournamentAudienceMode({ sharingMode, visibility }) {
+  if (visibility === "public_listed") {
+    return "public_listed";
+  }
+
+  if (visibility === "public_unlisted") {
+    return "public_unlisted";
+  }
+
+  if (sharingMode === "with_friends") {
+    return "with_friends";
+  }
+
+  return "private";
+}
+
+function describeTournamentAudienceMode({ sharingMode, visibility }) {
+  const audienceMode = getTournamentAudienceMode({ sharingMode, visibility });
+
+  if (audienceMode === "with_friends") {
+    return "Friends";
+  }
+
+  if (audienceMode === "public_listed") {
+    return "Public";
+  }
+
+  if (audienceMode === "public_unlisted") {
+    return "Public Unlisted";
+  }
+
+  return "Private";
+}
+
+function getTournamentAudiencePatch(audienceMode) {
+  if (audienceMode === "with_friends") {
+    return {
+      sharingMode: "with_friends",
+      visibility: "private"
+    };
+  }
+
+  if (audienceMode === "public_listed") {
+    return {
+      sharingMode: "private",
+      visibility: "public_listed"
+    };
+  }
+
+  if (audienceMode === "public_unlisted") {
+    return {
+      sharingMode: "private",
+      visibility: "public_unlisted"
+    };
+  }
+
+  return {
+    sharingMode: "private",
+    visibility: "private"
+  };
+}
+
+function TournamentPublishWarning({ visibility }) {
+  if (visibility === "private") {
+    return null;
+  }
+
+  return (
+    <p className="border border-[var(--accent-2)] bg-[var(--panel-2)] px-4 py-3 text-xs leading-6 text-[var(--accent-2)]">
+      Public brackets stay editable until you start them. Starting the bracket publishes it and
+      locks further create changes.
+    </p>
+  );
 }
 
 function buildPoolImportPrompt(poolName) {
@@ -139,6 +255,7 @@ function CandidateManagerPanel({
   poolId,
   candidateDraft,
   isEditingCandidate,
+  readOnly = false,
   candidates,
   imageSuggestions,
   imageSuggestionLoading,
@@ -159,170 +276,176 @@ function CandidateManagerPanel({
 }) {
   return (
     <>
-      <div className="mt-5 grid gap-4 xl:grid-cols-[0.95fr_1.05fr]">
-        <div
-          ref={candidateFormRef}
-          className="space-y-3 border border-[var(--line)] bg-[var(--panel-3)] p-4"
-        >
-          <div className="flex items-center justify-between gap-3">
-            <p className="display-face text-xs font-black uppercase tracking-[0.18em] text-[var(--accent-2)]">
-              {isEditingCandidate ? "Edit Candidate" : "Create Candidate"}
-            </p>
-            {isEditingCandidate ? (
-              <button
-                type="button"
-                onClick={onCancelEdit}
-                className="display-face text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--muted)]"
-              >
-                Back To Create
-              </button>
-            ) : null}
-          </div>
-          <input
-            value={candidateDraft.name}
-            onChange={(event) => onDraftChange("name", event.target.value)}
-            placeholder="Candidate name"
-            className="ui-field ui-field-panel"
-          />
-          <textarea
-            value={candidateDraft.description}
-            onChange={(event) => onDraftChange("description", event.target.value)}
-            placeholder="Description"
-            rows={2}
-            className="ui-field ui-field-panel"
-          />
-          <input
-            value={candidateDraft.imageUrl}
-            onChange={(event) => onDraftChange("imageUrl", event.target.value)}
-            placeholder="Image URL"
-            className="ui-field ui-field-panel"
-          />
-          <div className="flex flex-wrap gap-3">
-            <button
-              type="button"
-              onClick={onSubmit}
-              disabled={isEditingCandidate ? isSavePending : isCreatePending}
-              className="ui-button ui-button-primary"
-            >
-              {isEditingCandidate
-                ? isSavePending
-                  ? "Saving"
-                  : "Save Candidate"
-                : isCreatePending
-                  ? "Creating"
-                  : "Create"}
-            </button>
-            {isEditingCandidate ? (
-              <button
-                type="button"
-                onClick={onCancelEdit}
-                className="ui-button ui-button-muted"
-              >
-                Cancel
-              </button>
-            ) : null}
-          </div>
-        </div>
-
-        <div
-          className={`space-y-3 border border-[var(--line)] bg-[var(--panel-3)] p-4 transition-opacity ${
-            imageSuggestionLoading ? "opacity-55" : "opacity-100"
-          }`}
-        >
-          <div className="flex items-center justify-between gap-3">
-            <p className="display-face text-xs font-black uppercase tracking-[0.18em] text-[var(--accent-3)]">
-              Image Picks
-            </p>
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={onSuggestImages}
-                disabled={imageSuggestionLoading}
-                className="display-face border border-[var(--accent-2)] px-3 py-2 text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--accent-2)] transition hover:bg-[var(--accent-2)] hover:text-black disabled:opacity-60"
-              >
-                {imageSuggestionLoading ? "Searching" : "Suggest"}
-              </button>
-              {candidateDraft.imageUrl ? (
+      {!readOnly ? (
+        <div className="mt-5 grid gap-4 xl:grid-cols-[0.95fr_1.05fr]">
+          <div
+            ref={candidateFormRef}
+            className="space-y-3 border border-[var(--line)] bg-[var(--panel-3)] p-4"
+          >
+            <div className="flex items-center justify-between gap-3">
+              <p className="display-face text-xs font-black uppercase tracking-[0.18em] text-[var(--accent-2)]">
+                {isEditingCandidate ? "Edit Candidate" : "Create Candidate"}
+              </p>
+              {isEditingCandidate ? (
                 <button
                   type="button"
-                  onClick={onClearImage}
+                  onClick={onCancelEdit}
                   className="display-face text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--muted)]"
                 >
-                  Clear
+                  Back To Create
+                </button>
+              ) : null}
+            </div>
+            <input
+              value={candidateDraft.name}
+              disabled={readOnly}
+              onChange={(event) => onDraftChange("name", event.target.value)}
+              placeholder="Candidate name"
+              className="ui-field ui-field-panel"
+            />
+            <textarea
+              value={candidateDraft.description}
+              disabled={readOnly}
+              onChange={(event) => onDraftChange("description", event.target.value)}
+              placeholder="Description"
+              rows={2}
+              className="ui-field ui-field-panel"
+            />
+            <input
+              value={candidateDraft.imageUrl}
+              disabled={readOnly}
+              onChange={(event) => onDraftChange("imageUrl", event.target.value)}
+              placeholder="Image URL"
+              className="ui-field ui-field-panel"
+            />
+            <div className="flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={onSubmit}
+                disabled={readOnly || (isEditingCandidate ? isSavePending : isCreatePending)}
+                className="ui-button ui-button-primary"
+              >
+                {isEditingCandidate
+                  ? isSavePending
+                    ? "Saving"
+                    : "Save Candidate"
+                  : isCreatePending
+                    ? "Creating"
+                    : "Create"}
+              </button>
+              {isEditingCandidate ? (
+                <button
+                  type="button"
+                  onClick={onCancelEdit}
+                  className="ui-button ui-button-muted"
+                >
+                  Cancel
                 </button>
               ) : null}
             </div>
           </div>
 
-          {candidateDraft.imageUrl ? (
-            <div className="overflow-hidden border border-[var(--line)] bg-[var(--panel)]">
-              <div className="h-44 w-full bg-[var(--panel-2)]">
-                <img
-                  src={proxiedImageUrl(candidateDraft.imageUrl)}
-                  alt={candidateDraft.name || "Selected image"}
-                  className="h-full w-full object-cover"
-                />
-              </div>
-              <div className="px-3 py-3">
-                <p className="text-xs uppercase tracking-[0.14em] text-[var(--accent-2)]">
-                  Selected for this candidate
-                </p>
+          <div
+            className={`space-y-3 border border-[var(--line)] bg-[var(--panel-3)] p-4 transition-opacity ${
+              imageSuggestionLoading ? "opacity-55" : "opacity-100"
+            }`}
+          >
+            <div className="flex items-center justify-between gap-3">
+              <p className="display-face text-xs font-black uppercase tracking-[0.18em] text-[var(--accent-3)]">
+                Image Picks
+              </p>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={onSuggestImages}
+                  disabled={readOnly || imageSuggestionLoading}
+                  className="display-face border border-[var(--accent-2)] px-3 py-2 text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--accent-2)] transition hover:bg-[var(--accent-2)] hover:text-black disabled:opacity-60"
+                >
+                  {imageSuggestionLoading ? "Searching" : "Suggest"}
+                </button>
+                {candidateDraft.imageUrl ? (
+                  <button
+                    type="button"
+                    onClick={onClearImage}
+                    className="display-face text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--muted)]"
+                  >
+                    Clear
+                  </button>
+                ) : null}
               </div>
             </div>
-          ) : (
-            <div className="flex min-h-44 items-center justify-center border border-dashed border-[var(--line)] bg-[var(--panel)] px-4 py-6">
-              <p className="text-center text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
-                Add an image URL or ask for suggestions.
-              </p>
-            </div>
-          )}
 
-          {imageSuggestions.length > 0 ? (
-            <div className="space-y-2">
-              <p className="display-face text-xs font-black uppercase tracking-[0.18em] text-[var(--accent-2)]">
-                Suggested Images
-              </p>
-              <div className="ui-scroll-subtle max-h-[26rem] overflow-y-auto pr-1">
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {imageSuggestions.map((image) => {
-                    const selectedImageUrl = candidateDraft.imageUrl;
-
-                    return (
-                      <button
-                        key={image.id}
-                        type="button"
-                        onClick={() => onSelectSuggestedImage(image.imageUrl)}
-                        className={`overflow-hidden border text-left transition ${
-                          selectedImageUrl === image.imageUrl
-                            ? "border-[var(--accent-3)] bg-[var(--panel)]"
-                            : "border-[var(--line)] bg-[var(--panel)] hover:border-[var(--accent-2)]"
-                        }`}
-                      >
-                        <SuggestionThumbnail imageUrl={image.thumbnailUrl} title={image.title} />
-                        <div className="px-3 py-3">
-                          <p className="line-clamp-2 text-xs uppercase tracking-[0.12em] text-[var(--ink)]">
-                            {image.title}
-                          </p>
-                          {image.source ? (
-                            <p className="mt-2 text-[11px] uppercase tracking-[0.14em] text-[var(--muted)]">
-                              {image.source}
-                            </p>
-                          ) : null}
-                          {selectedImageUrl === image.imageUrl ? (
-                            <p className="mt-2 text-[11px] uppercase tracking-[0.14em] text-[var(--accent-3)]">
-                              Selected
-                            </p>
-                          ) : null}
-                        </div>
-                      </button>
-                    );
-                  })}
+            {candidateDraft.imageUrl ? (
+              <div className="overflow-hidden border border-[var(--line)] bg-[var(--panel)]">
+                <div className="h-44 w-full bg-[var(--panel-2)]">
+                  <img
+                    src={proxiedImageUrl(candidateDraft.imageUrl)}
+                    alt={candidateDraft.name || "Selected image"}
+                    className="h-full w-full object-cover"
+                  />
+                </div>
+                <div className="px-3 py-3">
+                  <p className="text-xs uppercase tracking-[0.14em] text-[var(--accent-2)]">
+                    Selected for this candidate
+                  </p>
                 </div>
               </div>
-            </div>
-          ) : null}
+            ) : (
+              <div className="flex min-h-44 items-center justify-center border border-dashed border-[var(--line)] bg-[var(--panel)] px-4 py-6">
+                <p className="text-center text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
+                  Add an image URL or ask for suggestions.
+                </p>
+              </div>
+            )}
+
+            {imageSuggestions.length > 0 ? (
+              <div className="space-y-2">
+                <p className="display-face text-xs font-black uppercase tracking-[0.18em] text-[var(--accent-2)]">
+                  Suggested Images
+                </p>
+                <div className="ui-scroll-subtle max-h-[26rem] overflow-y-auto pr-1">
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {imageSuggestions.map((image) => {
+                      const selectedImageUrl = candidateDraft.imageUrl;
+
+                      return (
+                        <button
+                          key={image.id}
+                          type="button"
+                          disabled={readOnly}
+                          onClick={() => onSelectSuggestedImage(image.imageUrl)}
+                          className={`overflow-hidden border text-left transition ${
+                            selectedImageUrl === image.imageUrl
+                              ? "border-[var(--accent-3)] bg-[var(--panel)]"
+                              : "border-[var(--line)] bg-[var(--panel)] hover:border-[var(--accent-2)]"
+                          }`}
+                        >
+                          <SuggestionThumbnail imageUrl={image.thumbnailUrl} title={image.title} />
+                          <div className="px-3 py-3">
+                            <p className="line-clamp-2 text-xs uppercase tracking-[0.12em] text-[var(--ink)]">
+                              {image.title}
+                            </p>
+                            {image.source ? (
+                              <p className="mt-2 text-[11px] uppercase tracking-[0.14em] text-[var(--muted)]">
+                                {image.source}
+                              </p>
+                            ) : null}
+                            {selectedImageUrl === image.imageUrl ? (
+                              <p className="mt-2 text-[11px] uppercase tracking-[0.14em] text-[var(--accent-3)]">
+                                Selected
+                              </p>
+                            ) : null}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            ) : null}
+          </div>
         </div>
-      </div>
+      ) : null}
 
       <div className="mt-4">
         <p className="display-face text-lg font-black uppercase tracking-[0.12em] text-[var(--accent-3)]">
@@ -339,7 +462,11 @@ function CandidateManagerPanel({
               >
                 <button
                   type="button"
-                  onClick={() => onEditCandidate(candidate)}
+                  onClick={() => {
+                    if (!readOnly) {
+                      onEditCandidate(candidate);
+                    }
+                  }}
                   className="block w-full text-left transition hover:border-[var(--accent-2)]"
                 >
                   {candidate.imageUrl ? (
@@ -360,16 +487,18 @@ function CandidateManagerPanel({
                     ) : null}
                   </div>
                 </button>
-                <div className="flex justify-end border-t border-[var(--line)] px-3 py-2">
-                  <button
-                    type="button"
-                    onClick={() => onRemoveCandidate(candidate)}
-                    disabled={removingCandidateId === candidate.id}
-                    className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--muted)] transition hover:text-[var(--accent)] disabled:opacity-60"
-                  >
-                    {removingCandidateId === candidate.id ? "Removing" : "Remove"}
-                  </button>
-                </div>
+                {!readOnly ? (
+                  <div className="flex justify-end border-t border-[var(--line)] px-3 py-2">
+                    <button
+                      type="button"
+                      onClick={() => onRemoveCandidate(candidate)}
+                      disabled={readOnly || removingCandidateId === candidate.id}
+                      className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--muted)] transition hover:text-[var(--accent)] disabled:opacity-60"
+                    >
+                      {removingCandidateId === candidate.id ? "Removing" : "Remove"}
+                    </button>
+                  </div>
+                ) : null}
               </div>
             ))
           )}
@@ -424,6 +553,10 @@ export function CreatePanels() {
   const candidateFormRefs = useRef({});
   const tournamentCardRefs = useRef({});
   const poolCardRefs = useRef({});
+  const actionSearchParamsHandledRef = useRef({
+    favoritePoolId: null,
+    makeBracketFromPoolId: null
+  });
 
   function beginAction(actionKey) {
     setPendingActions((current) => ({
@@ -717,6 +850,79 @@ export function CreatePanels() {
   }, [workspaceView, pools, searchParams]);
 
   useEffect(() => {
+    const requestedFavoritePoolId = searchParams?.get("favoritePool");
+
+    if (!requestedFavoritePoolId) {
+      return;
+    }
+
+    if (actionSearchParamsHandledRef.current.favoritePoolId === requestedFavoritePoolId) {
+      return;
+    }
+
+    actionSearchParamsHandledRef.current.favoritePoolId = requestedFavoritePoolId;
+    beginAction(`favorite-pool:${requestedFavoritePoolId}`);
+    setErrorMessage("");
+    setSuccessMessage("");
+
+    startTransition(async () => {
+      try {
+        const response = await fetch(`/api/pools/${requestedFavoritePoolId}/favorite`, {
+          method: "POST"
+        });
+        const data = await response.json();
+
+        if (!response.ok) {
+          actionSearchParamsHandledRef.current.favoritePoolId = null;
+          setErrorMessage(data.error?.message || "Failed to add pool to favorites.");
+          return;
+        }
+
+        await loadWorkspace();
+        setWorkspaceView("pools");
+        setExpandedPoolId(data.item.id);
+        setSuccessMessage(`Added ${data.item.name} to your pools.`);
+        router.replace(`/create?view=pools&pool=${data.item.id}`);
+      } catch (error) {
+        actionSearchParamsHandledRef.current.favoritePoolId = null;
+        setErrorMessage(error.message || "Failed to add pool to favorites.");
+      } finally {
+        endAction(`favorite-pool:${requestedFavoritePoolId}`);
+      }
+    });
+  }, [router, searchParams, startTransition]);
+
+  useEffect(() => {
+    const requestedPoolId = searchParams?.get("makeBracketFromPool");
+
+    if (!requestedPoolId || pools.length === 0) {
+      return;
+    }
+
+    if (actionSearchParamsHandledRef.current.makeBracketFromPoolId === requestedPoolId) {
+      return;
+    }
+
+    const requestedPool = pools.find((pool) => pool.id === requestedPoolId);
+    if (!requestedPool) {
+      return;
+    }
+
+    actionSearchParamsHandledRef.current.makeBracketFromPoolId = requestedPoolId;
+
+    startTransition(async () => {
+      const createdBracket = await createDraftBracketFromPool(requestedPool);
+
+      if (!createdBracket?.id) {
+        actionSearchParamsHandledRef.current.makeBracketFromPoolId = null;
+        return;
+      }
+
+      router.replace(`/create?view=tournaments&stage=draft&tournament=${createdBracket.id}`);
+    });
+  }, [pools, router, searchParams, startTransition]);
+
+  useEffect(() => {
     const timers = Object.entries(candidateDrafts).map(([poolId, draft]) => {
       const candidateName = (draft?.name || "").trim();
 
@@ -910,7 +1116,8 @@ export function CreatePanels() {
         },
         body: JSON.stringify({
           name: poolForm.name,
-          description: poolForm.description || null
+          description: poolForm.description || null,
+          visibility: poolForm.visibility
         })
       });
 
@@ -956,6 +1163,7 @@ export function CreatePanels() {
         body: JSON.stringify({
           name: poolImportForm.name,
           description: poolImportForm.description || null,
+          visibility: poolImportForm.visibility,
           source: {
             type: "extract",
             prompt: buildPoolImportPrompt(poolImportForm.name),
@@ -1005,7 +1213,8 @@ export function CreatePanels() {
         },
         body: JSON.stringify({
           name,
-          description
+          description,
+          visibility: "private"
         })
       });
 
@@ -1110,7 +1319,7 @@ export function CreatePanels() {
 
   async function createDraftBracketFromPool(pool) {
     if (isActionPending("create-tournament")) {
-      return;
+      return null;
     }
 
     beginAction("create-tournament");
@@ -1137,7 +1346,7 @@ export function CreatePanels() {
       const data = await response.json();
       if (!response.ok) {
         setErrorMessage(data.error?.message || "Failed to create bracket from pool.");
-        return;
+        return null;
       }
 
       setTournamentInlineDrafts((current) => ({
@@ -1155,6 +1364,7 @@ export function CreatePanels() {
       setWorkspaceView("tournaments");
       setSuccessMessage(`Draft bracket created from ${pool.name}.`);
       await loadWorkspace();
+      return data.item;
     } finally {
       endAction("create-tournament");
     }
@@ -1239,7 +1449,8 @@ export function CreatePanels() {
     setEditingPool(pool);
     setPoolEditForm({
       name: pool.name || "",
-      description: pool.description || ""
+      description: pool.description || "",
+      visibility: pool.visibility || "private"
     });
   }
 
@@ -1295,6 +1506,7 @@ export function CreatePanels() {
 
     const nextName = draft.name?.trim();
     const nextDescription = draft.description?.trim() || "";
+    const nextVisibility = draft.visibility || pool.visibility || "private";
 
     if (!nextName) {
       setPoolInlineDrafts((current) => ({
@@ -1307,7 +1519,11 @@ export function CreatePanels() {
       return;
     }
 
-    if (nextName === pool.name && nextDescription === (pool.description || "")) {
+    if (
+      nextName === pool.name &&
+      nextDescription === (pool.description || "") &&
+      nextVisibility === (pool.visibility || "private")
+    ) {
       return;
     }
 
@@ -1328,7 +1544,8 @@ export function CreatePanels() {
         },
         body: JSON.stringify({
           name: nextName,
-          description: nextDescription || null
+          description: nextDescription || null,
+          visibility: nextVisibility
         })
       });
       const data = await response.json();
@@ -1342,7 +1559,8 @@ export function CreatePanels() {
         ...current,
         [poolId]: {
           name: data.item?.name ?? nextName,
-          description: data.item?.description ?? nextDescription
+          description: data.item?.description ?? nextDescription,
+          visibility: data.item?.visibility ?? nextVisibility
         }
       }));
       setSuccessMessage("Pool updated.");
@@ -1753,7 +1971,8 @@ export function CreatePanels() {
         },
         body: JSON.stringify({
           name: poolEditForm.name,
-          description: poolEditForm.description || null
+          description: poolEditForm.description || null,
+          visibility: poolEditForm.visibility
         })
       });
 
@@ -2003,10 +2222,12 @@ export function CreatePanels() {
                 const previewCandidates = poolDetails[pool.id]?.candidates || [];
                 const inlinePoolDraft = poolInlineDrafts[pool.id] || {
                   name: pool.name,
-                  description: pool.description || ""
+                  description: pool.description || "",
+                  visibility: pool.visibility || "private"
                 };
                 const candidateDraft = candidateDrafts[pool.id] || emptyCandidateForm;
                 const isEditingPoolCandidate = editingCandidate?.poolId === pool.id;
+                const poolIsReadOnly = Boolean(pool.isReadOnly);
                 return (
                   <div
                     key={pool.id}
@@ -2030,7 +2251,8 @@ export function CreatePanels() {
                                   ...current,
                                   [pool.id]: {
                                     name: event.target.value,
-                                    description: current[pool.id]?.description ?? pool.description ?? ""
+                                    description: current[pool.id]?.description ?? pool.description ?? "",
+                                    visibility: current[pool.id]?.visibility ?? pool.visibility ?? "private"
                                   }
                                 }))
                               }
@@ -2038,14 +2260,20 @@ export function CreatePanels() {
                             <p className="mt-2 text-sm uppercase tracking-[0.14em] text-[var(--accent-3)]">
                               {pool.candidateCount} candidates
                             </p>
+                            <p className="mt-1 text-xs uppercase tracking-[0.14em] text-[var(--muted)]">
+                              {describePoolVisibility(pool.visibility)}
+                              {poolIsReadOnly ? " • locked" : ""}
+                            </p>
                             <textarea
                               value={inlinePoolDraft.description}
+                              disabled={poolIsReadOnly}
                               onChange={(event) =>
                                 setPoolInlineDrafts((current) => ({
                                   ...current,
                                   [pool.id]: {
                                     name: current[pool.id]?.name ?? pool.name,
-                                    description: event.target.value
+                                    description: event.target.value,
+                                    visibility: current[pool.id]?.visibility ?? pool.visibility ?? "private"
                                   }
                                 }))
                               }
@@ -2053,6 +2281,26 @@ export function CreatePanels() {
                               placeholder="Pool description"
                               className="mt-3 -mx-3 block w-[calc(100%+1.5rem)] border border-[var(--line)] bg-[var(--panel)] px-3 py-3 text-sm leading-6 text-[var(--ink)] outline-none placeholder:text-[var(--muted)] focus:border-[var(--accent-3)]"
                             />
+                            {!poolIsReadOnly ? (
+                              <select
+                                value={inlinePoolDraft.visibility}
+                                onChange={(event) =>
+                                  setPoolInlineDrafts((current) => ({
+                                    ...current,
+                                    [pool.id]: {
+                                      name: current[pool.id]?.name ?? pool.name,
+                                      description: current[pool.id]?.description ?? pool.description ?? "",
+                                      visibility: event.target.value
+                                    }
+                                  }))
+                                }
+                                className="mt-3 w-full max-w-xs border border-[var(--line)] bg-[var(--panel)] px-3 py-3 text-sm text-[var(--ink)] outline-none focus:border-[var(--accent-3)]"
+                              >
+                                <option value="private">Private Draft</option>
+                                <option value="public_listed">Publish</option>
+                                <option value="public_unlisted">Publish Unlisted</option>
+                              </select>
+                            ) : null}
                           </div>
                           <div className="flex w-28 flex-col items-stretch gap-2">
                             <button
@@ -2066,7 +2314,7 @@ export function CreatePanels() {
                             <button
                               type="button"
                               onClick={() => savePoolInline(pool.id)}
-                              disabled={isActionPending(`update-pool:${pool.id}`)}
+                              disabled={poolIsReadOnly || isActionPending(`update-pool:${pool.id}`)}
                               className="ui-button ui-button-accent ui-button-stack"
                             >
                               {isActionPending(`update-pool:${pool.id}`) ? "Saving" : "Save Pool"}
@@ -2074,7 +2322,7 @@ export function CreatePanels() {
                             <button
                               type="button"
                               onClick={() => handleArchivePool(pool.id, pool.name)}
-                              disabled={isActionPending(`archive-pool:${pool.id}`)}
+                              disabled={poolIsReadOnly || isActionPending(`archive-pool:${pool.id}`)}
                               className="ui-button ui-button-muted ui-button-stack"
                             >
                               {isActionPending(`archive-pool:${pool.id}`) ? "Archiving" : "Archive"}
@@ -2086,6 +2334,7 @@ export function CreatePanels() {
                                   current === pool.id ? null : pool.id
                                 )
                               }
+                              disabled={poolIsReadOnly}
                               className="ui-button ui-button-muted ui-button-stack"
                             >
                               {openPoolMergeMenuId === pool.id ? "Close Merge" : "Merge"}
@@ -2137,6 +2386,7 @@ export function CreatePanels() {
                           candidateDraft={candidateDraft}
                           isEditingCandidate={isEditingPoolCandidate}
                           candidates={poolDetails[pool.id]?.candidates || []}
+                          readOnly={poolIsReadOnly}
                           imageSuggestions={imageSuggestions[pool.id] || []}
                           imageSuggestionLoading={Boolean(imageSuggestionLoading[pool.id])}
                           onDraftChange={(field, value) => updateCandidateDraft(pool.id, field, value)}
@@ -2175,6 +2425,9 @@ export function CreatePanels() {
                           </h3>
                           <p className="mt-2 text-sm uppercase tracking-[0.14em] text-[var(--accent-3)] transition group-hover:text-[var(--accent-2)] group-focus-visible:text-[var(--accent-2)]">
                             {pool.candidateCount} candidates
+                          </p>
+                          <p className="mt-1 text-[11px] uppercase tracking-[0.14em] text-[var(--muted)]">
+                            {describePoolVisibility(pool.visibility)}
                           </p>
                           {pool.description ? (
                             <p className="mt-3 text-sm leading-6 text-[var(--muted)]">{pool.description}</p>
@@ -2329,6 +2582,8 @@ export function CreatePanels() {
                   shouldDimOtherTournaments && activeTournamentFocusId !== tournament.id;
                 const isManagingEntrants = managedEntrantsTournamentId === tournament.id;
                 const isPoolMenuOpen = poolMenuTournamentId === tournament.id;
+                const isPublishedTournament =
+                  tournament.status !== "draft" && tournament.visibility !== "private";
                 const canStartBracket =
                   hasBracketName &&
                   hasSourcePool &&
@@ -2406,7 +2661,7 @@ export function CreatePanels() {
                         <button
                           type="button"
                           onClick={() => {
-                            if (tournament.status === "draft") {
+                            if (tournament.status === "draft" && !isPublishedTournament) {
                               setExpandedDraftTournamentId(tournament.id);
                               setEditingTournamentTitleId(tournament.id);
                             }
@@ -2446,6 +2701,9 @@ export function CreatePanels() {
                         />
                         <span>{recentlySavedBrackets[tournament.id] ? "Saved" : tournament.status}</span>
                       </span>
+                      <p className="mt-2 text-[11px] uppercase tracking-[0.18em] text-[var(--accent-3)]">
+                        {describeTournamentAudienceMode(tournament)}
+                      </p>
                       {tournament.status === "complete" && tournament.completedAt ? (
                         <p className="mt-2 text-[11px] uppercase tracking-[0.18em] text-[var(--muted)]">
                           {formatBracketDate(tournament.completedAt)}
@@ -2458,24 +2716,31 @@ export function CreatePanels() {
                     <>
                     <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,18rem)_minmax(0,1fr)] xl:items-stretch">
                         <div className="border border-[var(--line)] bg-[var(--panel)] p-4">
+                          <p className="mb-3 text-[11px] uppercase tracking-[0.18em] text-[var(--accent-3)]">
+                            Bracket Access
+                          </p>
                           <select
-                            aria-label="Sharing Mode"
-                            value={bracketDraft.sharingMode}
+                            aria-label="Bracket Access"
+                            value={getTournamentAudienceMode(bracketDraft)}
+                            disabled={isPublishedTournament}
                             onChange={(event) => {
-                              const sharingMode = event.target.value;
+                              const nextAudienceMode = event.target.value;
+                              const audiencePatch = getTournamentAudiencePatch(nextAudienceMode);
                               setTournamentInlineDrafts((current) => ({
                                 ...current,
                                 [tournament.id]: {
                                   ...bracketDraft,
-                                  sharingMode
+                                  ...audiencePatch
                                 }
                               }));
-                              updateTournamentInline(tournament.id, { sharingMode }, { silent: false });
+                              updateTournamentInline(tournament.id, audiencePatch, { silent: false });
                             }}
                             className="ui-field ui-field-panel ui-field-select"
                           >
-                            <option value="private">Don't Share</option>
-                            <option value="with_friends">Share with Friends</option>
+                            <option value="private">Private</option>
+                            <option value="with_friends">Friends</option>
+                            <option value="public_listed">Public</option>
+                            <option value="public_unlisted">Public Unlisted</option>
                           </select>
                         </div>
 
@@ -2487,21 +2752,28 @@ export function CreatePanels() {
                                 {bracketDraft.resultMode.replace("_", " ")} {" / "}
                                 {bracketDraft.tieBreakMode.replace("_", " ")}
                               </p>
+                              {isPublishedTournament ? (
+                                <p className="mt-2 text-[11px] uppercase tracking-[0.18em] text-[var(--accent-2)]">
+                                  Published brackets are locked in create.
+                                </p>
+                              ) : null}
                             </div>
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setExpandedBracketRules((current) => ({
-                                  ...current,
-                                  [tournament.id]: !rulesExpanded
-                                }))
-                              }
-                              className="display-face border border-[var(--line)] px-3 py-2 text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--muted)] transition hover:border-[var(--accent)] hover:text-[var(--accent-2)]"
-                            >
-                              {rulesExpanded ? "Hide Rules" : "Edit Rules"}
-                            </button>
+                            {!isPublishedTournament ? (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setExpandedBracketRules((current) => ({
+                                    ...current,
+                                    [tournament.id]: !rulesExpanded
+                                  }))
+                                }
+                                className="display-face border border-[var(--line)] px-3 py-2 text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--muted)] transition hover:border-[var(--accent)] hover:text-[var(--accent-2)]"
+                              >
+                                {rulesExpanded ? "Hide Rules" : "Edit Rules"}
+                              </button>
+                            ) : null}
                           </div>
-                          {rulesExpanded ? (
+                          {rulesExpanded && !isPublishedTournament ? (
                       <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                         <div className="space-y-2">
                           <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.18em] text-[var(--accent-3)]">
@@ -2625,6 +2897,7 @@ export function CreatePanels() {
                                     current === tournament.id ? null : tournament.id
                                   )
                                 }
+                                disabled={isPublishedTournament}
                                 className="ui-button ui-button-accent"
                               >
                                 {isManagingEntrants ? "Close Entrants" : "Manage Candidates"}
@@ -2636,6 +2909,7 @@ export function CreatePanels() {
                                     current === tournament.id ? null : tournament.id
                                   )
                                 }
+                                disabled={isPublishedTournament}
                                 className="ui-button ui-button-muted"
                               >
                                 Pick Pool
@@ -2643,7 +2917,7 @@ export function CreatePanels() {
                               <button
                                 type="button"
                                 onClick={() => handleSyncTournamentWithPool(tournament.id)}
-                                disabled={isActionPending(`sync-tournament:${tournament.id}`)}
+                                disabled={isPublishedTournament || isActionPending(`sync-tournament:${tournament.id}`)}
                                 className="ui-button ui-button-muted"
                               >
                                 {isActionPending(`sync-tournament:${tournament.id}`) ? "Syncing" : "Sync With Pool"}
@@ -2654,6 +2928,9 @@ export function CreatePanels() {
                                     <button
                                       type="button"
                                       onClick={async () => {
+                                        if (isPublishedTournament) {
+                                          return;
+                                        }
                                         setPoolMenuTournamentId(null);
                                         const createdPool = await createPoolRecord({
                                           name: trimmedBracketTitle || "Untitled Pool",
@@ -2690,13 +2967,14 @@ export function CreatePanels() {
                                           type="button"
                                           onClick={() => {
                                             setPoolMenuTournamentId(null);
-                                            setTournamentInlineDrafts((current) => ({
-                                              ...current,
-                                              [tournament.id]: {
-                                                ...bracketDraft,
-                                                sourcePoolId: pool.id
-                                              }
-                                            }));
+                                          setTournamentInlineDrafts((current) => ({
+                                            ...current,
+                                            [tournament.id]: {
+                                              ...bracketDraft,
+                                              sourcePoolId: pool.id
+                                            }
+                                          }));
+                                          if (!isPublishedTournament) {
                                             updateTournamentInline(
                                               tournament.id,
                                               {
@@ -2704,7 +2982,8 @@ export function CreatePanels() {
                                               },
                                               { silent: false }
                                             );
-                                          }}
+                                          }
+                                        }}
                                           className={`flex w-full items-center justify-between gap-3 px-3 py-3 text-left transition ${
                                             isCurrentPool
                                               ? "bg-[var(--panel-3)] text-[var(--accent-3)]"
@@ -2729,6 +3008,7 @@ export function CreatePanels() {
                               <button
                                 type="button"
                                 onClick={() => openSeedingEditor(tournament)}
+                                disabled={isPublishedTournament}
                                 className="ui-button ui-button-muted"
                               >
                                 Set Seeding
@@ -2743,6 +3023,7 @@ export function CreatePanels() {
                                     current === tournament.id ? null : tournament.id
                                   )
                                 }
+                                disabled={isPublishedTournament}
                                 className="ui-button ui-button-muted"
                               >
                                 Pick Pool
@@ -2753,6 +3034,9 @@ export function CreatePanels() {
                                     <button
                                       type="button"
                                       onClick={async () => {
+                                        if (isPublishedTournament) {
+                                          return;
+                                        }
                                         setPoolMenuTournamentId(null);
                                         const createdPool = await createPoolRecord({
                                           name: trimmedBracketTitle || "Untitled Pool",
@@ -2771,7 +3055,10 @@ export function CreatePanels() {
                                           setManagedEntrantsTournamentId(tournament.id);
                                         }
                                       }}
-                                      disabled={isActionPending(`create-pool-for-tournament:${tournament.id}`)}
+                                      disabled={
+                                        isPublishedTournament ||
+                                        isActionPending(`create-pool-for-tournament:${tournament.id}`)
+                                      }
                                       className="flex w-full items-center justify-between gap-3 border-b border-[var(--line)] px-3 py-3 text-left transition hover:bg-[var(--panel-3)] disabled:opacity-60"
                                     >
                                       <span className="min-w-0">
@@ -2798,13 +3085,15 @@ export function CreatePanels() {
                                               sourcePoolId: pool.id
                                             }
                                           }));
-                                          updateTournamentInline(
-                                            tournament.id,
-                                            {
-                                              sourcePoolId: pool.id
-                                            },
-                                            { silent: false }
-                                          );
+                                          if (!isPublishedTournament) {
+                                            updateTournamentInline(
+                                              tournament.id,
+                                              {
+                                                sourcePoolId: pool.id
+                                              },
+                                              { silent: false }
+                                            );
+                                          }
                                         }}
                                         className="flex w-full items-center justify-between gap-3 px-3 py-3 text-left transition hover:bg-[var(--panel-3)]"
                                       >
@@ -2828,6 +3117,7 @@ export function CreatePanels() {
                           poolId={bracketDraft.sourcePoolId}
                           candidateDraft={candidateDrafts[bracketDraft.sourcePoolId] || emptyCandidateForm}
                           isEditingCandidate={editingCandidate?.poolId === bracketDraft.sourcePoolId}
+                          readOnly={isPublishedTournament}
                           candidates={linkedPoolCandidates}
                           imageSuggestions={imageSuggestions[bracketDraft.sourcePoolId] || []}
                           imageSuggestionLoading={Boolean(imageSuggestionLoading[bracketDraft.sourcePoolId])}
@@ -2948,18 +3238,20 @@ export function CreatePanels() {
                     ) : (
                       <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-3">
                         <p className="text-sm uppercase tracking-[0.14em] text-[var(--muted)]">
-                          {(tournament.sharingMode || "private").replaceAll("_", " ")} {" / "}
+                          {describeTournamentAudienceMode(tournament)} {" / "}
                           {(tournament.playStyle || "fixed_bracket").replaceAll("_", " ")} {" / "}
                           {(tournament.resultMode || "winner_only").replaceAll("_", " ")} {" / "}
                           {tournament.entryCount} entries
                         </p>
-                        <button
-                          type="button"
-                          onClick={() => setExpandedDraftTournamentId(tournament.id)}
-                          className="ui-button ui-button-accent"
-                        >
-                          Edit Draft
-                        </button>
+                        {!isPublishedTournament ? (
+                          <button
+                            type="button"
+                            onClick={() => setExpandedDraftTournamentId(tournament.id)}
+                            className="ui-button ui-button-accent"
+                          >
+                            Edit Draft
+                          </button>
+                        ) : null}
                         <button
                           type="button"
                           onClick={() => handleStartTournament(tournament.id)}
@@ -3102,7 +3394,7 @@ export function CreatePanels() {
                           </div>
                         </div>
                         <div className="mt-3 flex flex-wrap gap-2 text-[11px] uppercase tracking-[0.18em] text-[var(--muted)]">
-                          <span>{tournament.sharingMode.replace("_", " ")}</span>
+                          <span>{describeTournamentAudienceMode(tournament)}</span>
                           <span>•</span>
                           <span>{tournament.playStyle.replace("_", " ")}</span>
                           <span>•</span>
@@ -3123,7 +3415,7 @@ export function CreatePanels() {
                         ) : null}
                         {hasSourcePool ? (
                           <div className="flex flex-wrap gap-2 text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
-                            <span>{tournament.sharingMode.replace("_", " ")}</span>
+                            <span>{describeTournamentAudienceMode(tournament)}</span>
                             <span>/</span>
                             <span>{tournament.playStyle.replace("_", " ")}</span>
                             <span>/</span>
@@ -3163,7 +3455,7 @@ export function CreatePanels() {
                   ) : null}
                   {tournament.status !== "complete" && hasSourcePool && !isDraftExpanded ? (
                   <div className="mt-4 flex flex-wrap gap-2 text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
-                    <span>{tournament.sharingMode.replace("_", " ")}</span>
+                    <span>{describeTournamentAudienceMode(tournament)}</span>
                     <span>/</span>
                     <span>{tournament.playStyle.replace("_", " ")}</span>
                     <span>/</span>
@@ -3218,6 +3510,18 @@ export function CreatePanels() {
                   rows={3}
                   className="ui-field ui-field-modal"
                 />
+                <select
+                  value={poolForm.visibility}
+                  onChange={(event) =>
+                    setPoolForm((current) => ({ ...current, visibility: event.target.value }))
+                  }
+                  className="ui-field ui-field-modal ui-field-select"
+                >
+                  <option value="private">Private Draft</option>
+                  <option value="public_listed">Publish</option>
+                  <option value="public_unlisted">Publish Unlisted</option>
+                </select>
+                <PoolPublishWarning visibility={poolForm.visibility} />
                 <div className="flex flex-wrap gap-3">
                   <button
                     type="submit"
@@ -3285,6 +3589,21 @@ export function CreatePanels() {
                   rows={2}
                   className="ui-field ui-field-modal"
                 />
+                <select
+                  value={poolImportForm.visibility}
+                  onChange={(event) =>
+                    setPoolImportForm((current) => ({
+                      ...current,
+                      visibility: event.target.value
+                    }))
+                  }
+                  className="ui-field ui-field-modal ui-field-select"
+                >
+                  <option value="private">Private Draft</option>
+                  <option value="public_listed">Publish</option>
+                  <option value="public_unlisted">Publish Unlisted</option>
+                </select>
+                <PoolPublishWarning visibility={poolImportForm.visibility} />
                 <div className="space-y-2">
                   <p className="display-face text-xs font-black uppercase tracking-[0.18em] text-[var(--accent-3)]">
                     Source Text
@@ -3377,21 +3696,46 @@ export function CreatePanels() {
                   ))}
                 </select>
                 <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="block space-y-2">
+                    <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--accent-3)]">
+                      Bracket Access
+                    </p>
+                    <select
+                      aria-label="Bracket Access"
+                      value={getTournamentAudienceMode(tournamentForm)}
+                      onChange={(event) => {
+                        const audiencePatch = getTournamentAudiencePatch(event.target.value);
+                        setTournamentForm((current) => ({
+                          ...current,
+                          ...audiencePatch
+                        }));
+                      }}
+                      className="ui-field ui-field-modal ui-field-select"
+                    >
+                      <option value="private">Private</option>
+                      <option value="with_friends">Friends</option>
+                      <option value="public_listed">Public</option>
+                      <option value="public_unlisted">Public Unlisted</option>
+                    </select>
+                  </div>
                   <div className="block">
                     <select
-                      aria-label="Sharing Mode"
-                      value={tournamentForm.sharingMode}
+                      aria-label="Voting Access"
+                      value={tournamentForm.votingAccess}
                       onChange={(event) =>
                         setTournamentForm((current) => ({
                           ...current,
-                          sharingMode: event.target.value
+                          votingAccess: event.target.value
                         }))
                       }
                       className="ui-field ui-field-modal ui-field-select"
                     >
-                      <option value="private">Don't Share</option>
-                      <option value="with_friends">Share with Friends</option>
+                      <option value="signed_in_only">Signed-In Voting</option>
+                      <option value="anyone">Anyone Can Vote</option>
                     </select>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <TournamentPublishWarning visibility={tournamentForm.visibility} />
                   </div>
                   <div className="block space-y-2">
                     <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.18em] text-[var(--accent-3)]">
@@ -3532,6 +3876,18 @@ export function CreatePanels() {
                   rows={3}
                   className="ui-field ui-field-modal"
                 />
+                <select
+                  value={poolEditForm.visibility}
+                  onChange={(event) =>
+                    setPoolEditForm((current) => ({ ...current, visibility: event.target.value }))
+                  }
+                  className="ui-field ui-field-modal ui-field-select"
+                >
+                  <option value="private">Private Draft</option>
+                  <option value="public_listed">Publish</option>
+                  <option value="public_unlisted">Publish Unlisted</option>
+                </select>
+                <PoolPublishWarning visibility={poolEditForm.visibility} />
                 <div className="flex flex-wrap gap-3">
                   <button
                     type="submit"
