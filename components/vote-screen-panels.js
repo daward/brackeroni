@@ -1,8 +1,9 @@
-"use client";
+﻿"use client";
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { StatusPill } from "@/components/status-pill";
+import { TournamentResultsPage } from "@/components/tournament-results-page";
 
 function openMatchesForTournament(tournament) {
   return (tournament.matches || []).filter(
@@ -28,14 +29,6 @@ function formatRoundLabel(match, tournament) {
   }
 
   return `Round ${match.roundNumber}`;
-}
-
-function isContestedMatch(match) {
-  return Boolean(match.leftEntryId && match.rightEntryId);
-}
-
-function isVisibleHistoryMatch(match) {
-  return isContestedMatch(match) && match.status !== "auto_resolved";
 }
 
 function buildCreateReturnUrl(tournamentId, stage = "active") {
@@ -69,44 +62,6 @@ function getCurrentRoundProgress(tournament, focusedMatch, focusedOpenMatches) {
   };
 }
 
-function orderResultEntries(entries, matches, tournament) {
-  return [...entries].sort((left, right) => {
-    if (tournament.resultMode === "winner_only") {
-      const leftStats = getEntryRecordStats(matches, left.id);
-      const rightStats = getEntryRecordStats(matches, right.id);
-
-      if (left.id === tournament.winnerEntryId) {
-        return -1;
-      }
-
-      if (right.id === tournament.winnerEntryId) {
-        return 1;
-      }
-
-      if (leftStats.winPct !== rightStats.winPct) {
-        return rightStats.winPct - leftStats.winPct;
-      }
-
-      if (leftStats.wins !== rightStats.wins) {
-        return rightStats.wins - leftStats.wins;
-      }
-
-      if (leftStats.played !== rightStats.played) {
-        return rightStats.played - leftStats.played;
-      }
-    }
-
-    const leftRank = left.finalRank ?? Number.MAX_SAFE_INTEGER;
-    const rightRank = right.finalRank ?? Number.MAX_SAFE_INTEGER;
-
-    if (leftRank !== rightRank) {
-      return leftRank - rightRank;
-    }
-
-    return left.seed - right.seed;
-  });
-}
-
 export function VoteScreenPanels({
   activeTournaments,
   completedTournaments,
@@ -119,9 +74,7 @@ export function VoteScreenPanels({
   const [completed, setCompleted] = useState(completedTournaments);
   const [focusedTournamentId, setFocusedTournamentId] = useState(initialFocusedTournamentId);
   const [resultsTournament, setResultsTournament] = useState(null);
-  const [resultsEntries, setResultsEntries] = useState([]);
   const [resultsMatches, setResultsMatches] = useState([]);
-  const [selectedResultEntryId, setSelectedResultEntryId] = useState(null);
   const [resultsLoading, setResultsLoading] = useState(false);
   const [pendingVoteMatchId, setPendingVoteMatchId] = useState(null);
   const [message, setMessage] = useState("");
@@ -138,16 +91,6 @@ export function VoteScreenPanels({
     focusedMatch,
     focusedMatches
   );
-  const selectedResultEntry =
-    resultsEntries.find((entry) => entry.id === selectedResultEntryId) ?? resultsEntries[0] ?? null;
-  const selectedResultHistory = selectedResultEntry
-    ? resultsMatches.filter(
-        (match) =>
-          isVisibleHistoryMatch(match) &&
-          (match.leftEntryId === selectedResultEntry.id ||
-            match.rightEntryId === selectedResultEntry.id)
-      )
-    : [];
   const waitingTournamentIds = active
     .filter((tournament) => openMatchesForTournament(tournament).length === 0)
     .map((tournament) => tournament.id)
@@ -292,7 +235,7 @@ export function VoteScreenPanels({
     }
 
     if (!tournamentResponse.ok) {
-        setError(tournamentData.error?.message || "Failed to refresh bracket.");
+      setError(tournamentData.error?.message || "Failed to refresh bracket.");
       setPendingVoteMatchId(null);
       return;
     }
@@ -375,9 +318,7 @@ export function VoteScreenPanels({
     setError("");
     setMessage("");
     setResultsTournament(tournament);
-    setResultsEntries([]);
     setResultsMatches([]);
-    setSelectedResultEntryId(null);
     setResultsLoading(true);
 
     try {
@@ -404,11 +345,8 @@ export function VoteScreenPanels({
         return;
       }
 
-      const orderedEntries = orderResultEntries(data.item?.entries ?? [], matchData.items ?? [], data.item);
-
-      setResultsEntries(orderedEntries);
+      setResultsTournament(data.item);
       setResultsMatches(matchData.items ?? []);
-      setSelectedResultEntryId(orderedEntries[0]?.id ?? null);
     } catch {
       setError("Failed to load bracket results.");
       setResultsTournament(null);
@@ -419,9 +357,7 @@ export function VoteScreenPanels({
 
   function closeResultsView() {
     setResultsTournament(null);
-    setResultsEntries([]);
     setResultsMatches([]);
-    setSelectedResultEntryId(null);
   }
 
   if (resultsTournament) {
@@ -440,158 +376,23 @@ export function VoteScreenPanels({
           ) : null}
         </div>
 
-        <section className="border border-[var(--line)] bg-[var(--panel)]">
-          <div className="flex items-start justify-between gap-4 border-b border-[var(--line)] bg-[var(--panel-3)] px-5 py-4">
-            <div>
-              <p className="text-[11px] uppercase tracking-[0.22em] text-[var(--accent-3)]">
-                Bracket Results
-              </p>
-              <h2 className="display-face mt-2 text-3xl font-black">
-                {resultsTournament.title}
-              </h2>
-              <p className="mt-2 text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
-                {resultsTournament.resultMode.replace("_", " ")} • {resultsEntries.length} ranked entries
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={closeResultsView}
-              className="display-face border border-[var(--line)] px-4 py-3 text-xs font-bold uppercase tracking-[0.18em] text-[var(--muted)] transition hover:border-[var(--accent)] hover:text-[var(--accent-2)]"
-            >
-              Back To Index
-            </button>
-          </div>
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={closeResultsView}
+            className="display-face border border-[var(--line)] px-4 py-3 text-xs font-bold uppercase tracking-[0.18em] text-[var(--muted)] transition hover:border-[var(--accent)] hover:text-[var(--accent-2)]"
+          >
+            Back To Index
+          </button>
+        </div>
 
-          {resultsLoading ? (
-            <div className="px-5 py-6">
-              <p className="text-sm text-[var(--muted)]">Loading results...</p>
-            </div>
-          ) : (
-            <div className="grid gap-px bg-[var(--line)] lg:grid-cols-[0.9fr_1.1fr]">
-              <div className="bg-[var(--panel)] px-5 py-5">
-                <p className="display-face text-sm font-black uppercase tracking-[0.18em] text-[var(--accent-3)]">
-                  Final Ranking
-                </p>
-                <div className="mt-4 space-y-2">
-                  {resultsEntries.map((entry, index) => (
-                    <button
-                      key={entry.id}
-                      type="button"
-                      onClick={() => setSelectedResultEntryId(entry.id)}
-                      className={`flex w-full items-center gap-3 border px-3 py-3 text-left transition ${
-                        selectedResultEntry?.id === entry.id
-                          ? "border-[var(--accent-3)] bg-[var(--panel-2)]"
-                          : "border-[var(--line)] bg-[var(--panel-2)] hover:border-[var(--accent-2)]"
-                      }`}
-                    >
-                      <span className="display-face w-12 text-lg font-black uppercase text-[var(--accent-2)]">
-                        {getDisplayRank(entry, resultsEntries, index)}
-                      </span>
-                      {entry.candidateImageUrl ? (
-                        <img
-                          src={proxiedImageUrl(entry.candidateImageUrl)}
-                          alt={entry.candidateName}
-                          className="h-12 w-12 rounded-sm object-cover"
-                        />
-                      ) : null}
-                      <div className="min-w-0 flex-1">
-                        <p className="display-face truncate text-sm font-black">
-                          {entry.candidateName}
-                        </p>
-                        <p className="mt-1 text-xs uppercase tracking-[0.14em] text-[var(--muted)]">
-                          Seed {entry.seed}
-                        </p>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="ui-scroll-subtle bg-[var(--panel)] px-5 py-5 lg:sticky lg:top-4 lg:self-start lg:max-h-[calc(100vh-5rem)] lg:overflow-y-auto">
-                {selectedResultEntry ? (
-                  <>
-                    <div className="flex items-start gap-4 border-b border-[var(--line)] pb-4">
-                      {selectedResultEntry.candidateImageUrl ? (
-                        <img
-                          src={proxiedImageUrl(selectedResultEntry.candidateImageUrl)}
-                          alt={selectedResultEntry.candidateName}
-                          className="h-20 w-20 rounded-sm object-cover"
-                        />
-                      ) : null}
-                      <div>
-                        <p className="text-[11px] uppercase tracking-[0.22em] text-[var(--accent-3)]">
-                          Candidate Details
-                        </p>
-                        <h3 className="display-face mt-2 text-2xl font-black">
-                          {selectedResultEntry.candidateName}
-                        </h3>
-                        <p className="mt-2 text-xs uppercase tracking-[0.14em] text-[var(--muted)]">
-                          Rank {getDisplayRank(selectedResultEntry, resultsEntries)} • Seed {selectedResultEntry.seed} •{" "}
-                          {formatRecord(selectedResultHistory, selectedResultEntry.id)}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="mt-5">
-                      <p className="display-face text-sm font-black uppercase tracking-[0.18em] text-[var(--accent-3)]">
-                        Match History
-                      </p>
-                      <div className="mt-4 space-y-3">
-                        {selectedResultHistory.length === 0 ? (
-                          <p className="text-sm text-[var(--muted)]">No played matches to show yet.</p>
-                        ) : (
-                          selectedResultHistory.map((match) => (
-                            <div
-                              key={match.id}
-                              className="border border-[var(--line)] bg-[var(--panel-2)] px-4 py-4"
-                            >
-                              <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--accent-2)]">
-                                {formatRoundLabel(match, resultsTournament)}
-                              </p>
-                              <div className="mt-3 flex items-start justify-between gap-4">
-                              <div>
-                                <p className="display-face text-lg font-black">
-                                  {describeHistoryResult(match, selectedResultEntry.id)}
-                                </p>
-                                {describeUserVote(match, selectedResultEntry.id) ? (
-                                  <p
-                                    className={`mt-1 text-xs uppercase tracking-[0.18em] ${
-                                      describeUserVote(match, selectedResultEntry.id).className
-                                    }`}
-                                  >
-                                    {describeUserVote(match, selectedResultEntry.id).label}
-                                  </p>
-                                ) : null}
-                                <p className="mt-1 text-xs uppercase tracking-[0.18em] text-[var(--accent-3)]">
-                                  Vote tally {formatVoteTally(match, selectedResultEntry.id)}
-                                </p>
-                                  <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-                                    {describeHistoryOpponent(match, selectedResultEntry.id)}
-                                  </p>
-                                </div>
-                                {getOpponentImageUrl(match, selectedResultEntry.id) ? (
-                                  <img
-                                    src={proxiedImageUrl(
-                                      getOpponentImageUrl(match, selectedResultEntry.id)
-                                    )}
-                                    alt={describeHistoryOpponent(match, selectedResultEntry.id)}
-                                    className="h-20 w-28 flex-shrink-0 rounded-sm object-cover object-center sm:h-24 sm:w-32"
-                                  />
-                                ) : null}
-                              </div>
-                            </div>
-                          ))
-                        )}
-                      </div>
-                    </div>
-                  </>
-                ) : (
-                  <p className="text-sm text-[var(--muted)]">No result details available.</p>
-                )}
-              </div>
-            </div>
-          )}
-        </section>
+        {resultsLoading ? (
+          <section className="border border-[var(--line)] bg-[var(--panel)] px-5 py-6">
+            <p className="text-sm text-[var(--muted)]">Loading results...</p>
+          </section>
+        ) : (
+          <TournamentResultsPage tournament={resultsTournament} matches={resultsMatches} />
+        )}
       </div>
     );
   }
@@ -641,11 +442,9 @@ export function VoteScreenPanels({
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <h3 className="display-face text-2xl font-black">
-                          {tournament.title}
-                        </h3>
+                        <h3 className="display-face text-2xl font-black">{tournament.title}</h3>
                         <p className="mt-1 text-sm uppercase tracking-[0.15em] text-[var(--muted)]">
-                          {tournament.sharingMode.replace("_", " ")} • {tournament.entryCount} entries
+                          {tournament.sharingMode.replace("_", " ")} | {tournament.entryCount} entries
                         </p>
                       </div>
                       <StatusPill>{tournament.status}</StatusPill>
@@ -820,83 +619,8 @@ export function VoteScreenPanels({
           </div>
         </div>
       ) : null}
-
     </div>
   );
-}
-
-function describeHistoryOpponent(match, entryId) {
-  const isLeft = match.leftEntryId === entryId;
-  const opponentName = isLeft ? match.rightName : match.leftName;
-  const opponentSeed = isLeft ? match.rightSeed : match.leftSeed;
-
-  if (!opponentName) {
-    return "Advanced on a bye.";
-  }
-
-  return `Against ${opponentName}${opponentSeed ? ` (Seed ${opponentSeed})` : ""}.`;
-}
-
-function describeHistoryResult(match, entryId) {
-  return match.winnerEntryId === entryId ? "Won" : "Lost";
-}
-
-function describeUserVote(match, entryId) {
-  if (!match.userVoteEntryId) {
-    return null;
-  }
-
-  return match.userVoteEntryId === entryId
-    ? { label: "✓ You voted for this pick", className: "text-[var(--accent-2)]" }
-    : { label: "✓ You voted against it", className: "text-[var(--accent)]" };
-}
-
-function getOpponentImageUrl(match, entryId) {
-  const isLeft = match.leftEntryId === entryId;
-  return isLeft ? match.rightImageUrl : match.leftImageUrl;
-}
-
-function formatVoteTally(match, entryId) {
-  const isLeft = match.leftEntryId === entryId;
-  const selectedVotes = isLeft ? match.leftVoteCount : match.rightVoteCount;
-  const opponentVotes = isLeft ? match.rightVoteCount : match.leftVoteCount;
-
-  return `${selectedVotes}-${opponentVotes}`;
-}
-
-function getDisplayRank(entry, orderedEntries, fallbackIndex = 0) {
-  if (entry?.finalRank) {
-    return entry.finalRank;
-  }
-
-  const orderedIndex = orderedEntries.findIndex((candidate) => candidate.id === entry?.id);
-  return (orderedIndex >= 0 ? orderedIndex : fallbackIndex) + 1;
-}
-
-function formatRecord(matches, entryId) {
-  const { wins, losses } = getEntryRecordStats(matches, entryId);
-
-  return `${wins}-${losses}`;
-}
-
-function getEntryRecordStats(matches, entryId) {
-  const relevantMatches = matches.filter(
-    (match) =>
-      isVisibleHistoryMatch(match) &&
-      (match.leftEntryId === entryId || match.rightEntryId === entryId) &&
-      match.winnerEntryId
-  );
-  const wins = relevantMatches.filter((match) => match.winnerEntryId === entryId).length;
-  const losses = relevantMatches.length - wins;
-  const played = relevantMatches.length;
-  const winPct = played > 0 ? wins / played : 0;
-
-  return {
-    wins,
-    losses,
-    played,
-    winPct
-  };
 }
 
 function CandidateVoteCard({
@@ -912,9 +636,7 @@ function CandidateVoteCard({
       type="button"
       onClick={onVote}
       disabled={disabled}
-      className={`group flex h-full min-h-[13.5rem] max-h-[16.5rem] flex-col overflow-hidden bg-[var(--panel-2)] text-left transition hover:bg-[var(--panel)] disabled:cursor-wait disabled:opacity-70 sm:min-h-[16rem] sm:max-h-[20rem] md:min-h-[20rem] md:max-h-[29rem] ${
-        imageUrl ? "" : ""
-      }`}
+      className="group flex h-full min-h-[13.5rem] max-h-[16.5rem] flex-col overflow-hidden bg-[var(--panel-2)] text-left transition hover:bg-[var(--panel)] disabled:cursor-wait disabled:opacity-70 sm:min-h-[16rem] sm:max-h-[20rem] md:min-h-[20rem] md:max-h-[29rem]"
     >
       <div className="border-b border-[var(--line)] px-4 py-3 sm:px-5 sm:py-4">
         <p className="text-xs uppercase tracking-[0.16em] text-[var(--accent-2)]">Seed {seed}</p>
