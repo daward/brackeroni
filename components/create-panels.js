@@ -164,6 +164,41 @@ function buildPoolImportPrompt(poolName) {
   ].join(" ");
 }
 
+function normalizeImageMatchText(value) {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function isStrongSuggestedImageMatch(candidateName, suggestion) {
+  const normalizedCandidateName = normalizeImageMatchText(candidateName);
+  const normalizedTitle = normalizeImageMatchText(suggestion?.title);
+
+  if (!normalizedCandidateName || !normalizedTitle) {
+    return false;
+  }
+
+  if (
+    normalizedTitle === normalizedCandidateName ||
+    normalizedTitle.includes(normalizedCandidateName)
+  ) {
+    return true;
+  }
+
+  const nameTokens = normalizedCandidateName.split(/\s+/).filter(Boolean);
+
+  if (nameTokens.length === 0) {
+    return false;
+  }
+
+  const matchedTokenCount = nameTokens.filter((token) => normalizedTitle.includes(token)).length;
+  const isTrustedSource =
+    suggestion?.source === "Wikipedia" || suggestion?.source === "Wikimedia Commons";
+
+  return isTrustedSource && matchedTokenCount === nameTokens.length;
+}
+
 function formatBracketDate(value) {
   if (!value) {
     return null;
@@ -192,25 +227,6 @@ function InlineTitleField({ autoFocus = false, value, onChange, onBlur, onKeyDow
         lineHeight: 1
       }}
     />
-  );
-}
-
-function SuggestionThumbnail({ imageUrl, title }) {
-  const [imageFailed, setImageFailed] = useState(false);
-
-  if (!imageUrl || imageFailed) {
-    return null;
-  }
-
-  return (
-    <div className="h-24 w-full bg-[var(--panel-2)]">
-      <ResilientRemoteImage
-        src={imageUrl}
-        alt={title}
-        className="h-full w-full object-cover"
-        onError={() => setImageFailed(true)}
-      />
-    </div>
   );
 }
 
@@ -247,14 +263,16 @@ function CandidatePreviewChips({ candidates, limit = 4 }) {
 function CandidateManagerPanel({
   poolId,
   candidateDraft,
+  isCandidateEditorOpen,
   isEditingCandidate,
   readOnly = false,
   candidates,
   imageSuggestions,
   imageSuggestionLoading,
   onDraftChange,
+  onCreateCandidate,
   onSubmit,
-  onCancelEdit,
+  onCloseEditor,
   onSuggestImages,
   onClearImage,
   onSelectSuggestedImage,
@@ -263,187 +281,26 @@ function CandidateManagerPanel({
   isCreatePending,
   isSavePending,
   removingCandidateId = null,
-  candidateFormRef,
   listHeading = "In This Pool",
   listEmptyMessage = "No candidates in this pool yet."
 }) {
   return (
     <>
-      {!readOnly ? (
-        <div className="mt-5 grid gap-4 xl:grid-cols-[0.95fr_1.05fr]">
-          <div
-            ref={candidateFormRef}
-            className="space-y-3 border border-[var(--line)] bg-[var(--panel-3)] p-4"
-          >
-            <div className="flex items-center justify-between gap-3">
-              <p className="display-face text-xs font-black uppercase tracking-[0.18em] text-[var(--accent-2)]">
-                {isEditingCandidate ? "Edit Candidate" : "Create Candidate"}
-              </p>
-              {isEditingCandidate ? (
-                <button
-                  type="button"
-                  onClick={onCancelEdit}
-                  className="display-face text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--muted)]"
-                >
-                  Back To Create
-                </button>
-              ) : null}
-            </div>
-            <input
-              value={candidateDraft.name}
-              disabled={readOnly}
-              onChange={(event) => onDraftChange("name", event.target.value)}
-              placeholder="Candidate name"
-              className="ui-field ui-field-panel"
-            />
-            <textarea
-              value={candidateDraft.description}
-              disabled={readOnly}
-              onChange={(event) => onDraftChange("description", event.target.value)}
-              placeholder="Description"
-              rows={2}
-              className="ui-field ui-field-panel"
-            />
-            <input
-              value={candidateDraft.imageUrl}
-              disabled={readOnly}
-              onChange={(event) => onDraftChange("imageUrl", event.target.value)}
-              placeholder="Image URL"
-              className="ui-field ui-field-panel"
-            />
-            <div className="flex flex-wrap gap-3">
-              <button
-                type="button"
-                onClick={onSubmit}
-                disabled={readOnly || (isEditingCandidate ? isSavePending : isCreatePending)}
-                className="ui-button ui-button-primary"
-              >
-                {isEditingCandidate
-                  ? isSavePending
-                    ? "Saving"
-                    : "Save Candidate"
-                  : isCreatePending
-                    ? "Creating"
-                    : "Create"}
-              </button>
-              {isEditingCandidate ? (
-                <button
-                  type="button"
-                  onClick={onCancelEdit}
-                  className="ui-button ui-button-muted"
-                >
-                  Cancel
-                </button>
-              ) : null}
-            </div>
-          </div>
-
-          <div
-            className={`space-y-3 border border-[var(--line)] bg-[var(--panel-3)] p-4 transition-opacity ${
-              imageSuggestionLoading ? "opacity-55" : "opacity-100"
-            }`}
-          >
-            <div className="flex items-center justify-between gap-3">
-              <p className="display-face text-xs font-black uppercase tracking-[0.18em] text-[var(--accent-3)]">
-                Image Picks
-              </p>
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={onSuggestImages}
-                  disabled={readOnly || imageSuggestionLoading}
-                  className="display-face border border-[var(--accent-2)] px-3 py-2 text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--accent-2)] transition hover:bg-[var(--accent-2)] hover:text-black disabled:opacity-60"
-                >
-                  {imageSuggestionLoading ? "Searching" : "Suggest"}
-                </button>
-                {candidateDraft.imageUrl ? (
-                  <button
-                    type="button"
-                    onClick={onClearImage}
-                    className="display-face text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--muted)]"
-                  >
-                    Clear
-                  </button>
-                ) : null}
-              </div>
-            </div>
-
-            {candidateDraft.imageUrl ? (
-              <div className="overflow-hidden border border-[var(--line)] bg-[var(--panel)]">
-                <div className="h-44 w-full bg-[var(--panel-2)]">
-                  <ResilientRemoteImage
-                    src={candidateDraft.imageUrl}
-                    alt={candidateDraft.name || "Selected image"}
-                    className="h-full w-full object-cover"
-                  />
-                </div>
-                <div className="px-3 py-3">
-                  <p className="text-xs uppercase tracking-[0.14em] text-[var(--accent-2)]">
-                    Selected for this candidate
-                  </p>
-                </div>
-              </div>
-            ) : (
-              <div className="flex min-h-44 items-center justify-center border border-dashed border-[var(--line)] bg-[var(--panel)] px-4 py-6">
-                <p className="text-center text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
-                  Add an image URL or ask for suggestions.
-                </p>
-              </div>
-            )}
-
-            {imageSuggestions.length > 0 ? (
-              <div className="space-y-2">
-                <p className="display-face text-xs font-black uppercase tracking-[0.18em] text-[var(--accent-2)]">
-                  Suggested Images
-                </p>
-                <div className="ui-scroll-subtle max-h-[26rem] overflow-y-auto pr-1">
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    {imageSuggestions.map((image) => {
-                      const selectedImageUrl = candidateDraft.imageUrl;
-
-                      return (
-                        <button
-                          key={image.id}
-                          type="button"
-                          disabled={readOnly}
-                          onClick={() => onSelectSuggestedImage(image.imageUrl)}
-                          className={`overflow-hidden border text-left transition ${
-                            selectedImageUrl === image.imageUrl
-                              ? "border-[var(--accent-3)] bg-[var(--panel)]"
-                              : "border-[var(--line)] bg-[var(--panel)] hover:border-[var(--accent-2)]"
-                          }`}
-                        >
-                          <SuggestionThumbnail imageUrl={image.thumbnailUrl} title={image.title} />
-                          <div className="px-3 py-3">
-                            <p className="line-clamp-2 text-xs uppercase tracking-[0.12em] text-[var(--ink)]">
-                              {image.title}
-                            </p>
-                            {image.source ? (
-                              <p className="mt-2 text-[11px] uppercase tracking-[0.14em] text-[var(--muted)]">
-                                {image.source}
-                              </p>
-                            ) : null}
-                            {selectedImageUrl === image.imageUrl ? (
-                              <p className="mt-2 text-[11px] uppercase tracking-[0.14em] text-[var(--accent-3)]">
-                                Selected
-                              </p>
-                            ) : null}
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            ) : null}
-          </div>
-        </div>
-      ) : null}
-
       <div className="mt-4">
-        <p className="display-face text-lg font-black uppercase tracking-[0.12em] text-[var(--accent-3)]">
-          {listHeading}
-        </p>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="display-face text-lg font-black uppercase tracking-[0.12em] text-[var(--accent-3)]">
+            {listHeading}
+          </p>
+          {!readOnly ? (
+            <button
+              type="button"
+              onClick={onCreateCandidate}
+              className="ui-button ui-button-accent"
+            >
+              Add Candidate
+            </button>
+          ) : null}
+        </div>
         <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {candidates.length === 0 ? (
             <span className="text-sm text-[var(--muted)]">{listEmptyMessage}</span>
@@ -451,7 +308,7 @@ function CandidateManagerPanel({
             candidates.map((candidate) => (
               <div
                 key={candidate.id}
-                className="overflow-hidden border border-[var(--line)] bg-[var(--panel)]"
+                className="group relative flex min-h-[16rem] flex-col overflow-hidden border border-[var(--line)] bg-[var(--panel)]"
               >
                 <button
                   type="button"
@@ -460,10 +317,10 @@ function CandidateManagerPanel({
                       onEditCandidate(candidate);
                     }
                   }}
-                  className="block w-full text-left transition hover:border-[var(--accent-2)]"
+                  className="flex h-full w-full flex-1 flex-col text-left transition hover:border-[var(--accent-2)]"
                 >
                   {candidate.imageUrl ? (
-                    <div className="h-24 w-full bg-[var(--panel-3)]">
+                    <div className="h-40 w-full bg-[var(--panel-3)]">
                       <ResilientRemoteImage
                         src={candidate.imageUrl}
                         alt={candidate.name}
@@ -471,7 +328,7 @@ function CandidateManagerPanel({
                       />
                     </div>
                   ) : null}
-                  <div className="px-3 py-3">
+                  <div className="flex flex-1 flex-col px-3 py-3">
                     <p className="display-face text-sm font-black">{candidate.name}</p>
                     {candidate.description ? (
                       <p className="mt-2 text-xs leading-5 text-[var(--muted)]">
@@ -481,22 +338,209 @@ function CandidateManagerPanel({
                   </div>
                 </button>
                 {!readOnly ? (
-                  <div className="flex justify-end border-t border-[var(--line)] px-3 py-2">
-                    <button
-                      type="button"
-                      onClick={() => onRemoveCandidate(candidate)}
-                      disabled={readOnly || removingCandidateId === candidate.id}
-                      className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--muted)] transition hover:text-[var(--accent)] disabled:opacity-60"
-                    >
-                      {removingCandidateId === candidate.id ? "Removing" : "Remove"}
-                    </button>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onRemoveCandidate(candidate);
+                    }}
+                    aria-label={`Remove ${candidate.name}`}
+                    title={`Remove ${candidate.name}`}
+                    disabled={readOnly || removingCandidateId === candidate.id}
+                    className={`absolute right-3 z-10 flex h-9 w-9 items-center justify-center rounded-full border border-[var(--line)] bg-[rgba(10,10,10,0.86)] text-[var(--muted)] opacity-0 transition hover:border-[var(--accent)] hover:text-[var(--accent)] group-hover:opacity-100 group-focus-within:opacity-100 disabled:opacity-60 ${
+                      candidate.imageUrl ? "bottom-3" : "top-3"
+                    }`}
+                  >
+                    {removingCandidateId === candidate.id ? (
+                      <span className="text-[10px] uppercase tracking-[0.12em]">...</span>
+                    ) : (
+                      <svg viewBox="0 0 24 24" className="h-4 w-4 fill-none stroke-current stroke-2">
+                        <path d="M4 7h16" />
+                        <path d="M9 7V4h6v3" />
+                        <path d="M7 7l1 13h8l1-13" />
+                        <path d="M10 11v5" />
+                        <path d="M14 11v5" />
+                      </svg>
+                    )}
+                  </button>
                 ) : null}
               </div>
             ))
           )}
         </div>
       </div>
+
+      {isCandidateEditorOpen && !readOnly ? (
+        <div className="fixed inset-0 z-40 bg-black/70">
+          <button
+            type="button"
+            aria-label="Close candidate editor"
+            onClick={onCloseEditor}
+            className="absolute inset-0 cursor-default"
+          />
+          <div className="absolute inset-y-0 right-0 flex w-full max-w-[42rem] flex-col border-l border-[var(--line)] bg-[var(--panel)] shadow-[0_0_40px_rgba(0,0,0,0.45)]">
+            <div className="flex items-start justify-between gap-4 border-b border-[var(--line)] bg-[var(--panel-3)] px-5 py-4">
+              <div>
+                <p className="display-face text-xs font-black uppercase tracking-[0.18em] text-[var(--accent-2)]">
+                  {isEditingCandidate ? "Edit Candidate" : "Create Candidate"}
+                </p>
+                <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+                  Update the candidate and keep the full list in place behind the drawer.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={onCloseEditor}
+                className="display-face text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--muted)]"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="ui-scroll-subtle flex-1 overflow-y-auto px-5 py-5">
+              <div className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
+                <div className="space-y-3 border border-[var(--line)] bg-[var(--panel-3)] p-4">
+                  <input
+                    value={candidateDraft.name}
+                    disabled={readOnly}
+                    onChange={(event) => onDraftChange("name", event.target.value)}
+                    placeholder="Candidate name"
+                    className="ui-field ui-field-panel"
+                  />
+                  <textarea
+                    value={candidateDraft.description}
+                    disabled={readOnly}
+                    onChange={(event) => onDraftChange("description", event.target.value)}
+                    placeholder="Description"
+                    rows={5}
+                    className="ui-field ui-field-panel"
+                  />
+                  <input
+                    value={candidateDraft.imageUrl}
+                    disabled={readOnly}
+                    onChange={(event) => onDraftChange("imageUrl", event.target.value)}
+                    placeholder="Image URL"
+                    className="ui-field ui-field-panel"
+                  />
+                  <div className="flex flex-wrap gap-3">
+                    <button
+                      type="button"
+                      onClick={onSubmit}
+                      disabled={readOnly || (isEditingCandidate ? isSavePending : isCreatePending)}
+                      className="ui-button ui-button-primary"
+                    >
+                      {isEditingCandidate
+                        ? isSavePending
+                          ? "Saving"
+                          : "Save Candidate"
+                        : isCreatePending
+                          ? "Creating"
+                          : "Create Candidate"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={onCloseEditor}
+                      className="ui-button ui-button-muted"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                  {candidateDraft.imageUrl ? (
+                    <div className="overflow-hidden border border-[var(--line)] bg-[var(--panel)]">
+                      <div className="h-56 w-full bg-[var(--panel-2)]">
+                        <ResilientRemoteImage
+                          src={candidateDraft.imageUrl}
+                          alt={candidateDraft.name || "Selected image"}
+                          className="h-full w-full object-cover"
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex min-h-56 items-center justify-center border border-dashed border-[var(--line)] bg-[var(--panel)] px-4 py-6">
+                      <p className="text-center text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
+                        Select an image to preview it here.
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                <div
+                  className={`space-y-3 border border-[var(--line)] bg-[var(--panel-3)] p-4 transition-opacity ${
+                    imageSuggestionLoading ? "opacity-55" : "opacity-100"
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="display-face text-xs font-black uppercase tracking-[0.18em] text-[var(--accent-3)]">
+                      Image Picks
+                    </p>
+                    <div className="flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={onSuggestImages}
+                        disabled={readOnly || imageSuggestionLoading}
+                        className="display-face border border-[var(--accent-2)] px-3 py-2 text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--accent-2)] transition hover:bg-[var(--accent-2)] hover:text-black disabled:opacity-60"
+                      >
+                        {imageSuggestionLoading ? "Searching" : "Suggest"}
+                      </button>
+                      {candidateDraft.imageUrl ? (
+                        <button
+                          type="button"
+                          onClick={onClearImage}
+                          className="display-face text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--muted)]"
+                        >
+                          Clear
+                        </button>
+                      ) : null}
+                    </div>
+                  </div>
+
+                  {imageSuggestions.length > 0 ? (
+                    <div className="space-y-2">
+                      <p className="display-face text-xs font-black uppercase tracking-[0.18em] text-[var(--accent-2)]">
+                        Suggested Images
+                      </p>
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        {imageSuggestions.map((image) => {
+                          const selectedImageUrl = candidateDraft.imageUrl;
+
+                          return (
+                            <button
+                              key={image.id}
+                              type="button"
+                              disabled={readOnly}
+                              onClick={() => onSelectSuggestedImage(image.imageUrl)}
+                              aria-label={image.title || "Suggested image"}
+                              title={image.title || "Suggested image"}
+                              className={`overflow-hidden border transition ${
+                                selectedImageUrl === image.imageUrl
+                                  ? "border-[var(--accent-3)] bg-[var(--panel)]"
+                                  : "border-[var(--line)] bg-[var(--panel)] hover:border-[var(--accent-2)]"
+                              }`}
+                            >
+                              <div className="relative h-40 w-full bg-[var(--panel-2)]">
+                                <ResilientRemoteImage
+                                  src={image.thumbnailUrl || image.imageUrl}
+                                  alt={image.title || "Suggested image"}
+                                  className="h-full w-full object-cover"
+                                />
+                                {selectedImageUrl === image.imageUrl ? (
+                                  <div className="absolute inset-x-0 bottom-0 bg-[rgba(0,0,0,0.72)] px-3 py-2 text-[11px] uppercase tracking-[0.18em] text-[var(--accent-3)]">
+                                    Selected
+                                  </div>
+                                ) : null}
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </>
   );
 }
@@ -518,7 +562,7 @@ export function CreatePanels() {
   const [seedingLoading, setSeedingLoading] = useState(false);
   const [savingSeeding, setSavingSeeding] = useState(false);
   const [draggingEntryId, setDraggingEntryId] = useState(null);
-  const [editingCandidate, setEditingCandidate] = useState(null);
+  const [candidateEditor, setCandidateEditor] = useState(null);
   const [candidateDrafts, setCandidateDrafts] = useState({});
   const [imageSuggestions, setImageSuggestions] = useState({});
   const [imageSuggestionLoading, setImageSuggestionLoading] = useState({});
@@ -543,7 +587,6 @@ export function CreatePanels() {
   const [successMessage, setSuccessMessage] = useState("");
   const [pendingActions, setPendingActions] = useState({});
   const [isPending, startTransition] = useTransition();
-  const candidateFormRefs = useRef({});
   const tournamentCardRefs = useRef({});
   const poolCardRefs = useRef({});
   const actionSearchParamsHandledRef = useRef({
@@ -1010,8 +1053,8 @@ export function CreatePanels() {
         ...current,
         [poolId]: emptyCandidateForm
       }));
-      if (editingCandidate?.poolId === poolId) {
-        setEditingCandidate(null);
+      if (candidateEditor?.poolId === poolId) {
+        setCandidateEditor(null);
       }
       setImageSuggestions((current) => ({
         ...current,
@@ -1080,7 +1123,7 @@ export function CreatePanels() {
         })
       );
 
-      if (editingCandidate?.poolId === poolId && editingCandidate.id === candidate.id) {
+      if (candidateEditor?.poolId === poolId && candidateEditor.candidateId === candidate.id) {
         closeCandidateEditor(poolId);
       }
 
@@ -1606,6 +1649,87 @@ export function CreatePanels() {
     }
   }
 
+  async function handleAutoFillMissingImages(pool) {
+    const actionKey = `auto-fill-images:${pool.id}`;
+    if (isActionPending(actionKey)) {
+      return;
+    }
+
+    const candidates = poolDetails[pool.id]?.candidates || [];
+    const missingImageCandidates = candidates.filter((candidate) => !candidate.imageUrl);
+
+    if (missingImageCandidates.length === 0) {
+      setSuccessMessage("This pool already has images for every candidate.");
+      return;
+    }
+
+    beginAction(actionKey);
+    setErrorMessage("");
+    setSuccessMessage("");
+
+    let appliedCount = 0;
+    let skippedCount = 0;
+    let failedCount = 0;
+
+    try {
+      for (const candidate of missingImageCandidates) {
+        try {
+          const response = await fetch(
+            `/api/image-suggestions?q=${encodeURIComponent(candidate.name)}`,
+            {
+              cache: "no-store"
+            }
+          );
+          const data = await response.json();
+
+          if (!response.ok) {
+            failedCount += 1;
+            continue;
+          }
+
+          const bestSuggestion = (data.items || []).find((item) =>
+            isStrongSuggestedImageMatch(candidate.name, item)
+          );
+
+          if (!bestSuggestion?.imageUrl) {
+            skippedCount += 1;
+            continue;
+          }
+
+          const saveResponse = await fetch(`/api/candidates/${candidate.id}`, {
+            method: "PATCH",
+            headers: {
+              "content-type": "application/json"
+            },
+            body: JSON.stringify({
+              imageUrl: bestSuggestion.imageUrl
+            })
+          });
+
+          if (!saveResponse.ok) {
+            failedCount += 1;
+            continue;
+          }
+
+          appliedCount += 1;
+        } catch {
+          failedCount += 1;
+        }
+      }
+
+      if (appliedCount > 0) {
+        await loadWorkspace();
+      }
+
+      setSuccessMessage(
+        `Filled ${appliedCount} missing image${appliedCount === 1 ? "" : "s"}. ` +
+          `${skippedCount} skipped.${failedCount > 0 ? ` ${failedCount} failed.` : ""}`
+      );
+    } finally {
+      endAction(actionKey);
+    }
+  }
+
   function selectSuggestedImage(poolId, imageUrl) {
     setCandidateDrafts((current) => ({
       ...current,
@@ -1900,8 +2024,8 @@ export function CreatePanels() {
 
   function openCandidateEditor(poolId, candidate) {
     setExpandedPoolId(poolId);
-    setEditingCandidate({
-      id: candidate.id,
+    setCandidateEditor({
+      candidateId: candidate.id,
       poolId
     });
     setCandidateDrafts((current) => ({
@@ -1915,16 +2039,32 @@ export function CreatePanels() {
     setErrorMessage("");
     setSuccessMessage("");
 
-    requestAnimationFrame(() => {
-      candidateFormRefs.current[poolId]?.scrollIntoView({
-        behavior: "smooth",
-        block: "start"
-      });
+  }
+
+  function openCandidateCreator(poolId) {
+    setExpandedPoolId(poolId);
+    setCandidateEditor({
+      candidateId: null,
+      poolId
     });
+    setCandidateDrafts((current) => ({
+      ...current,
+      [poolId]: emptyCandidateForm
+    }));
+    setImageSuggestions((current) => ({
+      ...current,
+      [poolId]: []
+    }));
+    setImageSuggestionQuery((current) => ({
+      ...current,
+      [poolId]: ""
+    }));
+    setErrorMessage("");
+    setSuccessMessage("");
   }
 
   function closeCandidateEditor(poolId) {
-    setEditingCandidate((current) => (current?.poolId === poolId ? null : current));
+    setCandidateEditor((current) => (current?.poolId === poolId ? null : current));
     setCandidateDrafts((current) => ({
       ...current,
       [poolId]: emptyCandidateForm
@@ -1985,7 +2125,7 @@ export function CreatePanels() {
   }
 
   async function handleCandidateEditSubmit(poolId) {
-    if (!editingCandidate || editingCandidate.poolId !== poolId) {
+    if (!candidateEditor || candidateEditor.poolId !== poolId || !candidateEditor.candidateId) {
       return;
     }
 
@@ -2001,7 +2141,7 @@ export function CreatePanels() {
     try {
       const draft = candidateDrafts[poolId] || emptyCandidateForm;
 
-      const response = await fetch(`/api/candidates/${editingCandidate.id}`, {
+      const response = await fetch(`/api/candidates/${candidateEditor.candidateId}`, {
         method: "PATCH",
         headers: {
           "content-type": "application/json"
@@ -2213,13 +2353,18 @@ export function CreatePanels() {
                 const shouldDimOtherPools = Boolean(expandedPoolId);
                 const isMutedPool = shouldDimOtherPools && !isExpanded;
                 const previewCandidates = poolDetails[pool.id]?.candidates || [];
+                const missingPoolImageCount = previewCandidates.filter(
+                  (candidate) => !candidate.imageUrl
+                ).length;
                 const inlinePoolDraft = poolInlineDrafts[pool.id] || {
                   name: pool.name,
                   description: pool.description || "",
                   visibility: pool.visibility || "private"
                 };
                 const candidateDraft = candidateDrafts[pool.id] || emptyCandidateForm;
-                const isEditingPoolCandidate = editingCandidate?.poolId === pool.id;
+                const isCandidateEditorOpen = candidateEditor?.poolId === pool.id;
+                const isEditingPoolCandidate =
+                  candidateEditor?.poolId === pool.id && Boolean(candidateEditor?.candidateId);
                 const poolIsReadOnly = Boolean(pool.isReadOnly);
                 return (
                   <div
@@ -2295,7 +2440,7 @@ export function CreatePanels() {
                               </select>
                             ) : null}
                           </div>
-                          <div className="flex w-28 flex-col items-stretch gap-2">
+                          <div className="flex w-36 flex-col items-stretch gap-2">
                             <button
                               type="button"
                               onClick={() => createDraftBracketFromPool(pool)}
@@ -2311,6 +2456,20 @@ export function CreatePanels() {
                               className="ui-button ui-button-accent ui-button-stack"
                             >
                               {isActionPending(`update-pool:${pool.id}`) ? "Saving" : "Save Pool"}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleAutoFillMissingImages(pool)}
+                              disabled={
+                                poolIsReadOnly ||
+                                missingPoolImageCount === 0 ||
+                                isActionPending(`auto-fill-images:${pool.id}`)
+                              }
+                              className="ui-button ui-button-muted ui-button-stack"
+                            >
+                              {isActionPending(`auto-fill-images:${pool.id}`)
+                                ? "Filling Images"
+                                : "Fill Images"}
                             </button>
                             <button
                               type="button"
@@ -2377,18 +2536,20 @@ export function CreatePanels() {
                         <CandidateManagerPanel
                           poolId={pool.id}
                           candidateDraft={candidateDraft}
+                          isCandidateEditorOpen={isCandidateEditorOpen}
                           isEditingCandidate={isEditingPoolCandidate}
                           candidates={poolDetails[pool.id]?.candidates || []}
                           readOnly={poolIsReadOnly}
                           imageSuggestions={imageSuggestions[pool.id] || []}
                           imageSuggestionLoading={Boolean(imageSuggestionLoading[pool.id])}
                           onDraftChange={(field, value) => updateCandidateDraft(pool.id, field, value)}
+                          onCreateCandidate={() => openCandidateCreator(pool.id)}
                           onSubmit={() =>
                             isEditingPoolCandidate
                               ? handleCandidateEditSubmit(pool.id)
                               : handleCreateCandidateInPool(pool.id)
                           }
-                          onCancelEdit={() => closeCandidateEditor(pool.id)}
+                          onCloseEditor={() => closeCandidateEditor(pool.id)}
                           onSuggestImages={() => handleSuggestImages(pool.id)}
                           onClearImage={() => selectSuggestedImage(pool.id, "")}
                           onSelectSuggestedImage={(imageUrl) => selectSuggestedImage(pool.id, imageUrl)}
@@ -2401,9 +2562,6 @@ export function CreatePanels() {
                               isActionPending(`remove-candidate:${pool.id}:${candidate.id}`)
                             )?.id || null
                           }
-                          candidateFormRef={(node) => {
-                            candidateFormRefs.current[pool.id] = node;
-                          }}
                         />
                       </>
                     ) : (
@@ -3109,7 +3267,11 @@ export function CreatePanels() {
                         <CandidateManagerPanel
                           poolId={bracketDraft.sourcePoolId}
                           candidateDraft={candidateDrafts[bracketDraft.sourcePoolId] || emptyCandidateForm}
-                          isEditingCandidate={editingCandidate?.poolId === bracketDraft.sourcePoolId}
+                          isCandidateEditorOpen={candidateEditor?.poolId === bracketDraft.sourcePoolId}
+                          isEditingCandidate={
+                            candidateEditor?.poolId === bracketDraft.sourcePoolId &&
+                            Boolean(candidateEditor?.candidateId)
+                          }
                           readOnly={isPublishedTournament}
                           candidates={linkedPoolCandidates}
                           imageSuggestions={imageSuggestions[bracketDraft.sourcePoolId] || []}
@@ -3117,12 +3279,14 @@ export function CreatePanels() {
                           onDraftChange={(field, value) =>
                             updateCandidateDraft(bracketDraft.sourcePoolId, field, value)
                           }
+                          onCreateCandidate={() => openCandidateCreator(bracketDraft.sourcePoolId)}
                           onSubmit={() =>
-                            editingCandidate?.poolId === bracketDraft.sourcePoolId
+                            candidateEditor?.poolId === bracketDraft.sourcePoolId &&
+                            candidateEditor?.candidateId
                               ? handleCandidateEditSubmit(bracketDraft.sourcePoolId)
                               : handleCreateCandidateInPool(bracketDraft.sourcePoolId)
                           }
-                          onCancelEdit={() => closeCandidateEditor(bracketDraft.sourcePoolId)}
+                          onCloseEditor={() => closeCandidateEditor(bracketDraft.sourcePoolId)}
                           onSuggestImages={() => handleSuggestImages(bracketDraft.sourcePoolId)}
                           onClearImage={() => selectSuggestedImage(bracketDraft.sourcePoolId, "")}
                           onSelectSuggestedImage={(imageUrl) =>
@@ -3141,9 +3305,6 @@ export function CreatePanels() {
                               isActionPending(`remove-candidate:${bracketDraft.sourcePoolId}:${candidate.id}`)
                             )?.id || null
                           }
-                          candidateFormRef={(node) => {
-                            candidateFormRefs.current[bracketDraft.sourcePoolId] = node;
-                          }}
                           listHeading="In This Bracket"
                           listEmptyMessage="No entrants in this bracket yet."
                         />

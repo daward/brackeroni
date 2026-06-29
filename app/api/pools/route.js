@@ -22,7 +22,6 @@ export const POST = withRouteErrorHandling(async function POST(request) {
   const user = await getCurrentUser(request);
   const payload = poolCreateSchema.parse(await readJson(request));
   let candidates = [];
-  let importWarnings = [];
 
   if (payload.source?.type === "extract") {
     const extractionSource = {
@@ -36,7 +35,6 @@ export const POST = withRouteErrorHandling(async function POST(request) {
         })
     };
     const extracted = await extractCandidatesWithGeminiForPools(extractionSource);
-    importWarnings = extracted.warnings || [];
     candidates = extracted.candidates.map((candidate) => ({
       name: candidate.label,
       description: candidate.description || null,
@@ -60,10 +58,7 @@ export const POST = withRouteErrorHandling(async function POST(request) {
 
   return json(
     {
-      item: pool,
-      meta: {
-        importWarnings
-      }
+      item: pool
     },
     {
       status: 201

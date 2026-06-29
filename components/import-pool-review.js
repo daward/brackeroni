@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { buildGenericPageImportPrompt } from "@/lib/bookmarklets/prompt";
-import { analyzeCapturedHtml } from "@/lib/import/capture-analysis";
 
 function extractPayloadFromWindow() {
   try {
@@ -32,12 +31,12 @@ export function ImportPoolReview() {
   const [payload, setPayload] = useState(null);
   const [poolName, setPoolName] = useState("");
   const [description, setDescription] = useState("");
+  const [extraInstructions, setExtraInstructions] = useState("");
   const [usePageUrlAssist, setUsePageUrlAssist] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [createdPoolId, setCreatedPoolId] = useState(null);
-  const [importWarnings, setImportWarnings] = useState([]);
 
   useEffect(() => {
     const nextPayload = extractPayloadFromWindow();
@@ -55,15 +54,6 @@ export function ImportPoolReview() {
     return payload.selectionHtml?.trim() ? "selection" : "html";
   }, [payload]);
 
-  const captureWarnings = useMemo(
-    () =>
-      analyzeCapturedHtml({
-        html: payload?.selectionHtml?.trim() || payload?.html || "",
-        pageUrl: payload?.pageUrl || null
-      }),
-    [payload]
-  );
-
   async function handleSubmit(event) {
     event.preventDefault();
     if (!payload || submitting) {
@@ -74,7 +64,6 @@ export function ImportPoolReview() {
     setErrorMessage("");
     setSuccessMessage("");
     setCreatedPoolId(null);
-    setImportWarnings([]);
 
     try {
       const response = await fetch("/api/pools", {
@@ -90,7 +79,8 @@ export function ImportPoolReview() {
             prompt: buildGenericPageImportPrompt({
               poolName,
               pageTitle: payload.pageTitle,
-              pageUrl: payload.pageUrl
+              pageUrl: payload.pageUrl,
+              extraInstructions
             }),
             pageTitle: payload.pageTitle || null,
             pageUrl: payload.pageUrl || null,
@@ -111,7 +101,6 @@ export function ImportPoolReview() {
         `Imported "${data.item?.name || poolName}" with ${data.item?.candidateCount ?? "?"} candidates.`
       );
       setCreatedPoolId(data.item?.id || null);
-      setImportWarnings(data.meta?.importWarnings || []);
     } catch (error) {
       setErrorMessage(error.message || "Import failed.");
     } finally {
@@ -186,6 +175,13 @@ export function ImportPoolReview() {
                 rows={2}
                 className="ui-field ui-field-modal"
               />
+              <textarea
+                value={extraInstructions}
+                onChange={(event) => setExtraInstructions(event.target.value)}
+                placeholder='Extra import instructions, e.g. "Ignore defunct attractions and only include currently operating rides."'
+                rows={3}
+                className="ui-field ui-field-modal"
+              />
               <div className="space-y-2 text-sm leading-6 text-[var(--muted)]">
                 <p>
                   <span className="ui-meta text-[var(--accent-3)]">Source</span>:{" "}
@@ -212,15 +208,10 @@ export function ImportPoolReview() {
                   pages like Board Game Arena history.
                 </span>
               </label>
-              {captureWarnings.length > 0 ? (
-                <div className="space-y-2 border border-[var(--accent-2)] bg-[var(--panel-2)] px-4 py-3">
-                  {captureWarnings.map((warning) => (
-                    <p key={warning.code} className="text-sm leading-6 text-[var(--accent-2)]">
-                      {warning.message}
-                    </p>
-                  ))}
-                </div>
-              ) : null}
+              <p className="text-sm leading-6 text-[var(--muted)]">
+                Add optional guidance here when you want the model to ignore sections, narrow the
+                scope, or favor one interpretation of the page.
+              </p>
             </form>
             {errorMessage ? (
               <p className="border border-[var(--accent)] bg-[var(--panel-3)] px-4 py-3 text-sm text-[var(--accent-2)]">
@@ -230,15 +221,6 @@ export function ImportPoolReview() {
             {successMessage ? (
               <div className="space-y-3 border border-[var(--accent-3)] bg-[var(--panel-3)] px-4 py-3">
                 <p className="text-sm text-[var(--accent-3)]">{successMessage}</p>
-                {importWarnings.length > 0 ? (
-                  <div className="space-y-2 border border-[var(--accent-2)] bg-[var(--panel-2)] px-4 py-3">
-                    {importWarnings.map((warning) => (
-                      <p key={warning.code} className="text-sm leading-6 text-[var(--accent-2)]">
-                        {warning.message}
-                      </p>
-                    ))}
-                  </div>
-                ) : null}
                 {createdPoolId ? (
                   <Link href="/import" className="ui-button ui-button-muted">
                     Import Another Page
