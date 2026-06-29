@@ -2,8 +2,17 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { ResilientRemoteImage } from "@/components/resilient-remote-image";
 import { StatusPill } from "@/components/status-pill";
 import { TournamentResultsPage } from "@/components/tournament-results-page";
+
+function nextPowerOfTwo(value) {
+  let size = 1;
+  while (size < value) {
+    size *= 2;
+  }
+  return size;
+}
 
 function openMatchesForTournament(tournament) {
   return (tournament.matches || []).filter(
@@ -11,12 +20,23 @@ function openMatchesForTournament(tournament) {
   );
 }
 
-function proxiedImageUrl(url) {
-  if (!url) {
-    return "";
+function getTournamentRoundCount(tournament) {
+  const entryCount = tournament?.entryCount ?? tournament?.entries?.length ?? 0;
+
+  if (entryCount <= 1) {
+    return 0;
   }
 
-  return `/api/image-proxy?url=${encodeURIComponent(url)}`;
+  if (tournament.resultMode === "fast_full_rank") {
+    const hardCap = entryCount - 1 + (entryCount % 2 === 1 ? 1 : 0);
+    return Math.min(hardCap, Math.ceil(Math.log2(entryCount)) + 1);
+  }
+
+  if (tournament.resultMode === "full_ranking") {
+    return null;
+  }
+
+  return Math.ceil(Math.log2(nextPowerOfTwo(entryCount)));
 }
 
 function formatRoundLabel(match, tournament) {
@@ -24,11 +44,15 @@ function formatRoundLabel(match, tournament) {
     return `Ranking ${match.rankingTargetRank}: Round ${match.rankingRoundNumber}`;
   }
 
+  const totalRounds = getTournamentRoundCount(tournament);
+
   if (tournament.resultMode === "fast_full_rank") {
-    return `Swiss Round ${match.roundNumber}`;
+    return totalRounds
+      ? `Swiss Round ${match.roundNumber} of ${totalRounds}`
+      : `Swiss Round ${match.roundNumber}`;
   }
 
-  return `Round ${match.roundNumber}`;
+  return totalRounds ? `Round ${match.roundNumber} of ${totalRounds}` : `Round ${match.roundNumber}`;
 }
 
 function buildCreateReturnUrl(tournamentId, stage = "active") {
@@ -45,15 +69,19 @@ function getCurrentRoundProgress(tournament, focusedMatch, focusedOpenMatches) {
   }
 
   const currentRoundMatches = (tournament.matches || []).filter(
-    (match) => match.roundNumber === focusedMatch.roundNumber
+    (match) =>
+      match.roundNumber === focusedMatch.roundNumber &&
+      match.leftEntryId &&
+      match.rightEntryId &&
+      match.status !== "auto_resolved"
   );
-  const total = currentRoundMatches.length || focusedOpenMatches.length;
+  const total = currentRoundMatches.length;
 
   if (total === 0) {
     return { completed: 0, total: 0, percent: 0 };
   }
 
-  const completed = Math.max(total - focusedOpenMatches.length, 0);
+  const completed = currentRoundMatches.filter((match) => Boolean(match.userVoteEntryId)).length;
 
   return {
     completed,
@@ -81,9 +109,17 @@ export function VoteScreenPanels({
   const [error, setError] = useState("");
   const [transitionMessage, setTransitionMessage] = useState("");
   const [postRoundPollCount, setPostRoundPollCount] = useState(0);
+  const [mobileOpenSection, setMobileOpenSection] = useState("open");
 
   const focusedTournament =
     active.find((tournament) => tournament.id === focusedTournamentId) ?? null;
+  const openActiveTournaments = active.filter(
+    (tournament) => openMatchesForTournament(tournament).length > 0
+  );
+  const openMatchCount = openActiveTournaments.reduce(
+    (count, tournament) => count + openMatchesForTournament(tournament).length,
+    0
+  );
   const focusedMatches = focusedTournament ? openMatchesForTournament(focusedTournament) : [];
   const focusedMatch = focusedMatches[0] ?? null;
   const currentRoundProgress = getCurrentRoundProgress(
@@ -399,6 +435,32 @@ export function VoteScreenPanels({
 
   return (
     <div className="space-y-6">
+      <section className="grid gap-px border border-[var(--line)] bg-[var(--line)] lg:grid-cols-3">
+        <SummaryBlock
+          label="Active"
+          value={active.length}
+          toneClass="text-[var(--accent-3)]"
+          isOpen={mobileOpenSection === "active"}
+          onToggle={() => setMobileOpenSection((current) => (current === "active" ? null : "active"))}
+        />
+        <SummaryBlock
+          label="Open Matches"
+          value={openMatchCount}
+          toneClass="text-[var(--accent-2)]"
+          isOpen={mobileOpenSection === "open"}
+          onToggle={() => setMobileOpenSection((current) => (current === "open" ? null : "open"))}
+        />
+        <SummaryBlock
+          label="Completed"
+          value={completed.length}
+          toneClass="text-[var(--accent)]"
+          isOpen={mobileOpenSection === "completed"}
+          onToggle={() =>
+            setMobileOpenSection((current) => (current === "completed" ? null : "completed"))
+          }
+        />
+      </section>
+
       <div className="space-y-4">
         {error ? (
           <p className="border border-[var(--accent)] bg-[var(--panel-3)] px-4 py-3 text-sm text-[var(--accent-2)]">
@@ -409,101 +471,74 @@ export function VoteScreenPanels({
           <p className="border border-[var(--accent-3)] bg-[var(--panel-3)] px-4 py-3 text-sm text-[var(--accent-3)]">
             {message}
           </p>
+          ) : null}
+      </div>
+
+      <div className="space-y-4 lg:hidden">
+        {mobileOpenSection === "active" ? (
+          <section className="border border-[var(--line)] bg-[var(--panel)]">
+            <div className="border-b border-[var(--line)] bg-[var(--panel-3)] px-5 py-4">
+              <h2 className="display-face text-2xl font-black uppercase tracking-[0.1em]">
+                Active
+              </h2>
+            </div>
+            <TournamentListSection
+              tournaments={active}
+              emptyTitle="No Active Brackets"
+              emptySubtitle="Nothing is waiting on a vote."
+              onSelectTournament={setFocusedTournamentId}
+            />
+          </section>
+        ) : null}
+
+        {mobileOpenSection === "open" ? (
+          <section className="border border-[var(--line)] bg-[var(--panel)]">
+            <div className="border-b border-[var(--line)] bg-[var(--panel-3)] px-5 py-4">
+              <h2 className="display-face text-2xl font-black uppercase tracking-[0.1em]">
+                Open Matches
+              </h2>
+            </div>
+            <TournamentListSection
+              tournaments={openActiveTournaments}
+              emptyTitle="No Open Matches"
+              emptySubtitle="Nothing is waiting on a vote."
+              onSelectTournament={setFocusedTournamentId}
+            />
+          </section>
+        ) : null}
+
+        {mobileOpenSection === "completed" ? (
+          <section className="border border-[var(--line)] bg-[var(--panel)]">
+            <div className="border-b border-[var(--line)] bg-[var(--panel-3)] px-5 py-4">
+              <h2 className="display-face text-2xl font-black uppercase tracking-[0.1em]">
+                Completed
+              </h2>
+            </div>
+            <CompletedListSection tournaments={completed} onOpenResults={openResultsModal} />
+          </section>
         ) : null}
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
+      <div className="hidden gap-6 lg:grid lg:grid-cols-[1.05fr_0.95fr]">
         <section className="border border-[var(--line)] bg-[var(--panel)]">
           <div className="border-b border-[var(--line)] bg-[var(--panel-3)] px-5 py-4">
             <h2 className="display-face text-2xl font-black uppercase tracking-[0.1em]">
               Open Matches
             </h2>
           </div>
-          {active.length === 0 ? (
-            <div className="px-5 py-8">
-              <div className="border border-[var(--line)] bg-[var(--panel-2)] px-5 py-6">
-                <p className="display-face text-xl font-black text-[var(--muted)]">
-                  No Active Brackets
-                </p>
-                <p className="mt-2 text-xs uppercase tracking-[0.18em] text-[var(--accent-3)]">
-                  Nothing is waiting on a vote.
-                </p>
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-0">
-              {active.map((tournament) => {
-                const openMatches = openMatchesForTournament(tournament);
-
-                return (
-                  <div
-                    key={tournament.id}
-                    className="border-b border-[var(--line)] bg-[var(--panel-2)] p-5 last:border-b-0"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <h3 className="display-face text-2xl font-black">{tournament.title}</h3>
-                        <p className="mt-1 text-sm uppercase tracking-[0.15em] text-[var(--muted)]">
-                          {tournament.sharingMode.replace("_", " ")} | {tournament.entryCount} entries
-                        </p>
-                      </div>
-                      <StatusPill>{tournament.status}</StatusPill>
-                    </div>
-                    <div className="mt-5 flex flex-wrap items-end justify-between gap-4 border-t border-[var(--line)] pt-5">
-                      <div>
-                        <p className="text-xs uppercase tracking-[0.18em] text-[var(--accent-3)]">
-                          {openMatches.length} open {openMatches.length === 1 ? "match" : "matches"}
-                        </p>
-                        <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-                          Pool: {tournament.sourcePoolName || "Unknown pool"}.
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setFocusedTournamentId(tournament.id)}
-                        disabled={openMatches.length === 0}
-                        className="display-face border border-[var(--accent)] bg-[var(--accent)] px-4 py-3 text-sm font-bold uppercase tracking-[0.18em] text-black transition hover:bg-[var(--accent-2)] disabled:border-[var(--line)] disabled:bg-[var(--panel-3)] disabled:text-[var(--muted)]"
-                      >
-                        Vote
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+          <TournamentListSection
+            tournaments={openActiveTournaments}
+            emptyTitle="No Open Matches"
+            emptySubtitle="Nothing is waiting on a vote."
+            onSelectTournament={setFocusedTournamentId}
+          />
         </section>
 
         <section className="border border-[var(--line)] bg-[var(--panel)]">
           <div className="border-b border-[var(--line)] bg-[var(--panel-3)] px-5 py-4">
             <h2 className="display-face text-2xl font-black uppercase tracking-[0.1em]">Completed</h2>
           </div>
-          <div className="space-y-4 px-5 py-5">
-            {completed.length === 0 ? (
-              <div className="border border-[var(--line)] bg-[var(--panel-2)] px-5 py-6">
-                <p className="display-face text-xl font-black text-[var(--muted)]">
-                  No Completed Brackets
-                </p>
-              </div>
-            ) : (
-              completed.map((tournament) => (
-                <button
-                  key={tournament.id}
-                  type="button"
-                  onClick={() => openResultsModal(tournament)}
-                  className="w-full border border-[var(--line)] bg-[var(--panel-2)] px-5 py-4 text-left transition hover:border-[var(--accent-3)] hover:bg-[var(--panel)]"
-                >
-                  <h3 className="display-face text-lg font-black">{tournament.title}</h3>
-                  {tournament.winnerName ? (
-                    <p className="mt-3 display-face text-xl font-black text-[var(--accent-3)]">
-                      Winner: {tournament.winnerName}
-                      {tournament.winnerSeed ? ` (Seed ${tournament.winnerSeed})` : ""}
-                    </p>
-                  ) : null}
-                </button>
-              ))
-            )}
-          </div>
+          <CompletedListSection tournaments={completed} onOpenResults={openResultsModal} />
         </section>
       </div>
 
@@ -515,19 +550,19 @@ export function VoteScreenPanels({
                 <p className="text-[11px] uppercase tracking-[0.22em] text-[var(--accent-3)]">
                   {formatRoundLabel(focusedMatch, focusedTournament)}
                 </p>
-                <h2 className="display-face mt-2 text-3xl font-black">
+                <h2 className="display-face mt-2 text-[1.5rem] font-black leading-[0.95] sm:text-3xl">
                   {focusedTournament.title}
                 </h2>
                 {currentRoundProgress.total > 0 ? (
-                  <div className="mt-2 max-w-xs">
-                    <div className="h-2 overflow-hidden border border-[var(--line)] bg-[var(--panel)]">
+                  <div className="mt-2 flex max-w-xs items-center gap-3">
+                    <div className="h-2 min-w-0 flex-1 overflow-hidden border border-[var(--line)] bg-[var(--panel)]">
                       <div
                         className="h-full bg-[var(--accent-3)] transition-[width] duration-300"
                         style={{ width: `${currentRoundProgress.percent}%` }}
                       />
                     </div>
-                    <p className="mt-1 text-[10px] uppercase tracking-[0.18em] text-[var(--accent-3)]">
-                      {currentRoundProgress.completed} of {currentRoundProgress.total} settled
+                    <p className="shrink-0 text-[10px] uppercase tracking-[0.18em] text-[var(--accent-3)]">
+                      {currentRoundProgress.completed}/{currentRoundProgress.total}
                     </p>
                   </div>
                 ) : (
@@ -550,7 +585,7 @@ export function VoteScreenPanels({
               </div>
             ) : null}
 
-            <div className="grid gap-px bg-[var(--line)] md:grid-cols-[1fr_auto_1fr]">
+            <div className="bg-[var(--line)] md:grid md:grid-cols-[1fr_auto_1fr] md:gap-px">
               <CandidateVoteCard
                 name={focusedMatch.leftName}
                 seed={focusedMatch.leftSeed}
@@ -559,10 +594,13 @@ export function VoteScreenPanels({
                 disabled={pendingVoteMatchId === focusedMatch.id}
                 onVote={() => vote(focusedMatch.id, focusedTournament.id, focusedMatch.leftEntryId)}
               />
-              <div className="flex items-center justify-center bg-[var(--panel-3)] px-6 py-8">
-                <p className="display-face text-2xl font-black tracking-[0.18em] text-[var(--accent-2)]">
-                  Vs
-                </p>
+              <div className="relative h-10 bg-[var(--panel)] md:flex md:h-auto md:items-center md:justify-center md:bg-[var(--panel-3)] md:px-6 md:py-8">
+                <div className="absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2 rounded-full border border-[var(--line)] bg-[var(--panel)] px-3 py-1.5 shadow-[0_8px_24px_rgba(0,0,0,0.45)] md:static md:translate-x-0 md:translate-y-0 md:rounded-none md:border-0 md:bg-transparent md:px-0 md:py-0 md:shadow-none">
+                  <p className="display-face text-2xl font-black tracking-[0.18em] text-[var(--accent-2)]">
+                    Vs
+                  </p>
+                </div>
+                <div className="absolute left-0 right-0 top-1/2 h-px -translate-y-1/2 bg-[var(--line)] md:hidden" />
               </div>
               <CandidateVoteCard
                 name={focusedMatch.rightName}
@@ -636,36 +674,154 @@ function CandidateVoteCard({
       type="button"
       onClick={onVote}
       disabled={disabled}
-      className="group flex h-full min-h-[13.5rem] max-h-[16.5rem] flex-col overflow-hidden bg-[var(--panel-2)] text-left transition hover:bg-[var(--panel)] disabled:cursor-wait disabled:opacity-70 sm:min-h-[16rem] sm:max-h-[20rem] md:min-h-[20rem] md:max-h-[29rem]"
+      className="group flex h-full min-h-[14rem] max-h-[17rem] flex-col overflow-hidden bg-[var(--panel-2)] text-left transition hover:bg-[var(--panel)] disabled:cursor-wait disabled:opacity-70 sm:min-h-[16rem] sm:max-h-[20rem] md:min-h-[20rem] md:max-h-[29rem]"
     >
-      <div className="border-b border-[var(--line)] px-4 py-3 sm:px-5 sm:py-4">
+      <div className="border-b border-[var(--line)] px-4 py-2 sm:px-5 sm:py-4">
         <p className="text-xs uppercase tracking-[0.16em] text-[var(--accent-2)]">Seed {seed}</p>
       </div>
       {imageUrl ? (
-        <div className="relative min-h-0 max-h-[9rem] flex-1 overflow-hidden bg-[var(--panel-3)] sm:max-h-[12rem] md:max-h-none">
-          <img
-            src={proxiedImageUrl(imageUrl)}
+        <div className="relative min-h-0 max-h-[13.5rem] flex-1 overflow-hidden bg-[var(--panel-3)] sm:max-h-[12rem] md:max-h-none">
+          <ResilientRemoteImage
+            src={imageUrl}
             alt=""
             aria-hidden="true"
             className="absolute inset-0 h-full w-full scale-110 object-cover opacity-35 blur-2xl saturate-125"
           />
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.06),rgba(15,15,15,0.12)_42%,rgba(15,15,15,0.75)_100%)]" />
-          <img
-            src={proxiedImageUrl(imageUrl)}
+          <ResilientRemoteImage
+            src={imageUrl}
             alt={name}
-            className="relative z-10 h-full w-full object-contain p-2 shadow-[0_10px_30px_rgba(0,0,0,0.35)] transition duration-200 group-hover:scale-[1.03] sm:p-3 md:p-5"
+            className="relative z-10 h-full w-full object-contain p-0 shadow-[0_10px_30px_rgba(0,0,0,0.35)] transition duration-200 group-hover:scale-[1.03] sm:p-3 md:p-5"
           />
         </div>
       ) : null}
-      <div className={`px-4 py-4 sm:px-5 sm:py-5 ${imageUrl ? "" : "mt-auto"}`}>
-        <p className="display-face text-2xl font-black leading-tight sm:text-3xl">{name}</p>
+      <div className={`px-4 py-2 sm:px-5 sm:py-5 ${imageUrl ? "" : "mt-auto"}`}>
+        <p className="display-face text-[1.45rem] font-black leading-tight sm:text-3xl">{name}</p>
         {description ? (
-          <p className="mt-2 max-w-xl text-sm leading-6 text-[var(--muted)]">{description}</p>
+          <p className="mt-1 max-w-xl text-sm leading-6 text-[var(--muted)]">{description}</p>
         ) : null}
-        <p className="mt-4 display-face text-xs font-bold uppercase tracking-[0.18em] text-[var(--accent-3)]">
-          {disabled ? "Recording Vote" : `Vote For ${name}`}
-        </p>
       </div>
     </button>
+  );
+}
+
+function SummaryBlock({ label, value, toneClass, isOpen, onToggle }) {
+  return (
+    <>
+      <button
+        type="button"
+        onClick={onToggle}
+        className="bg-[var(--panel-3)] px-5 py-4 text-left lg:hidden"
+        aria-expanded={isOpen}
+      >
+        <p className="text-[11px] uppercase tracking-[0.22em] text-[var(--muted)]">{label}</p>
+        <div className="mt-2 flex items-center justify-between gap-3">
+          <p className={`display-face text-2xl font-black ${toneClass}`}>{value}</p>
+          <p className="text-[10px] uppercase tracking-[0.18em] text-[var(--muted)]">
+            {isOpen ? "Hide" : "Show"}
+          </p>
+        </div>
+      </button>
+      <div className="hidden bg-[var(--panel-3)] px-5 py-4 lg:block">
+        <p className="text-[11px] uppercase tracking-[0.22em] text-[var(--muted)]">{label}</p>
+        <p className={`display-face mt-2 text-2xl font-black ${toneClass}`}>{value}</p>
+      </div>
+    </>
+  );
+}
+
+function TournamentListSection({
+  tournaments,
+  emptyTitle,
+  emptySubtitle,
+  onSelectTournament
+}) {
+  if (tournaments.length === 0) {
+    return (
+      <div className="px-5 py-8">
+        <div className="border border-[var(--line)] bg-[var(--panel-2)] px-5 py-6">
+          <p className="display-face text-xl font-black text-[var(--muted)]">{emptyTitle}</p>
+          {emptySubtitle ? (
+            <p className="mt-2 text-xs uppercase tracking-[0.18em] text-[var(--accent-3)]">
+              {emptySubtitle}
+            </p>
+          ) : null}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-0">
+      {tournaments.map((tournament) => {
+        const openMatches = openMatchesForTournament(tournament);
+
+        return (
+          <div
+            key={tournament.id}
+            className="border-b border-[var(--line)] bg-[var(--panel-2)] p-5 last:border-b-0"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h3 className="display-face text-2xl font-black">{tournament.title}</h3>
+                <p className="mt-1 text-sm uppercase tracking-[0.15em] text-[var(--muted)]">
+                  {tournament.sharingMode.replace("_", " ")} | {tournament.entryCount} entries
+                </p>
+              </div>
+              <StatusPill>{tournament.status}</StatusPill>
+            </div>
+            <div className="mt-5 flex flex-wrap items-end justify-between gap-4 border-t border-[var(--line)] pt-5">
+              <div>
+                <p className="text-xs uppercase tracking-[0.18em] text-[var(--accent-3)]">
+                  {openMatches.length} open {openMatches.length === 1 ? "match" : "matches"}
+                </p>
+                <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+                  Pool: {tournament.sourcePoolName || "Unknown pool"}.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => onSelectTournament(tournament.id)}
+                disabled={openMatches.length === 0}
+                className="display-face border border-[var(--accent)] bg-[var(--accent)] px-4 py-3 text-sm font-bold uppercase tracking-[0.18em] text-black transition hover:bg-[var(--accent-2)] disabled:border-[var(--line)] disabled:bg-[var(--panel-3)] disabled:text-[var(--muted)]"
+              >
+                Vote
+              </button>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function CompletedListSection({ tournaments, onOpenResults }) {
+  return (
+    <div className="space-y-4 px-5 py-5">
+      {tournaments.length === 0 ? (
+        <div className="border border-[var(--line)] bg-[var(--panel-2)] px-5 py-6">
+          <p className="display-face text-xl font-black text-[var(--muted)]">
+            No Completed Brackets
+          </p>
+        </div>
+      ) : (
+        tournaments.map((tournament) => (
+          <button
+            key={tournament.id}
+            type="button"
+            onClick={() => onOpenResults(tournament)}
+            className="w-full border border-[var(--line)] bg-[var(--panel-2)] px-5 py-4 text-left transition hover:border-[var(--accent-3)] hover:bg-[var(--panel)]"
+          >
+            <h3 className="display-face text-lg font-black">{tournament.title}</h3>
+            {tournament.winnerName ? (
+              <p className="mt-3 display-face text-xl font-black text-[var(--accent-3)]">
+                Winner: {tournament.winnerName}
+                {tournament.winnerSeed ? ` (Seed ${tournament.winnerSeed})` : ""}
+              </p>
+            ) : null}
+          </button>
+        ))
+      )}
+    </div>
   );
 }

@@ -10,12 +10,9 @@ const baseLinks = [
   { href: "/create", label: "Create" }
 ];
 
-export function MainNav({ user, googleConfigured, isDevShimActive }) {
+export function MainNav({ user, googleConfigured, isDevShimActive, isAdmin = false }) {
   const pathname = usePathname();
-  const links =
-    user?.email?.trim().toLowerCase() === "acheron0@gmail.com"
-      ? [...baseLinks, { href: "/admin", label: "Admin" }]
-      : baseLinks;
+  const links = baseLinks;
 
   return (
     <header className="border-y border-[var(--line)] bg-[var(--panel-3)]">
@@ -25,7 +22,7 @@ export function MainNav({ user, googleConfigured, isDevShimActive }) {
             Brackeroni
           </p>
           <p className="text-xs tracking-[0.18em] text-[var(--accent-3)]">
-            [Have an Opinion] &#123;Settle the Score&#125;
+            [Make Decisions] &#123;Settle Debatese&#125;
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2 md:justify-end">
@@ -60,6 +57,7 @@ export function MainNav({ user, googleConfigured, isDevShimActive }) {
             user={user}
             googleConfigured={googleConfigured}
             isDevShimActive={isDevShimActive}
+            isAdmin={isAdmin}
           />
         </div>
       </div>

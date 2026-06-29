@@ -1,6 +1,7 @@
 import "./globals.css";
 import { MainNav } from "@/components/main-nav";
 import { getOptionalCurrentUser } from "@/lib/auth/current-user";
+import { isAdminUser } from "@/lib/auth/admin";
 import { isGoogleAuthConfigured } from "@/lib/auth/options";
 
 export const metadata = {
@@ -13,6 +14,7 @@ export const dynamic = "force-dynamic";
 export default async function RootLayout({ children }) {
   const user = await getOptionalCurrentUser();
   const isDevShimActive = Boolean(process.env.DEV_USER_EMAIL);
+  const isAdmin = isAdminUser(user);
 
   return (
     <html lang="en">
@@ -22,6 +24,7 @@ export default async function RootLayout({ children }) {
             user={user}
             googleConfigured={isGoogleAuthConfigured()}
             isDevShimActive={isDevShimActive}
+            isAdmin={isAdmin}
           />
           <main className="flex-1 py-4">{children}</main>
         </div>

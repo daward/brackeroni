@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { signIn, signOut } from "next-auth/react";
@@ -20,12 +21,16 @@ function getInitials(name, email) {
   return source.slice(0, 2).toUpperCase();
 }
 
-export function AuthControls({ user, googleConfigured, isDevShimActive }) {
+function isAdminEmail(email) {
+  return email?.trim().toLowerCase() === "acheron0@gmail.com";
+}
+
+export function AuthControls({ user, googleConfigured, isDevShimActive, isAdmin = false }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
   if (user) {
-    return <AccountMenu user={user} isDevShimActive={isDevShimActive} />;
+    return <AccountMenu user={user} isDevShimActive={isDevShimActive} isAdmin={isAdmin} />;
   }
 
   const query = searchParams?.toString();
@@ -44,9 +49,10 @@ export function AuthControls({ user, googleConfigured, isDevShimActive }) {
   );
 }
 
-function AccountMenu({ user, isDevShimActive }) {
+function AccountMenu({ user, isDevShimActive, isAdmin }) {
   const [isOpen, setIsOpen] = useState(false);
   const rootRef = useRef(null);
+  const showAdmin = isAdmin || isAdminEmail(user?.email);
 
   useEffect(() => {
     if (!isOpen) {
@@ -108,6 +114,15 @@ function AccountMenu({ user, isDevShimActive }) {
             ) : null}
           </div>
           <div className="p-3">
+            {showAdmin ? (
+              <Link
+                href="/admin"
+                onClick={() => setIsOpen(false)}
+                className="ui-button ui-button-muted mb-2 w-full justify-center"
+              >
+                Admin
+              </Link>
+            ) : null}
             {isDevShimActive ? (
               <span className="flex w-full items-center justify-center border border-[var(--line)] px-4 py-3 text-sm uppercase tracking-[0.18em] text-[var(--muted)]">
                 Dev User Session

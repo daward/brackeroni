@@ -1,14 +1,7 @@
 "use client";
 
 import { useState } from "react";
-
-function proxiedImageUrl(url) {
-  if (!url) {
-    return "";
-  }
-
-  return `/api/image-proxy?url=${encodeURIComponent(url)}`;
-}
+import { ResilientRemoteImage } from "@/components/resilient-remote-image";
 
 function formatRoundLabel(match, tournament) {
   if (tournament.resultMode === "full_ranking") {
@@ -149,8 +142,8 @@ function ResultEntryDetails({ tournament, orderedEntries, selectedEntry, selecte
     <>
       <div className="flex items-start gap-4 border-b border-[var(--line)] pb-4">
         {selectedEntry.candidateImageUrl ? (
-          <img
-            src={proxiedImageUrl(selectedEntry.candidateImageUrl)}
+          <ResilientRemoteImage
+            src={selectedEntry.candidateImageUrl}
             alt={selectedEntry.candidateName}
             className="h-20 w-20 rounded-sm object-cover"
           />
@@ -205,8 +198,8 @@ function ResultEntryDetails({ tournament, orderedEntries, selectedEntry, selecte
                     </p>
                   </div>
                   {getOpponentImageUrl(match, selectedEntry.id) ? (
-                    <img
-                      src={proxiedImageUrl(getOpponentImageUrl(match, selectedEntry.id))}
+                    <ResilientRemoteImage
+                      src={getOpponentImageUrl(match, selectedEntry.id)}
                       alt={describeHistoryOpponent(match, selectedEntry.id)}
                       className="h-20 w-28 flex-shrink-0 rounded-sm object-cover object-center sm:h-24 sm:w-32"
                     />
@@ -279,8 +272,8 @@ export function TournamentResultsPage({ tournament, matches }) {
                     {getDisplayRank(entry, orderedEntries, index)}
                   </span>
                   {entry.candidateImageUrl ? (
-                    <img
-                      src={proxiedImageUrl(entry.candidateImageUrl)}
+                    <ResilientRemoteImage
+                      src={entry.candidateImageUrl}
                       alt={entry.candidateName}
                       className="h-12 w-12 rounded-sm object-cover"
                     />
@@ -305,17 +298,6 @@ export function TournamentResultsPage({ tournament, matches }) {
             />
           </div>
         </div>
-        {selectedEntry ? (
-          <div className="border-t border-[var(--line)] bg-[var(--panel)] px-5 py-4 lg:hidden">
-            <button
-              type="button"
-              onClick={() => setIsDrawerOpen(true)}
-              className="display-face w-full border border-[var(--accent-3)] bg-[var(--panel-2)] px-4 py-3 text-sm font-bold uppercase tracking-[0.18em] text-[var(--accent-3)]"
-            >
-              View {selectedEntry.candidateName} Details
-            </button>
-          </div>
-        ) : null}
       </section>
       {isDrawerOpen && selectedEntry ? (
         <div className="fixed inset-0 z-50 bg-black/70 lg:hidden" onClick={() => setIsDrawerOpen(false)}>

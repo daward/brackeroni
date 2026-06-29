@@ -2,14 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-
-function proxiedImageUrl(url) {
-  if (!url) {
-    return "";
-  }
-
-  return `/api/image-proxy?url=${encodeURIComponent(url)}`;
-}
+import { ResilientRemoteImage } from "@/components/resilient-remote-image";
 
 function FavoriteStar({ isFavorited }) {
   return (
@@ -170,8 +163,8 @@ export function PublicPoolCard({ pool }) {
               className="relative overflow-hidden border border-[var(--line)] bg-[var(--panel-3)]"
             >
               {candidate.imageUrl ? (
-                <img
-                  src={proxiedImageUrl(candidate.imageUrl)}
+                <ResilientRemoteImage
+                  src={candidate.imageUrl}
                   alt={candidate.name}
                   className="aspect-square h-full w-full object-cover"
                 />
@@ -184,8 +177,8 @@ export function PublicPoolCard({ pool }) {
               )}
               {activeOverlay?.slotPosition === index ? (
                 previewCandidates[activeOverlay.nextIndex]?.imageUrl ? (
-                  <img
-                    src={proxiedImageUrl(previewCandidates[activeOverlay.nextIndex].imageUrl)}
+                  <ResilientRemoteImage
+                    src={previewCandidates[activeOverlay.nextIndex].imageUrl}
                     alt={previewCandidates[activeOverlay.nextIndex].name}
                     className={`absolute inset-0 aspect-square h-full w-full object-cover transition-opacity duration-[900ms] ${
                       isOverlayVisible ? "opacity-100" : "opacity-0"

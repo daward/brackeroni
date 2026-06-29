@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { buildGenericPageImportPrompt } from "@/lib/bookmarklets/prompt";
+import { analyzeCapturedHtml } from "@/lib/import/capture-analysis";
 
 function extractPayloadFromWindow() {
   try {
@@ -36,6 +37,7 @@ export function ImportPoolReview() {
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [createdPoolId, setCreatedPoolId] = useState(null);
+  const [importWarnings, setImportWarnings] = useState([]);
 
   useEffect(() => {
     const nextPayload = extractPayloadFromWindow();
@@ -53,6 +55,15 @@ export function ImportPoolReview() {
     return payload.selectionHtml?.trim() ? "selection" : "html";
   }, [payload]);
 
+  const captureWarnings = useMemo(
+    () =>
+      analyzeCapturedHtml({
+        html: payload?.selectionHtml?.trim() || payload?.html || "",
+        pageUrl: payload?.pageUrl || null
+      }),
+    [payload]
+  );
+
   async function handleSubmit(event) {
     event.preventDefault();
     if (!payload || submitting) {
@@ -63,6 +74,7 @@ export function ImportPoolReview() {
     setErrorMessage("");
     setSuccessMessage("");
     setCreatedPoolId(null);
+    setImportWarnings([]);
 
     try {
       const response = await fetch("/api/pools", {
@@ -99,6 +111,7 @@ export function ImportPoolReview() {
         `Imported "${data.item?.name || poolName}" with ${data.item?.candidateCount ?? "?"} candidates.`
       );
       setCreatedPoolId(data.item?.id || null);
+      setImportWarnings(data.meta?.importWarnings || []);
     } catch (error) {
       setErrorMessage(error.message || "Import failed.");
     } finally {
@@ -199,6 +212,15 @@ export function ImportPoolReview() {
                   pages like Board Game Arena history.
                 </span>
               </label>
+              {captureWarnings.length > 0 ? (
+                <div className="space-y-2 border border-[var(--accent-2)] bg-[var(--panel-2)] px-4 py-3">
+                  {captureWarnings.map((warning) => (
+                    <p key={warning.code} className="text-sm leading-6 text-[var(--accent-2)]">
+                      {warning.message}
+                    </p>
+                  ))}
+                </div>
+              ) : null}
             </form>
             {errorMessage ? (
               <p className="border border-[var(--accent)] bg-[var(--panel-3)] px-4 py-3 text-sm text-[var(--accent-2)]">
@@ -208,6 +230,15 @@ export function ImportPoolReview() {
             {successMessage ? (
               <div className="space-y-3 border border-[var(--accent-3)] bg-[var(--panel-3)] px-4 py-3">
                 <p className="text-sm text-[var(--accent-3)]">{successMessage}</p>
+                {importWarnings.length > 0 ? (
+                  <div className="space-y-2 border border-[var(--accent-2)] bg-[var(--panel-2)] px-4 py-3">
+                    {importWarnings.map((warning) => (
+                      <p key={warning.code} className="text-sm leading-6 text-[var(--accent-2)]">
+                        {warning.message}
+                      </p>
+                    ))}
+                  </div>
+                ) : null}
                 {createdPoolId ? (
                   <Link href="/import" className="ui-button ui-button-muted">
                     Import Another Page

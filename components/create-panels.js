@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
+import { ResilientRemoteImage } from "@/components/resilient-remote-image";
 import { SectionCard } from "@/components/section-card";
 
 const emptyCandidateForm = {
@@ -34,14 +35,6 @@ const emptyTournamentForm = {
   resultMode: "winner_only",
   tieBreakMode: "higher_seed_wins"
 };
-
-function proxiedImageUrl(url) {
-  if (!url) {
-    return "";
-  }
-
-  return `/api/image-proxy?url=${encodeURIComponent(url)}`;
-}
 
 function describePoolVisibility(visibility) {
   if (visibility === "public_listed") {
@@ -211,8 +204,8 @@ function SuggestionThumbnail({ imageUrl, title }) {
 
   return (
     <div className="h-24 w-full bg-[var(--panel-2)]">
-      <img
-        src={proxiedImageUrl(imageUrl)}
+      <ResilientRemoteImage
+        src={imageUrl}
         alt={title}
         className="h-full w-full object-cover"
         onError={() => setImageFailed(true)}
@@ -233,8 +226,8 @@ function CandidatePreviewChips({ candidates, limit = 4 }) {
           className="flex items-center gap-2 border border-[var(--line)] bg-[var(--panel)] px-3 py-2"
         >
           {candidate.imageUrl ? (
-            <img
-              src={proxiedImageUrl(candidate.imageUrl)}
+            <ResilientRemoteImage
+              src={candidate.imageUrl}
               alt={candidate.name}
               className="h-7 w-7 rounded-sm object-cover"
             />
@@ -378,8 +371,8 @@ function CandidateManagerPanel({
             {candidateDraft.imageUrl ? (
               <div className="overflow-hidden border border-[var(--line)] bg-[var(--panel)]">
                 <div className="h-44 w-full bg-[var(--panel-2)]">
-                  <img
-                    src={proxiedImageUrl(candidateDraft.imageUrl)}
+                  <ResilientRemoteImage
+                    src={candidateDraft.imageUrl}
                     alt={candidateDraft.name || "Selected image"}
                     className="h-full w-full object-cover"
                   />
@@ -471,8 +464,8 @@ function CandidateManagerPanel({
                 >
                   {candidate.imageUrl ? (
                     <div className="h-24 w-full bg-[var(--panel-3)]">
-                      <img
-                        src={proxiedImageUrl(candidate.imageUrl)}
+                      <ResilientRemoteImage
+                        src={candidate.imageUrl}
                         alt={candidate.name}
                         className="h-full w-full object-cover"
                       />
@@ -2160,8 +2153,8 @@ export function CreatePanels() {
             onClick={() => setWorkspaceView("tournaments")}
             className={`px-5 py-4 text-left transition ${
               workspaceView === "tournaments"
-                ? "border-b-2 border-[var(--accent-2)] bg-[var(--panel)]"
-                : "bg-[var(--panel)] hover:bg-[var(--panel-2)]"
+                ? "border-l-4 border-[var(--accent-2)] bg-[var(--panel)] md:border-b-2 md:border-l-0"
+                : "border-l-4 border-transparent bg-[var(--panel)] hover:bg-[var(--panel-2)] md:border-b-2"
             }`}
           >
             <p className="display-face text-lg font-black uppercase">Brackets ({tournaments.length})</p>
@@ -2176,8 +2169,8 @@ export function CreatePanels() {
             onClick={() => setWorkspaceView("pools")}
             className={`px-5 py-4 text-left transition ${
               workspaceView === "pools"
-                ? "border-b-2 border-[var(--accent-2)] bg-[var(--panel)]"
-                : "bg-[var(--panel)] hover:bg-[var(--panel-2)]"
+                ? "border-l-4 border-[var(--accent-2)] bg-[var(--panel)] md:border-b-2 md:border-l-0"
+                : "border-l-4 border-transparent bg-[var(--panel)] hover:bg-[var(--panel-2)] md:border-b-2"
             }`}
           >
             <p className="display-face text-lg font-black uppercase">Pools ({pools.length})</p>
@@ -3964,8 +3957,8 @@ export function CreatePanels() {
                           {index + 1}
                         </span>
                         {entry.candidateImageUrl ? (
-                          <img
-                            src={proxiedImageUrl(entry.candidateImageUrl)}
+                          <ResilientRemoteImage
+                            src={entry.candidateImageUrl}
                             alt={entry.candidateName}
                             className="h-12 w-12 rounded-sm object-cover"
                           />
