@@ -308,7 +308,9 @@ function CandidateManagerPanel({
             candidates.map((candidate) => (
               <div
                 key={candidate.id}
-                className="group relative flex min-h-[16rem] flex-col overflow-hidden border border-[var(--line)] bg-[var(--panel)]"
+                className={`group relative flex flex-col overflow-hidden border border-[var(--line)] bg-[var(--panel)] ${
+                  candidate.imageUrl ? "min-h-[16rem]" : ""
+                }`}
               >
                 <button
                   type="button"
