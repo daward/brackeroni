@@ -9,7 +9,7 @@ export default async function HomePage() {
     getFeaturedPublicMatchupsForHomepage({
       limit: 6
     }),
-    listPublicPools({ limit: 6, userId: null })
+    listPublicPools({ limit: 6, userId: null, featuredOnly: true })
   ]);
 
   return (
