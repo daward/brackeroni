@@ -10,7 +10,7 @@ function proxiedImageUrl(url) {
   return `/api/image-proxy?url=${encodeURIComponent(url)}`;
 }
 
-export function ResilientRemoteImage({ src, onError, ...props }) {
+export function ResilientRemoteImage({ src, onError, proxyOnError = false, ...props }) {
   const normalizedSrc = String(src || "").trim();
   const proxySrc = proxiedImageUrl(normalizedSrc);
   const [currentSrc, setCurrentSrc] = useState(normalizedSrc);
@@ -35,7 +35,7 @@ export function ResilientRemoteImage({ src, onError, ...props }) {
       onError={(event) => {
         onError?.(event);
 
-        if (!hasTriedProxy && proxySrc && currentSrc !== proxySrc) {
+        if (proxyOnError && !hasTriedProxy && proxySrc && currentSrc !== proxySrc) {
           setCurrentSrc(proxySrc);
           setHasTriedProxy(true);
         }
