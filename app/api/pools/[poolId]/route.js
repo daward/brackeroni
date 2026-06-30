@@ -1,6 +1,6 @@
 import { getCurrentUser, getOptionalCurrentUser } from "@/lib/auth/current-user";
 import { archivePool, getPoolById, updatePool } from "@/lib/data/pools";
-import { json, readJson, withRouteErrorHandling } from "@/lib/api/http";
+import { json, publicCacheControl, readJson, withCacheHeaders, withRouteErrorHandling } from "@/lib/api/http";
 import { poolUpdateSchema } from "@/lib/validation/pool";
 
 export const GET = withRouteErrorHandling(async function GET(request, { params }) {
@@ -11,7 +11,18 @@ export const GET = withRouteErrorHandling(async function GET(request, { params }
     userId: user?.id ?? null
   });
 
-  return json({ item: pool });
+  const response = json({ item: pool });
+
+  if (!user && (pool.visibility === "public_listed" || pool.visibility === "public_unlisted")) {
+    return withCacheHeaders(response, {
+      "cache-control": publicCacheControl({
+        sMaxAge: 300,
+        staleWhileRevalidate: 3600
+      })
+    });
+  }
+
+  return response;
 });
 
 export const PATCH = withRouteErrorHandling(async function PATCH(request, { params }) {

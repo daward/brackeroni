@@ -5,7 +5,7 @@ import {
   getTournamentById,
   updateTournament
 } from "@/lib/data/tournaments";
-import { json, readJson, withRouteErrorHandling } from "@/lib/api/http";
+import { json, publicCacheControl, readJson, withCacheHeaders, withRouteErrorHandling } from "@/lib/api/http";
 import { tournamentUpdateSchema } from "@/lib/validation/tournament";
 
 export const GET = withRouteErrorHandling(async function GET(request, { params }) {
@@ -16,7 +16,18 @@ export const GET = withRouteErrorHandling(async function GET(request, { params }
     userId: user?.id ?? null
   });
 
-  return json({ item: tournament });
+  const response = json({ item: tournament });
+
+  if (!user && (tournament.visibility === "public_listed" || tournament.visibility === "public_unlisted")) {
+    return withCacheHeaders(response, {
+      "cache-control": publicCacheControl({
+        sMaxAge: tournament.status === "complete" ? 600 : 30,
+        staleWhileRevalidate: tournament.status === "complete" ? 86400 : 300
+      })
+    });
+  }
+
+  return response;
 });
 
 export const PATCH = withRouteErrorHandling(async function PATCH(request, { params }) {
