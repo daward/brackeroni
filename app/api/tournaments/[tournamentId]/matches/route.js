@@ -23,8 +23,7 @@ export const GET = withRouteErrorHandling(async function GET(request, { params }
   if (
     !user &&
     !anonymousVoterToken &&
-    result.tournament.visibility === "public_listed" &&
-    result.tournament.votingAccess === "anyone"
+    result.tournament.visibility === "public_listed"
   ) {
     return withCacheHeaders(response, {
       "cache-control": publicCacheControl({

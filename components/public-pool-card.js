@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useTransition } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { ResilientRemoteImage } from "@/components/resilient-remote-image";
 
 function FavoriteStar({ isFavorited }) {
@@ -40,7 +41,15 @@ function FavoriteStar({ isFavorited }) {
   );
 }
 
-export function PublicPoolCard({ pool }) {
+export function PublicPoolCard({
+  pool,
+  href = null,
+  favoriteMode = "create",
+  signedIn = false
+}) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const [isFavoriting, startFavoriting] = useTransition();
   const previewCandidates = pool.previewCandidates || [];
   const [visibleIndexes, setVisibleIndexes] = useState(() =>
     previewCandidates.slice(0, 4).map((_, index) => index)
@@ -119,12 +128,35 @@ export function PublicPoolCard({ pool }) {
   const visibleCandidates = visibleIndexes
     .map((candidateIndex) => previewCandidates[candidateIndex])
     .filter(Boolean);
+  const primaryHref = href || `/create?makeBracketFromPool=${pool.id}`;
+  const signInHref = `/api/auth/signin?callbackUrl=${encodeURIComponent(pathname || `/pools/${pool.id}`)}`;
+
+  function handleFavorite(event) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (favoriteMode !== "inline" || pool.isFavorited || !signedIn) {
+      return;
+    }
+
+    startFavoriting(async () => {
+      const response = await fetch(`/api/pools/${pool.id}/favorite`, {
+        method: "POST"
+      });
+
+      if (!response.ok) {
+        return;
+      }
+
+      router.refresh();
+    });
+  }
 
   return (
     <div className="group relative bg-[var(--panel)] px-5 py-5 transition hover:bg-[var(--panel-2)]">
       <Link
-        href={`/create?makeBracketFromPool=${pool.id}`}
-        aria-label={`Make bracket from ${pool.name}`}
+        href={primaryHref}
+        aria-label={href ? `View ${pool.name}` : `Make bracket from ${pool.name}`}
         className="absolute inset-0 z-0"
       />
       <div className="pointer-events-none relative z-10 grid gap-5 md:grid-cols-[minmax(0,1fr)_15rem] md:items-start">
@@ -133,18 +165,47 @@ export function PublicPoolCard({ pool }) {
             <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--accent-3)]">
               {pool.candidateCount} candidates
             </p>
-            <Link
-              href={
-                pool.isFavorited
-                  ? `/create?view=pools&pool=${pool.favoritePoolId}`
-                  : `/create?favoritePool=${pool.id}`
-              }
-              aria-label={pool.isFavorited ? "Open saved pool" : "Add to favorites"}
-              title={pool.isFavorited ? "Saved in your pools" : "Add to favorites"}
-              className="pointer-events-auto group/star"
-            >
-              <FavoriteStar isFavorited={pool.isFavorited} />
-            </Link>
+            {pool.isFavorited ? (
+              <Link
+                href={`/create?view=pools&pool=${pool.favoritePoolId}`}
+                aria-label="Open saved pool"
+                title="Saved in your pools"
+                className="pointer-events-auto group/star"
+              >
+                <FavoriteStar isFavorited />
+              </Link>
+            ) : favoriteMode === "inline" ? (
+              signedIn ? (
+                <button
+                  type="button"
+                  onClick={handleFavorite}
+                  disabled={isFavoriting}
+                  aria-label="Add to favorites"
+                  title="Add to favorites"
+                  className="pointer-events-auto group/star disabled:opacity-60"
+                >
+                  <FavoriteStar isFavorited={false} />
+                </button>
+              ) : (
+                <Link
+                  href={signInHref}
+                  aria-label="Sign in to add to favorites"
+                  title="Sign in to add to favorites"
+                  className="pointer-events-auto group/star"
+                >
+                  <FavoriteStar isFavorited={false} />
+                </Link>
+              )
+            ) : (
+              <Link
+                href={`/create?favoritePool=${pool.id}`}
+                aria-label="Add to favorites"
+                title="Add to favorites"
+                className="pointer-events-auto group/star"
+              >
+                <FavoriteStar isFavorited={false} />
+              </Link>
+            )}
           </div>
           <div className="mt-3 flex items-start justify-between gap-4">
             <h3 className="display-face text-2xl font-black">{pool.name}</h3>

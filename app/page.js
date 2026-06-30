@@ -1,22 +1,15 @@
-﻿import { cookies } from "next/headers";
 import Link from "next/link";
 import { FeaturedHomePools } from "@/components/featured-home-pools";
 import { FeaturedHomeVoteSection } from "@/components/featured-home-matchups";
-import { getOptionalCurrentUser } from "@/lib/auth/current-user";
-import { ANONYMOUS_VOTER_COOKIE } from "@/lib/auth/viewer";
 import { listPublicPools } from "@/lib/data/pools";
-import { getFeaturedPublicMatchups } from "@/lib/data/tournaments";
+import { getFeaturedPublicMatchupsForHomepage } from "@/lib/data/tournaments";
 
 export default async function HomePage() {
-  const currentUser = await getOptionalCurrentUser();
-  const cookieStore = await cookies();
-  const anonymousVoterToken = cookieStore.get(ANONYMOUS_VOTER_COOKIE)?.value ?? null;
   const [featuredPublicMatchups, publicPools] = await Promise.all([
-    getFeaturedPublicMatchups({
-      userId: currentUser?.id ?? null,
-      anonymousVoterToken
+    getFeaturedPublicMatchupsForHomepage({
+      limit: 6
     }),
-    listPublicPools({ limit: 6, userId: currentUser?.id ?? null })
+    listPublicPools({ limit: 6, userId: null })
   ]);
 
   return (
@@ -64,13 +57,13 @@ export default async function HomePage() {
                   Public Pools
                 </p>
                 <h2 className="display-face mt-2 text-3xl font-black">
-                  <Link href="/create?view=pools" className="transition hover:text-[var(--accent-3)]">
+                  <Link href="/pools" className="transition hover:text-[var(--accent-3)]">
                     Make Your Own
                   </Link>
                 </h2>
               </div>
               <Link
-                href="/create?view=pools"
+                href="/pools"
                 className="display-face text-xs font-bold uppercase tracking-[0.18em] text-[var(--accent-3)] transition hover:text-[var(--accent-2)]"
               >
                 Browse

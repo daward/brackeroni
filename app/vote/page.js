@@ -2,7 +2,11 @@ import { cookies } from "next/headers";
 import { getOptionalCurrentUser } from "@/lib/auth/current-user";
 import { ANONYMOUS_VOTER_COOKIE } from "@/lib/auth/viewer";
 import { listMatchesForTournament } from "@/lib/data/matches";
-import { listAccessibleTournaments, listPublicTournaments } from "@/lib/data/tournaments";
+import {
+  getAccessibleTournamentById,
+  listAccessibleTournaments,
+  listPublicTournaments
+} from "@/lib/data/tournaments";
 import { VoteScreenPanels } from "@/components/vote-screen-panels";
 
 export const metadata = {
@@ -20,6 +24,7 @@ export default async function VotePage({ searchParams }) {
     user ? listAccessibleTournaments({ userId: user.id }) : Promise.resolve([]),
     listPublicTournaments({ statuses: ["active", "complete"], limit: 24 })
   ]);
+  const requestedTournamentId = typeof params.tournament === "string" ? params.tournament : null;
   const tournaments = [...accessibleTournaments, ...publicTournaments].filter(
     (tournament, index, items) => items.findIndex((candidate) => candidate.id === tournament.id) === index
   );
@@ -28,7 +33,7 @@ export default async function VotePage({ searchParams }) {
       .filter(
         (tournament) =>
           tournament.status === "active" &&
-          (user || tournament.votingAccess === "anyone")
+          (user || tournament.visibility === "public_listed" || tournament.visibility === "public_unlisted")
       )
       .map(async (tournament) => {
         const result = await listMatchesForTournament({
@@ -44,15 +49,29 @@ export default async function VotePage({ searchParams }) {
       })
   );
   const completedTournaments = tournaments.filter((tournament) => tournament.status === "complete");
+  const lockedFocusedTournament =
+    !user && requestedTournamentId
+      ? await getAccessibleTournamentById({
+          tournamentId: requestedTournamentId,
+          userId: null
+        }).catch(() => null)
+      : null;
+  const signInRequiredTournament =
+    lockedFocusedTournament &&
+    lockedFocusedTournament.status === "active" &&
+    lockedFocusedTournament.visibility === "private"
+      ? lockedFocusedTournament
+      : null;
 
   return (
     <div className="space-y-6">
       <VoteScreenPanels
         activeTournaments={activeTournaments}
         completedTournaments={completedTournaments}
-        initialFocusedTournamentId={typeof params.tournament === "string" ? params.tournament : null}
+        initialFocusedTournamentId={requestedTournamentId}
         initialResultsTournamentId={typeof params.results === "string" ? params.results : null}
         initialReturnTo={typeof params.returnTo === "string" ? params.returnTo : null}
+        signInRequiredTournament={signInRequiredTournament}
       />
     </div>
   );

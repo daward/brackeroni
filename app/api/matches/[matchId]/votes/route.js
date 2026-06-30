@@ -13,7 +13,9 @@ export const POST = withRouteErrorHandling(async function POST(request, { params
   const routeParams = await params;
   const payload = voteCreateSchema.parse(await readJson(request));
   const existingAnonymousVoterToken = getAnonymousVoterTokenFromRequest(request);
-  const anonymousVoterToken = user ? null : existingAnonymousVoterToken ?? createAnonymousVoterToken();
+  const anonymousVoterToken = user
+    ? existingAnonymousVoterToken ?? null
+    : existingAnonymousVoterToken ?? createAnonymousVoterToken();
   const vote = await submitVote({
     matchId: routeParams.matchId,
     userId: user?.id ?? null,

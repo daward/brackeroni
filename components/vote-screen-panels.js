@@ -1,5 +1,6 @@
 ﻿"use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ResilientRemoteImage } from "@/components/resilient-remote-image";
@@ -95,7 +96,8 @@ export function VoteScreenPanels({
   completedTournaments,
   initialFocusedTournamentId = null,
   initialResultsTournamentId = null,
-  initialReturnTo = null
+  initialReturnTo = null,
+  signInRequiredTournament = null
 }) {
   const router = useRouter();
   const [active, setActive] = useState(activeTournaments);
@@ -472,6 +474,34 @@ export function VoteScreenPanels({
             {message}
           </p>
           ) : null}
+        {signInRequiredTournament ? (
+          <section className="border border-[var(--line)] bg-[var(--panel)]">
+            <div className="border-b border-[var(--line)] bg-[var(--panel-3)] px-5 py-4">
+              <p className="text-[11px] uppercase tracking-[0.22em] text-[var(--accent-3)]">
+                Sign-In Required
+              </p>
+              <h2 className="display-face mt-2 text-2xl font-black">
+                {signInRequiredTournament.title}
+              </h2>
+            </div>
+            <div className="space-y-4 px-5 py-5">
+              <p className="text-sm leading-7 text-[var(--muted)]">
+                This public bracket is visible, but voting in it requires a signed-in account.
+              </p>
+              <div className="flex flex-wrap gap-3">
+                <Link href="/api/auth/signin" className="ui-button ui-button-primary">
+                  Sign In To Vote
+                </Link>
+                <Link
+                  href={buildResultsUrl(signInRequiredTournament.id)}
+                  className="ui-button ui-button-muted"
+                >
+                  View Results
+                </Link>
+              </div>
+            </div>
+          </section>
+        ) : null}
       </div>
 
       <div className="space-y-4 lg:hidden">

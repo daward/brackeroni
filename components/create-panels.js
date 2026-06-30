@@ -286,7 +286,7 @@ function CandidateManagerPanel({
 }) {
   return (
     <>
-      <div className="mt-4">
+      <div className="mt-6 border-t border-[var(--line)] pt-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="display-face text-lg font-black uppercase tracking-[0.12em] text-[var(--accent-3)]">
             {listHeading}
@@ -573,6 +573,7 @@ export function CreatePanels() {
   const [poolImportForm, setPoolImportForm] = useState(emptyPoolImportForm);
   const [tournamentForm, setTournamentForm] = useState(emptyTournamentForm);
   const [poolInlineDrafts, setPoolInlineDrafts] = useState({});
+  const [openPoolActionsMenuId, setOpenPoolActionsMenuId] = useState(null);
   const [openPoolMergeMenuId, setOpenPoolMergeMenuId] = useState(null);
   const [tournamentInlineDrafts, setTournamentInlineDrafts] = useState({});
   const [workspaceView, setWorkspaceView] = useState("tournaments");
@@ -715,10 +716,18 @@ export function CreatePanels() {
       setExpandedPoolId(null);
     }
 
+    if (openPoolActionsMenuId && !pools.some((pool) => pool.id === openPoolActionsMenuId)) {
+      setOpenPoolActionsMenuId(null);
+    }
+
+    if (openPoolMergeMenuId && !pools.some((pool) => pool.id === openPoolMergeMenuId)) {
+      setOpenPoolMergeMenuId(null);
+    }
+
     if (editingPool && !pools.some((pool) => pool.id === editingPool.id)) {
       setEditingPool(null);
     }
-  }, [expandedPoolId, editingPool, pools]);
+  }, [editingPool, expandedPoolId, openPoolActionsMenuId, openPoolMergeMenuId, pools]);
 
   useEffect(() => {
     if (editingTournamentTitleId && !tournaments.some((tournament) => tournament.id === editingTournamentTitleId)) {
@@ -1476,6 +1485,7 @@ export function CreatePanels() {
       }
 
       setOpenPoolMergeMenuId(null);
+      setOpenPoolActionsMenuId(null);
       setSuccessMessage("Pool merged.");
       await loadWorkspace();
     } finally {
@@ -1602,6 +1612,8 @@ export function CreatePanels() {
         }
       }));
       setSuccessMessage("Pool updated.");
+      setOpenPoolActionsMenuId(null);
+      setOpenPoolMergeMenuId(null);
       await loadWorkspace();
     } finally {
       endAction(actionKey);
@@ -1727,6 +1739,8 @@ export function CreatePanels() {
         `Filled ${appliedCount} missing image${appliedCount === 1 ? "" : "s"}. ` +
           `${skippedCount} skipped.${failedCount > 0 ? ` ${failedCount} failed.` : ""}`
       );
+      setOpenPoolActionsMenuId(null);
+      setOpenPoolMergeMenuId(null);
     } finally {
       endAction(actionKey);
     }
@@ -1849,6 +1863,22 @@ export function CreatePanels() {
       setSuccessMessage("Share link copied.");
     } catch {
       setErrorMessage("Could not copy the share link.");
+    }
+  }
+
+  async function handleCopyPoolLink(poolId) {
+    setErrorMessage("");
+    setSuccessMessage("");
+
+    const shareUrl = `${window.location.origin}/pools/${poolId}`;
+
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setOpenPoolActionsMenuId(null);
+      setOpenPoolMergeMenuId(null);
+      setSuccessMessage("Pool link copied.");
+    } catch {
+      setErrorMessage("Could not copy the pool link.");
     }
   }
 
@@ -2238,6 +2268,8 @@ export function CreatePanels() {
         setExpandedPoolId(null);
       }
 
+      setOpenPoolActionsMenuId(null);
+      setOpenPoolMergeMenuId(null);
       setSuccessMessage("Pool archived.");
       await loadWorkspace();
     } finally {
@@ -2434,7 +2466,7 @@ export function CreatePanels() {
                                     }
                                   }))
                                 }
-                                className="mt-3 w-full max-w-xs border border-[var(--line)] bg-[var(--panel)] px-3 py-3 text-sm text-[var(--ink)] outline-none focus:border-[var(--accent-3)]"
+                                className="mt-3 -mx-3 block w-[calc(100%+1.5rem)] max-w-sm border border-[var(--line)] bg-[var(--panel)] px-3 py-3 text-sm text-[var(--ink)] outline-none focus:border-[var(--accent-3)]"
                               >
                                 <option value="private">Private Draft</option>
                                 <option value="public_listed">Publish</option>
@@ -2459,81 +2491,141 @@ export function CreatePanels() {
                             >
                               {isActionPending(`update-pool:${pool.id}`) ? "Saving" : "Save Pool"}
                             </button>
+                            <div className="relative">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setOpenPoolActionsMenuId((current) =>
+                                    current === pool.id ? null : pool.id
+                                  );
+                                  setOpenPoolMergeMenuId(null);
+                                }}
+                                className="ui-button ui-button-muted ui-button-stack w-full"
+                              >
+                                {openPoolActionsMenuId === pool.id ? "Close Actions" : "Actions"}
+                              </button>
+                              {openPoolActionsMenuId === pool.id ? (
+                                <div className="absolute right-0 top-full z-20 mt-2 w-64 border border-[var(--line)] bg-[var(--panel)] p-2 shadow-[0_10px_30px_rgba(0,0,0,0.35)]">
+                                  <div className="space-y-1">
+                                    {pool.visibility !== "private" ? (
+                                      <button
+                                        type="button"
+                                        onClick={() => handleCopyPoolLink(pool.id)}
+                                        className="flex w-full items-center justify-between gap-3 px-3 py-3 text-left transition hover:bg-[var(--panel-3)]"
+                                      >
+                                        <span className="text-sm">Copy link</span>
+                                        <span className="text-[11px] uppercase tracking-[0.18em] text-[var(--accent-2)]">
+                                          Share
+                                        </span>
+                                      </button>
+                                    ) : null}
+                                    <button
+                                      type="button"
+                                      onClick={() => handleAutoFillMissingImages(pool)}
+                                      disabled={
+                                        poolIsReadOnly ||
+                                        missingPoolImageCount === 0 ||
+                                        isActionPending(`auto-fill-images:${pool.id}`)
+                                      }
+                                      className="flex w-full items-center justify-between gap-3 px-3 py-3 text-left transition hover:bg-[var(--panel-3)] disabled:opacity-60"
+                                    >
+                                      <span className="text-sm">
+                                        {isActionPending(`auto-fill-images:${pool.id}`)
+                                          ? "Filling images"
+                                          : "Fill missing images"}
+                                      </span>
+                                      <span className="text-[11px] uppercase tracking-[0.18em] text-[var(--muted)]">
+                                        {missingPoolImageCount}
+                                      </span>
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        setOpenPoolMergeMenuId((current) =>
+                                          current === pool.id ? null : pool.id
+                                        )
+                                      }
+                                      disabled={poolIsReadOnly}
+                                      className="flex w-full items-center justify-between gap-3 px-3 py-3 text-left transition hover:bg-[var(--panel-3)] disabled:opacity-60"
+                                    >
+                                      <span className="text-sm">Merge pool</span>
+                                      <span className="text-[11px] uppercase tracking-[0.18em] text-[var(--accent-3)]">
+                                        {openPoolMergeMenuId === pool.id ? "Close" : "Pick"}
+                                      </span>
+                                    </button>
+                                    {openPoolMergeMenuId === pool.id ? (
+                                      <div className="border-t border-[var(--line)] pt-2">
+                                        <div className="max-h-72 overflow-y-auto">
+                                          {pools
+                                            .filter((candidatePool) => candidatePool.id !== pool.id)
+                                            .map((candidatePool) => (
+                                              <button
+                                                key={candidatePool.id}
+                                                type="button"
+                                                onClick={() => handleMergePool(pool.id, candidatePool.id)}
+                                                disabled={isActionPending(`merge-pool:${pool.id}`)}
+                                                className="flex w-full items-center justify-between gap-3 border-b border-[var(--line)] px-3 py-3 text-left transition hover:bg-[var(--panel-3)] last:border-b-0 disabled:opacity-60"
+                                              >
+                                                <span className="min-w-0">
+                                                  <span className="block truncate text-sm">
+                                                    {candidatePool.name}
+                                                  </span>
+                                                  <span className="mt-1 block text-[11px] uppercase tracking-[0.14em] text-[var(--muted)]">
+                                                    {candidatePool.candidateCount} candidates
+                                                  </span>
+                                                </span>
+                                                <span className="text-[11px] uppercase tracking-[0.18em] text-[var(--accent-3)]">
+                                                  {isActionPending(`merge-pool:${pool.id}`)
+                                                    ? "Merging"
+                                                    : "Merge"}
+                                                </span>
+                                              </button>
+                                            ))}
+                                        </div>
+                                      </div>
+                                    ) : null}
+                                    <button
+                                      type="button"
+                                      onClick={() => handleArchivePool(pool.id, pool.name)}
+                                      disabled={poolIsReadOnly || isActionPending(`archive-pool:${pool.id}`)}
+                                      className="flex w-full items-center justify-between gap-3 px-3 py-3 text-left transition hover:bg-[var(--panel-3)] disabled:opacity-60"
+                                    >
+                                      <span className="text-sm">
+                                        {isActionPending(`archive-pool:${pool.id}`) ? "Archiving" : "Archive"}
+                                      </span>
+                                      <span className="text-[11px] uppercase tracking-[0.18em] text-[var(--muted)]">
+                                        Hide
+                                      </span>
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleArchivePool(pool.id, pool.name)}
+                                      disabled={poolIsReadOnly || isActionPending(`archive-pool:${pool.id}`)}
+                                      className="flex w-full items-center justify-between gap-3 px-3 py-3 text-left transition hover:bg-[var(--panel-3)] disabled:opacity-60"
+                                    >
+                                      <span className="text-sm">
+                                        {isActionPending(`archive-pool:${pool.id}`) ? "Archiving" : "Archive"}
+                                      </span>
+                                      <span className="text-[11px] uppercase tracking-[0.18em] text-[var(--muted)]">
+                                        Hide
+                                      </span>
+                                    </button>
+                                  </div>
+                                </div>
+                              ) : null}
+                            </div>
                             <button
                               type="button"
-                              onClick={() => handleAutoFillMissingImages(pool)}
-                              disabled={
-                                poolIsReadOnly ||
-                                missingPoolImageCount === 0 ||
-                                isActionPending(`auto-fill-images:${pool.id}`)
-                              }
-                              className="ui-button ui-button-muted ui-button-stack"
-                            >
-                              {isActionPending(`auto-fill-images:${pool.id}`)
-                                ? "Filling Images"
-                                : "Fill Images"}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleArchivePool(pool.id, pool.name)}
-                              disabled={poolIsReadOnly || isActionPending(`archive-pool:${pool.id}`)}
-                              className="ui-button ui-button-muted ui-button-stack"
-                            >
-                              {isActionPending(`archive-pool:${pool.id}`) ? "Archiving" : "Archive"}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setOpenPoolMergeMenuId((current) =>
-                                  current === pool.id ? null : pool.id
-                                )
-                              }
-                              disabled={poolIsReadOnly}
-                              className="ui-button ui-button-muted ui-button-stack"
-                            >
-                              {openPoolMergeMenuId === pool.id ? "Close Merge" : "Merge"}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setExpandedPoolId((current) => (current === pool.id ? null : pool.id))
-                              }
+                              onClick={() => {
+                                setExpandedPoolId((current) => (current === pool.id ? null : pool.id));
+                                setOpenPoolActionsMenuId(null);
+                                setOpenPoolMergeMenuId(null);
+                              }}
                               className="ui-button ui-button-muted ui-button-stack"
                             >
                               Collapse
                             </button>
                           </div>
-                        </div>
-                        <div className="relative">
-                          {openPoolMergeMenuId === pool.id ? (
-                            <div className="absolute right-0 top-0 z-20 w-64 border border-[var(--line)] bg-[var(--panel)] p-2 shadow-[0_10px_30px_rgba(0,0,0,0.35)]">
-                              <div className="max-h-72 overflow-y-auto">
-                                {pools
-                                  .filter((candidatePool) => candidatePool.id !== pool.id)
-                                  .map((candidatePool) => (
-                                    <button
-                                      key={candidatePool.id}
-                                      type="button"
-                                      onClick={() => handleMergePool(pool.id, candidatePool.id)}
-                                      disabled={isActionPending(`merge-pool:${pool.id}`)}
-                                      className="flex w-full items-center justify-between gap-3 border-b border-[var(--line)] px-3 py-3 text-left transition hover:bg-[var(--panel-3)] last:border-b-0 disabled:opacity-60"
-                                    >
-                                      <span className="min-w-0">
-                                        <span className="block truncate text-sm">
-                                          {candidatePool.name}
-                                        </span>
-                                        <span className="mt-1 block text-[11px] uppercase tracking-[0.14em] text-[var(--muted)]">
-                                          {candidatePool.candidateCount} candidates
-                                        </span>
-                                      </span>
-                                      <span className="text-[11px] uppercase tracking-[0.18em] text-[var(--accent-3)]">
-                                        {isActionPending(`merge-pool:${pool.id}`) ? "Merging" : "Merge"}
-                                      </span>
-                                    </button>
-                                  ))}
-                              </div>
-                            </div>
-                          ) : null}
                         </div>
                         <CandidateManagerPanel
                           poolId={pool.id}
