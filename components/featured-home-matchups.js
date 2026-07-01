@@ -23,7 +23,7 @@ function FeaturedHomeMatchCard({ name, seed, imageUrl }) {
             <ResilientRemoteImage
               src={imageUrl}
               alt={name}
-              className="relative z-10 h-full w-full object-contain object-bottom px-2 pb-0 pt-2 transition duration-200 group-hover/card:scale-[1.03] sm:px-3 sm:pt-3"
+              className="relative z-10 h-full w-full object-cover object-center transition duration-200 group-hover/card:scale-[1.03]"
             />
             <div className="absolute inset-x-0 bottom-0 z-20 bg-[linear-gradient(180deg,transparent,rgba(10,10,10,0.82)_55%,rgba(10,10,10,0.98))] px-4 pb-3 pt-10 sm:px-5 sm:pb-4">
               <p className="display-face text-lg font-black leading-tight sm:text-xl">{name}</p>
