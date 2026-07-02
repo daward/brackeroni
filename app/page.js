@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { FeaturedHomePools } from "@/components/featured-home-pools";
 import { FeaturedHomeVoteSection } from "@/components/featured-home-matchups";
 import { listPublicPools } from "@/lib/data/pools";
@@ -16,12 +16,15 @@ export default async function HomePage() {
     <div className="space-y-4">
       <section className="hidden border border-[var(--line)] bg-[var(--panel)] lg:block">
         <div className="grid gap-px bg-[var(--line)] lg:grid-cols-[1.3fr_0.7fr]">
-          <div className="flex h-full items-center justify-center bg-[var(--panel)] px-6 py-2 sm:px-5 sm:py-3">
+          <div className="flex h-full flex-col items-center justify-center bg-[var(--panel)] px-6 py-3 sm:px-5 sm:py-4">
             <img
               src="/bracket_hero_first_style_no_spark1.svg?v=3"
               alt="Make decisions, settle debates, build brackets"
               className="block w-full max-w-[36rem] translate-y-1"
             />
+            <p className="mt-3 text-center text-sm uppercase tracking-[0.16em] text-[var(--muted)]">
+              Turn any pool into a bracket, then vote or share it.
+            </p>
           </div>
           <div className="bg-[var(--panel-3)] p-0">
             <Link
@@ -44,8 +47,8 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <div className="xl:grid xl:grid-cols-2 xl:gap-6">
-        <section className="border border-[var(--line)] bg-[var(--panel)]">
+      <div className="xl:grid xl:grid-cols-[1.08fr_0.92fr] xl:gap-6">
+        <section className="border border-[var(--line)] bg-[var(--panel)] shadow-[0_0_0_1px_rgba(52,211,196,0.08)_inset,0_18px_36px_rgba(0,0,0,0.18)]">
           <FeaturedHomeVoteSection items={featuredPublicMatchups} />
         </section>
 
@@ -54,11 +57,11 @@ export default async function HomePage() {
             <div className="flex items-start justify-between gap-4 border-b border-[var(--line)] bg-[var(--panel-3)] px-5 py-4">
               <div className="max-w-2xl">
                 <p className="text-[11px] uppercase tracking-[0.22em] text-[var(--accent-3)]">
-                  Public Pools
+                  Start from a published pool
                 </p>
                 <h2 className="display-face mt-2 text-3xl font-black">
                   <Link href="/pools" className="transition hover:text-[var(--accent-3)]">
-                    Make Your Own
+                    Make Your Own Bracket
                   </Link>
                 </h2>
               </div>

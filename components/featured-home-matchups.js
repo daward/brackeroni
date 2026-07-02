@@ -128,7 +128,7 @@ export function FeaturedHomeVoteSection({ items }) {
   const safeItems = useMemo(() => items ?? [], [items]);
   const [mobileIndex, setMobileIndex] = useState(0);
   const activeItem = safeItems[mobileIndex] ?? safeItems[0] ?? null;
-  const desktopItem = safeItems[0] ?? null;
+  const desktopItems = safeItems.slice(0, 2);
 
   if (!safeItems.length) {
     return (
@@ -162,7 +162,7 @@ export function FeaturedHomeVoteSection({ items }) {
               </p>
               <h2 className="display-face mt-1 text-2xl font-black">{activeItem.tournamentTitle}</h2>
               <p className="mt-1 text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
-                {`Round ${activeItem.roundNumber} | Live Public Matchup`}
+                {`Round ${activeItem.roundNumber} | Live Voting Now`}
               </p>
             </div>
             {safeItems.length > 1 ? (
@@ -203,25 +203,28 @@ export function FeaturedHomeVoteSection({ items }) {
       </div>
 
       <div className="hidden md:block">
-        <Link
-          href={`/vote?tournament=${desktopItem.tournamentId}`}
-          className="group block transition hover:bg-[var(--panel-2)]"
-        >
-          <div className="border-b border-[var(--line)] bg-[var(--panel-3)] px-5 py-3">
-            <p className="text-[11px] uppercase tracking-[0.22em] text-[var(--accent-3)]">
-              Vote Right Now
-            </p>
-            <h2 className="display-face mt-1 text-2xl font-black sm:text-3xl">
-              {desktopItem.tournamentTitle}
-            </h2>
-            <p className="mt-1 text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
-              {`Round ${desktopItem.roundNumber} | Live Public Matchup`}
-            </p>
-          </div>
-          <div className="grid gap-px bg-[var(--line)]">
-            <MatchupRow item={desktopItem} />
-          </div>
-        </Link>
+        <div className="grid gap-px bg-[var(--line)]">
+          {desktopItems.map((item, index) => (
+            <Link
+              key={`${item.tournamentId}:${item.matchId}`}
+              href={`/vote?tournament=${item.tournamentId}`}
+              className="group block bg-[var(--panel)] transition hover:bg-[var(--panel-2)]"
+            >
+              <div className="border-b border-[var(--line)] bg-[var(--panel-3)] px-5 py-3">
+                <p className="text-[11px] uppercase tracking-[0.22em] text-[var(--accent-3)]">
+                  {index === 0 ? "Vote Right Now" : "Also Live"}
+                </p>
+                <h2 className="display-face mt-1 text-2xl font-black sm:text-3xl">
+                  {item.tournamentTitle}
+                </h2>
+                <p className="mt-1 text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
+                  {`Round ${item.roundNumber} | Live Voting Now`}
+                </p>
+              </div>
+              <MatchupRow item={item} />
+            </Link>
+          ))}
+        </div>
       </div>
     </div>
   );

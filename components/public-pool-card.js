@@ -208,7 +208,7 @@ export function PublicPoolCard({
             )}
           </div>
           <div className="mt-3 flex items-start justify-between gap-4">
-            <h3 className="display-face text-2xl font-black">{pool.name}</h3>
+            <h3 className="display-face text-[1.45rem] font-black leading-[1.08]">{pool.name}</h3>
           </div>
           <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
             {pool.description || "A published pool ready to be turned into new brackets."}

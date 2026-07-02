@@ -22,7 +22,7 @@ export function MainNav({ user, googleConfigured, isDevShimActive, isAdmin = fal
             Brackeroni
           </p>
           <p className="text-xs tracking-[0.18em] text-[var(--accent-3)]">
-            [Make Decisions] &#123;Settle Debatese&#125;
+            [Make Decisions] &#123;Settle Debates&#125;
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2 md:justify-end">
