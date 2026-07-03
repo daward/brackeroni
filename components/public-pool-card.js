@@ -8,17 +8,15 @@ import { ResilientRemoteImage } from "@/components/resilient-remote-image";
 function FavoriteStar({ isFavorited }) {
   return (
     <span
-      className={`relative block h-8 w-8 transition ${
-        isFavorited
-          ? "text-[var(--accent-2)] hover:text-[var(--accent-3)]"
-          : "text-[var(--muted)] hover:text-[var(--accent-2)]"
+      className={`home-favorite-star ${
+        isFavorited ? "home-favorite-star-filled" : "home-favorite-star-empty"
       }`}
     >
       <svg
         viewBox="0 0 24 24"
         aria-hidden="true"
-        className={`absolute inset-0 h-8 w-8 transition ${
-          isFavorited ? "opacity-0" : "opacity-100 group-hover/star:opacity-0"
+        className={`home-favorite-star-outline-icon ${
+          isFavorited ? "home-favorite-star-outline-hidden" : "home-favorite-star-outline-visible"
         }`}
         fill="none"
         stroke="currentColor"
@@ -30,8 +28,8 @@ function FavoriteStar({ isFavorited }) {
       <svg
         viewBox="0 0 24 24"
         aria-hidden="true"
-        className={`absolute inset-0 h-8 w-8 transition ${
-          isFavorited ? "opacity-100" : "opacity-0 group-hover/star:opacity-100"
+        className={`home-favorite-star-fill-icon ${
+          isFavorited ? "home-favorite-star-fill-visible" : "home-favorite-star-fill-hidden"
         }`}
         fill="currentColor"
       >
@@ -153,24 +151,22 @@ export function PublicPoolCard({
   }
 
   return (
-    <div className="group relative bg-[var(--panel)] px-5 py-5 transition hover:bg-[var(--panel-2)]">
+    <div className="home-pool-card">
       <Link
         href={primaryHref}
         aria-label={href ? `View ${pool.name}` : `Make bracket from ${pool.name}`}
-        className="absolute inset-0 z-0"
+        className="home-pool-card-primary-link"
       />
-      <div className="pointer-events-none relative z-10 grid gap-5 md:grid-cols-[minmax(0,1fr)_15rem] md:items-start">
-        <div>
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--accent-3)]">
-              {pool.candidateCount} candidates
-            </p>
+      <div className="home-pool-card-content">
+        <div className="home-pool-card-main">
+          <div className="home-pool-card-topline">
+            <p className="home-pool-card-meta">{pool.candidateCount} candidates</p>
             {pool.isFavorited ? (
               <Link
                 href={`/create?view=pools&pool=${pool.favoritePoolId}`}
                 aria-label="Open saved pool"
                 title="Saved in your pools"
-                className="pointer-events-auto group/star"
+                className="home-star-link"
               >
                 <FavoriteStar isFavorited />
               </Link>
@@ -182,7 +178,7 @@ export function PublicPoolCard({
                   disabled={isFavoriting}
                   aria-label="Add to favorites"
                   title="Add to favorites"
-                  className="pointer-events-auto group/star disabled:opacity-60"
+                  className="home-star-button"
                 >
                   <FavoriteStar isFavorited={false} />
                 </button>
@@ -191,7 +187,7 @@ export function PublicPoolCard({
                   href={signInHref}
                   aria-label="Sign in to add to favorites"
                   title="Sign in to add to favorites"
-                  className="pointer-events-auto group/star"
+                  className="home-star-link"
                 >
                   <FavoriteStar isFavorited={false} />
                 </Link>
@@ -201,37 +197,37 @@ export function PublicPoolCard({
                 href={`/create?favoritePool=${pool.id}`}
                 aria-label="Add to favorites"
                 title="Add to favorites"
-                className="pointer-events-auto group/star"
+                className="home-star-link"
               >
                 <FavoriteStar isFavorited={false} />
               </Link>
             )}
           </div>
-          <div className="mt-3 flex items-start justify-between gap-4">
-            <h3 className="display-face text-[1.45rem] font-black leading-[1.08]">{pool.name}</h3>
+          <div className="home-pool-card-title-row">
+            <h3 className="home-pool-card-title display-face">{pool.name}</h3>
           </div>
-          <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
+          <p className="home-pool-card-description">
             {pool.description || "A published pool ready to be turned into new brackets."}
           </p>
-          <p className="mt-4 text-[11px] uppercase tracking-[0.16em] text-[var(--muted)]">
+          <p className="home-pool-card-byline">
             By {pool.creatorName || pool.creatorEmail}
           </p>
         </div>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="home-pool-card-preview-grid">
           {visibleCandidates.map((candidate, index) => (
             <div
               key={`${candidate.id}:${index}`}
-              className="relative overflow-hidden border border-[var(--line)] bg-[var(--panel-3)]"
+              className="home-pool-preview-tile"
             >
               {candidate.imageUrl ? (
                 <ResilientRemoteImage
                   src={candidate.imageUrl}
                   alt={candidate.name}
-                  className="aspect-square h-full w-full object-cover"
+                  className="home-pool-preview-image"
                 />
               ) : (
-                <div className="flex aspect-square items-end bg-[linear-gradient(180deg,rgba(52,211,196,0.08),rgba(15,15,15,0.9))] p-2">
-                  <p className="line-clamp-2 text-[10px] uppercase tracking-[0.12em] text-[var(--ink)]">
+                <div className="home-pool-preview-fallback">
+                  <p className="home-pool-preview-fallback-name">
                     {candidate.name}
                   </p>
                 </div>
@@ -241,17 +237,17 @@ export function PublicPoolCard({
                   <ResilientRemoteImage
                     src={previewCandidates[activeOverlay.nextIndex].imageUrl}
                     alt={previewCandidates[activeOverlay.nextIndex].name}
-                    className={`absolute inset-0 aspect-square h-full w-full object-cover transition-opacity duration-[900ms] ${
-                      isOverlayVisible ? "opacity-100" : "opacity-0"
+                    className={`home-pool-preview-overlay-image ${
+                      isOverlayVisible ? "home-pool-preview-visible" : "home-pool-preview-hidden"
                     }`}
                   />
                 ) : (
                   <div
-                    className={`absolute inset-0 flex aspect-square items-end bg-[linear-gradient(180deg,rgba(52,211,196,0.16),rgba(15,15,15,0.96))] p-2 transition-opacity duration-[900ms] ${
-                      isOverlayVisible ? "opacity-100" : "opacity-0"
+                    className={`home-pool-preview-overlay-fallback ${
+                      isOverlayVisible ? "home-pool-preview-visible" : "home-pool-preview-hidden"
                     }`}
                   >
-                    <p className="line-clamp-2 text-[10px] uppercase tracking-[0.12em] text-[var(--ink)]">
+                    <p className="home-pool-preview-fallback-name">
                       {previewCandidates[activeOverlay.nextIndex]?.name}
                     </p>
                   </div>

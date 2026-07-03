@@ -15,7 +15,7 @@ export function MainNav({ user, googleConfigured, isDevShimActive, isAdmin = fal
   const links = baseLinks;
 
   return (
-    <header className="border-y border-[var(--line)] bg-[var(--panel-3)]">
+    <header className="border-y border-[var(--line)] bg-transparent">
       <div className="grid gap-3 px-4 py-3 md:grid-cols-[1fr_auto] md:items-center md:px-6">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
           <p className="display-face text-2xl font-black uppercase leading-none sm:text-3xl">

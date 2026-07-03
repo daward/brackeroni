@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { ResilientRemoteImage } from "@/components/resilient-remote-image";
+import { BackdropRemoteImage } from "@/components/resilient-remote-image";
 import { StatusPill } from "@/components/status-pill";
 import { TournamentResultsPage } from "@/components/tournament-results-page";
 
@@ -711,17 +711,16 @@ function CandidateVoteCard({
       </div>
       {imageUrl ? (
         <div className="relative min-h-0 max-h-[13.5rem] flex-1 overflow-hidden bg-[var(--panel-3)] sm:max-h-[12rem] md:max-h-none">
-          <ResilientRemoteImage
-            src={imageUrl}
-            alt=""
-            aria-hidden="true"
-            className="absolute inset-0 h-full w-full scale-110 object-cover opacity-35 blur-2xl saturate-125"
-          />
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.06),rgba(15,15,15,0.12)_42%,rgba(15,15,15,0.75)_100%)]" />
-          <ResilientRemoteImage
+          <BackdropRemoteImage
             src={imageUrl}
             alt={name}
-            className="relative z-10 h-full w-full object-contain p-0 shadow-[0_10px_30px_rgba(0,0,0,0.35)] transition duration-200 group-hover:scale-[1.03] sm:p-3 md:p-5"
+            className="h-full w-full"
+            backdropClassName="opacity-35 blur-2xl saturate-125"
+            imageClassName="object-contain p-0 shadow-[0_10px_30px_rgba(0,0,0,0.35)] transition duration-200 group-hover:scale-[1.03] sm:p-3 md:p-5"
+            undersizedImageClassName="min-h-[46%] min-w-[46%] max-h-[80%] max-w-[80%] object-contain shadow-[0_10px_30px_rgba(0,0,0,0.35)] transition duration-200 group-hover:scale-[1.03]"
+            foregroundWrapperClassName="px-5 py-4 sm:px-6 sm:py-5 md:px-8 md:py-7"
+            minimumSourceWidth={180}
+            minimumSourceHeight={180}
           />
         </div>
       ) : null}

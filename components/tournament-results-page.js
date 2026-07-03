@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ResilientRemoteImage } from "@/components/resilient-remote-image";
+import { BackdropRemoteImage } from "@/components/resilient-remote-image";
 
 function formatRoundLabel(match, tournament) {
   if (tournament.resultMode === "full_ranking") {
@@ -142,10 +142,14 @@ function ResultEntryDetails({ tournament, orderedEntries, selectedEntry, selecte
     <>
       <div className="flex items-start gap-4 border-b border-[var(--line)] pb-4">
         {selectedEntry.candidateImageUrl ? (
-          <ResilientRemoteImage
+          <BackdropRemoteImage
             src={selectedEntry.candidateImageUrl}
             alt={selectedEntry.candidateName}
-            className="h-20 w-20 rounded-sm object-cover"
+            className="h-20 w-20 rounded-sm"
+            imageClassName="object-cover object-center"
+            undersizedImageClassName="object-contain p-2"
+            minimumSourceWidth={96}
+            minimumSourceHeight={96}
           />
         ) : null}
         <div>
@@ -198,10 +202,14 @@ function ResultEntryDetails({ tournament, orderedEntries, selectedEntry, selecte
                     </p>
                   </div>
                   {getOpponentImageUrl(match, selectedEntry.id) ? (
-                    <ResilientRemoteImage
+                    <BackdropRemoteImage
                       src={getOpponentImageUrl(match, selectedEntry.id)}
                       alt={describeHistoryOpponent(match, selectedEntry.id)}
-                      className="h-20 w-28 flex-shrink-0 rounded-sm object-cover object-center sm:h-24 sm:w-32"
+                      className="h-20 w-28 flex-shrink-0 rounded-sm sm:h-24 sm:w-32"
+                      imageClassName="object-cover object-center"
+                      undersizedImageClassName="object-contain p-2"
+                      minimumSourceWidth={100}
+                      minimumSourceHeight={100}
                     />
                   ) : null}
                 </div>
@@ -272,10 +280,14 @@ export function TournamentResultsPage({ tournament, matches }) {
                     {getDisplayRank(entry, orderedEntries, index)}
                   </span>
                   {entry.candidateImageUrl ? (
-                    <ResilientRemoteImage
+                    <BackdropRemoteImage
                       src={entry.candidateImageUrl}
                       alt={entry.candidateName}
-                      className="h-12 w-12 rounded-sm object-cover"
+                      className="h-12 w-12 rounded-sm"
+                      imageClassName="object-cover object-center"
+                      undersizedImageClassName="object-contain p-1.5"
+                      minimumSourceWidth={72}
+                      minimumSourceHeight={72}
                     />
                   ) : null}
                   <div className="min-w-0 flex-1">

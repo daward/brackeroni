@@ -1,0 +1,837 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.heroSection {
+  display: none;
+  border: 1px solid var(--line);
+  background: var(--panel);
+}
+
+.heroGrid {
+  display: grid;
+  gap: 1px;
+  background: var(--line);
+  grid-template-columns: 1.3fr 0.7fr;
+}
+
+.heroVisual {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100%;
+  padding: 0.75rem 1.5rem;
+  background: var(--panel);
+}
+
+.heroImage {
+  display: block;
+  width: 100%;
+  max-width: 36rem;
+  transform: translateY(0.25rem);
+}
+
+.heroTagline {
+  margin-top: 0.75rem;
+  color: var(--muted);
+  text-align: center;
+  font-size: 0.875rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.importPanel {
+  background: var(--panel-3);
+}
+
+.importLink {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  justify-content: flex-start;
+  padding: 1rem 1.5rem;
+  background:
+    linear-gradient(180deg, rgba(52, 211, 196, 0.08), transparent 45%),
+    var(--panel-3);
+  transition: background-color 150ms ease;
+}
+
+.importLink:hover,
+.importLink:focus-visible {
+  background:
+    linear-gradient(180deg, rgba(52, 211, 196, 0.14), transparent 45%),
+    var(--panel);
+}
+
+.sectionKicker {
+  color: var(--accent-3);
+  font-size: 0.6875rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+.importTitle {
+  margin-top: 0.5rem;
+  font-size: 1.125rem;
+  font-weight: 900;
+}
+
+.importCopy {
+  margin-top: 0.5rem;
+  color: var(--muted);
+  font-size: 0.875rem;
+  line-height: 1.7;
+}
+
+.importAction {
+  margin-top: 1rem;
+  color: var(--accent-2);
+  font-size: 0.6875rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.featureGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.voteRail {
+  border: 1px solid var(--line);
+  background: var(--panel);
+  box-shadow:
+    0 0 0 1px rgba(52, 211, 196, 0.08) inset,
+    0 18px 36px rgba(0, 0, 0, 0.18);
+}
+
+.poolRail {
+  border: 1px solid var(--line);
+  background: var(--panel);
+}
+
+.poolRailInner {
+  display: flex;
+  min-height: 100%;
+  flex-direction: column;
+  background: var(--panel);
+}
+
+.poolRailHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid var(--line);
+  padding: 1rem 1.25rem;
+  background: var(--panel-3);
+}
+
+.poolRailHeaderText {
+  max-width: 42rem;
+}
+
+.poolRailTitle {
+  margin-top: 0.5rem;
+  font-size: 1.875rem;
+  font-weight: 900;
+}
+
+.poolRailTitleLink {
+  transition: color 150ms ease;
+}
+
+.poolRailTitleLink:hover,
+.poolRailTitleLink:focus-visible {
+  color: var(--accent-3);
+}
+
+.poolRailBrowse {
+  color: var(--accent-3);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  transition: color 150ms ease;
+}
+
+.poolRailBrowse:hover,
+.poolRailBrowse:focus-visible {
+  color: var(--accent-2);
+}
+
+.emptyPanel {
+  padding: 1.5rem 1.25rem;
+  background: var(--panel);
+}
+
+.emptyTitle {
+  color: var(--muted);
+  font-size: 1.25rem;
+  font-weight: 900;
+}
+
+.mobilePager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--line);
+  padding: 0.75rem 1rem;
+  background: var(--panel-3);
+}
+
+.mobilePagerCompact {
+  padding-inline: 1rem;
+}
+
+.pagerCounter {
+  color: var(--muted);
+  font-size: 0.6875rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.pagerButtons {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.pagerButton {
+  display: inline-flex;
+  height: 2.25rem;
+  width: 2.25rem;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--accent-3);
+  font-size: 1.125rem;
+  transition:
+    border-color 150ms ease,
+    color 150ms ease,
+    background-color 150ms ease;
+}
+
+.pagerButton:hover,
+.pagerButton:focus-visible {
+  border-color: var(--accent-3);
+}
+
+.voteSection {
+  background: var(--panel);
+}
+
+.mobileVoteOnly {
+  display: block;
+}
+
+.voteFallback {
+  display: flex;
+  min-height: 100%;
+  flex-direction: column;
+  background: var(--panel);
+  transition: background-color 150ms ease;
+}
+
+.voteFallback:hover,
+.voteFallback:focus-visible {
+  background: var(--panel-2);
+}
+
+.voteFallbackBody {
+  padding: 1.5rem 1.25rem;
+}
+
+.voteFallbackTitle {
+  margin-top: 0.75rem;
+  color: var(--muted);
+  font-size: 1.5rem;
+  font-weight: 900;
+}
+
+.voteFallbackCopy {
+  margin-top: 0.75rem;
+  color: var(--muted);
+  font-size: 0.875rem;
+  line-height: 1.7;
+}
+
+.mobileVoteHeader {
+  border-bottom: 1px solid var(--line);
+  padding: 0.75rem 1.25rem;
+  background: var(--panel-3);
+}
+
+.mobileVoteHeaderRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.voteHeaderTitle {
+  margin-top: 0.25rem;
+  font-size: 1.5rem;
+  font-weight: 900;
+}
+
+.voteHeaderMeta {
+  margin-top: 0.25rem;
+  color: var(--muted);
+  font-size: 0.75rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.mobileVoteLink {
+  display: block;
+  transition: background-color 150ms ease;
+}
+
+.mobileVoteLink:hover,
+.mobileVoteLink:focus-visible,
+.desktopVoteLink:hover,
+.desktopVoteLink:focus-visible {
+  background: var(--panel-2);
+}
+
+.mobileMatchupCard {
+  position: relative;
+  overflow: hidden;
+  border-top: 1px solid var(--line);
+  background: var(--panel);
+}
+
+.mobileHalf {
+  position: relative;
+  min-height: 13rem;
+  overflow: hidden;
+  background: var(--panel);
+}
+
+.mobileHalfBackdrop {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+  width: 100%;
+  transform: scale(1.1);
+  object-fit: cover;
+  opacity: 0.3;
+  filter: blur(24px) saturate(1.25);
+}
+
+.mobileHalfGlow {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle at center,
+    rgba(255, 255, 255, 0.04),
+    rgba(15, 15, 15, 0.12) 44%,
+    rgba(10, 10, 10, 0.88) 100%
+  );
+}
+
+.mobileHalfForeground {
+  position: absolute;
+  inset-inline: 0;
+  z-index: 10;
+  margin-inline: auto;
+  width: 92%;
+  max-width: 20rem;
+  object-fit: contain;
+}
+
+.mobileHalfForegroundTop {
+  top: 0.25rem;
+  bottom: 2.25rem;
+  height: calc(100% - 2.5rem);
+}
+
+.mobileHalfForegroundBottom {
+  top: 2.25rem;
+  bottom: 0.25rem;
+  height: calc(100% - 2.5rem);
+}
+
+.mobileHalfFallback {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(52, 211, 196, 0.06), rgba(15, 15, 15, 0.96));
+}
+
+.mobileHalfLabel {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  z-index: 20;
+  padding-inline: 1rem;
+  background: linear-gradient(
+    180deg,
+    transparent,
+    rgba(10, 10, 10, 0.78) 42%,
+    rgba(10, 10, 10, 0.98)
+  );
+}
+
+.mobileHalfLabelTop {
+  padding-top: 3rem;
+  padding-bottom: 0.75rem;
+}
+
+.mobileHalfLabelBottom {
+  padding-top: 4rem;
+  padding-bottom: 0.75rem;
+}
+
+.mobileHalfName {
+  font-size: 1.4rem;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.mobileVsDivider {
+  position: relative;
+  border-top: 1px solid var(--line);
+}
+
+.mobileVsBadge {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  z-index: 30;
+  transform: translate(-50%, -50%);
+  border: 1px solid var(--line);
+  padding: 0.375rem 0.75rem;
+  background: var(--panel);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+
+.mobileVsText {
+  color: var(--accent-2);
+  font-size: 1.5rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.desktopVoteList {
+  display: none;
+}
+
+.desktopVoteGrid {
+  display: grid;
+  gap: 1px;
+  background: var(--line);
+}
+
+.desktopVoteLink {
+  display: block;
+  background: var(--panel);
+  transition: background-color 150ms ease;
+}
+
+.desktopVoteHeader {
+  border-bottom: 1px solid var(--line);
+  padding: 0.75rem 1.25rem;
+  background: var(--panel-3);
+}
+
+.desktopVoteTitle {
+  margin-top: 0.25rem;
+  font-size: 1.875rem;
+  font-weight: 900;
+}
+
+.matchupRow {
+  display: grid;
+  gap: 1px;
+  background: var(--line);
+}
+
+.matchCard {
+  background: var(--panel);
+}
+
+.matchCardSeed {
+  border-bottom: 1px solid var(--line);
+  padding: 0.5rem 1rem;
+}
+
+.matchSeedText {
+  color: var(--accent-2);
+  font-size: 0.75rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.matchCardImageWrap {
+  position: relative;
+  height: 11rem;
+  overflow: hidden;
+  background: var(--panel-3);
+}
+
+.matchCardBackdrop {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+  width: 100%;
+  transform: scale(1.1);
+  object-fit: cover;
+  opacity: 0.35;
+  filter: blur(24px) saturate(1.25);
+}
+
+.matchCardGlow {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle at center,
+    rgba(255, 255, 255, 0.06),
+    rgba(15, 15, 15, 0.08) 40%,
+    rgba(15, 15, 15, 0.72) 100%
+  );
+}
+
+.matchCardImage {
+  position: relative;
+  z-index: 10;
+  height: 100%;
+  width: 100%;
+  object-fit: cover;
+  object-position: center;
+  transition: transform 200ms ease;
+}
+
+.desktopVoteLink:hover .matchCardImage,
+.desktopVoteLink:focus-visible .matchCardImage {
+  transform: scale(1.03);
+}
+
+.matchCardNameBand {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  z-index: 20;
+  padding: 2.5rem 1rem 0.75rem;
+  background: linear-gradient(
+    180deg,
+    transparent,
+    rgba(10, 10, 10, 0.82) 55%,
+    rgba(10, 10, 10, 0.98)
+  );
+}
+
+.matchCardName {
+  font-size: 1.125rem;
+  font-weight: 900;
+  line-height: 1.15;
+}
+
+.matchCardFallback {
+  display: flex;
+  height: 100%;
+  align-items: flex-end;
+  padding: 0.75rem;
+  background: linear-gradient(180deg, rgba(52, 211, 196, 0.08), rgba(15, 15, 15, 0.95));
+}
+
+.matchVsColumn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem 1.25rem;
+  background: var(--panel-3);
+}
+
+.matchVsText {
+  color: var(--accent-2);
+  font-size: 1.5rem;
+  font-weight: 900;
+  letter-spacing: 0.18em;
+}
+
+.poolListDesktop {
+  display: none;
+}
+
+.poolListMobile {
+  display: block;
+}
+
+.poolCard {
+  position: relative;
+  padding: 1.25rem;
+  background: var(--panel);
+  transition: background-color 150ms ease;
+}
+
+.poolCard:hover,
+.poolCard:focus-within {
+  background: var(--panel-2);
+}
+
+.poolCardPrimaryLink {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.poolCardContent {
+  pointer-events: none;
+  position: relative;
+  z-index: 10;
+  display: grid;
+  gap: 1.25rem;
+}
+
+.poolCardMain {
+  min-width: 0;
+}
+
+.poolCardTopline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.poolCardMeta {
+  color: var(--accent-3);
+  font-size: 0.6875rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.starLink,
+.starButton {
+  pointer-events: auto;
+}
+
+.starButton {
+  border: 0;
+  padding: 0;
+  background: transparent;
+}
+
+.starButton:disabled {
+  opacity: 0.6;
+}
+
+.favoriteStar {
+  position: relative;
+  display: block;
+  height: 2rem;
+  width: 2rem;
+  transition: color 150ms ease;
+}
+
+.favoriteStarFilled {
+  color: var(--accent-2);
+}
+
+.favoriteStarFilled:hover,
+.favoriteStarFilled:focus-visible {
+  color: var(--accent-3);
+}
+
+.favoriteStarEmpty {
+  color: var(--muted);
+}
+
+.favoriteStarEmpty:hover,
+.favoriteStarEmpty:focus-visible {
+  color: var(--accent-2);
+}
+
+.favoriteStarOutlineIcon,
+.favoriteStarFillIcon {
+  position: absolute;
+  inset: 0;
+  height: 2rem;
+  width: 2rem;
+  transition: opacity 150ms ease;
+}
+
+.favoriteStarOutlineVisible {
+  opacity: 1;
+}
+
+.favoriteStarOutlineHidden,
+.favoriteStarFillHidden {
+  opacity: 0;
+}
+
+.favoriteStarFillVisible {
+  opacity: 1;
+}
+
+.starButton:hover .favoriteStarOutlineVisible,
+.starButton:focus-visible .favoriteStarOutlineVisible,
+.starLink:hover .favoriteStarOutlineVisible,
+.starLink:focus-visible .favoriteStarOutlineVisible {
+  opacity: 0;
+}
+
+.starButton:hover .favoriteStarFillHidden,
+.starButton:focus-visible .favoriteStarFillHidden,
+.starLink:hover .favoriteStarFillHidden,
+.starLink:focus-visible .favoriteStarFillHidden {
+  opacity: 1;
+}
+
+.poolCardTitleRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 0.75rem;
+}
+
+.poolCardTitle {
+  font-size: 1.45rem;
+  font-weight: 900;
+  line-height: 1.08;
+}
+
+.poolCardDescription {
+  margin-top: 0.75rem;
+  color: var(--muted);
+  font-size: 0.875rem;
+  line-height: 1.7;
+}
+
+.poolCardByline {
+  margin-top: 1rem;
+  color: var(--muted);
+  font-size: 0.6875rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.poolCardPreviewGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.poolPreviewTile {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: var(--panel-3);
+}
+
+.poolPreviewImage {
+  aspect-ratio: 1;
+  height: 100%;
+  width: 100%;
+  object-fit: cover;
+}
+
+.poolPreviewFallback,
+.poolPreviewOverlayFallback {
+  display: flex;
+  aspect-ratio: 1;
+  align-items: flex-end;
+  padding: 0.5rem;
+}
+
+.poolPreviewFallback {
+  background: linear-gradient(180deg, rgba(52, 211, 196, 0.08), rgba(15, 15, 15, 0.9));
+}
+
+.poolPreviewOverlayFallback {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(52, 211, 196, 0.16), rgba(15, 15, 15, 0.96));
+  transition: opacity 900ms ease;
+}
+
+.poolPreviewFallbackName {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  color: var(--ink);
+  font-size: 0.625rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.poolPreviewOverlayImage {
+  position: absolute;
+  inset: 0;
+  aspect-ratio: 1;
+  height: 100%;
+  width: 100%;
+  object-fit: cover;
+  transition: opacity 900ms ease;
+}
+
+.poolPreviewVisible {
+  opacity: 1;
+}
+
+.poolPreviewHidden {
+  opacity: 0;
+}
+
+@media (min-width: 768px) {
+  .desktopVoteList {
+    display: block;
+  }
+
+  .mobileVoteOnly {
+    display: none;
+  }
+
+  .matchupRow {
+    grid-template-columns: 1fr auto 1fr;
+  }
+
+  .matchCardImageWrap {
+    height: 13rem;
+  }
+
+  .matchCardNameBand {
+    padding-inline: 1.25rem;
+    padding-bottom: 1rem;
+  }
+
+  .matchCardName {
+    font-size: 1.25rem;
+  }
+
+  .poolListDesktop {
+    display: grid;
+    flex: 1;
+    gap: 1px;
+    background: var(--line);
+  }
+
+  .poolListMobile {
+    display: none;
+  }
+
+  .poolCardContent {
+    grid-template-columns: minmax(0, 1fr) 15rem;
+    align-items: start;
+  }
+}
+
+@media (min-width: 1024px) {
+  .heroSection {
+    display: block;
+  }
+
+  .featureGrid {
+    display: grid;
+    gap: 1.5rem;
+    grid-template-columns: 1.08fr 0.92fr;
+  }
+}

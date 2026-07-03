@@ -10,36 +10,32 @@ export function FeaturedHomePools({ pools }) {
 
   if (!safePools.length) {
     return (
-      <div className="bg-[var(--panel)] px-5 py-6">
-        <p className="display-face text-xl font-black text-[var(--muted)]">
-          No Public Pools Yet
-        </p>
+      <div className="home-empty-panel">
+        <p className="home-empty-title display-face">No Public Pools Yet</p>
       </div>
     );
   }
 
   return (
     <>
-      <div className="md:hidden">
+      <div className="home-pool-list-mobile">
         {safePools.length > 1 ? (
-          <div className="flex items-center justify-between border-b border-[var(--line)] bg-[var(--panel-3)] px-4 py-3">
+          <div className="home-mobile-pager home-mobile-pager-compact">
             <button
               type="button"
               onClick={() =>
                 setMobileIndex((current) => (current - 1 + safePools.length) % safePools.length)
               }
-              className="flex h-9 w-9 items-center justify-center border border-[var(--line)] bg-[var(--panel)] text-lg text-[var(--accent-3)] transition hover:border-[var(--accent-3)]"
+              className="home-pager-button"
               aria-label="Previous pool"
             >
               &lt;
             </button>
-            <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--muted)]">
-              {mobileIndex + 1} / {safePools.length}
-            </p>
+            <p className="home-pager-counter">{mobileIndex + 1} / {safePools.length}</p>
             <button
               type="button"
               onClick={() => setMobileIndex((current) => (current + 1) % safePools.length)}
-              className="flex h-9 w-9 items-center justify-center border border-[var(--line)] bg-[var(--panel)] text-lg text-[var(--accent-3)] transition hover:border-[var(--accent-3)]"
+              className="home-pager-button"
               aria-label="Next pool"
             >
               &gt;
@@ -49,7 +45,7 @@ export function FeaturedHomePools({ pools }) {
         {activePool ? <PublicPoolCard pool={activePool} /> : null}
       </div>
 
-      <div className="hidden grid flex-1 gap-px bg-[var(--line)] md:grid">
+      <div className="home-pool-list-desktop">
         {safePools.map((pool) => (
           <PublicPoolCard key={pool.id} pool={pool} />
         ))}
