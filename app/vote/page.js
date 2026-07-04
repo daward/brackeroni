@@ -64,7 +64,7 @@ export default async function VotePage({ searchParams }) {
       : null;
 
   return (
-    <div className="space-y-6">
+    <div>
       <VoteScreenPanels
         activeTournaments={activeTournaments}
         completedTournaments={completedTournaments}

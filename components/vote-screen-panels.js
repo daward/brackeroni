@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { BackdropRemoteImage } from "@/components/resilient-remote-image";
-import { StatusPill } from "@/components/status-pill";
 import { TournamentResultsPage } from "@/components/tournament-results-page";
 
 function nextPowerOfTwo(value) {
@@ -400,33 +399,29 @@ export function VoteScreenPanels({
 
   if (resultsTournament) {
     return (
-      <div className="space-y-6">
-        <div className="space-y-4">
+      <div className="vote-page">
+        <div className="vote-page-messages">
           {error ? (
-            <p className="border border-[var(--accent)] bg-[var(--panel-3)] px-4 py-3 text-sm text-[var(--accent-2)]">
-              {error}
-            </p>
+            <p className="vote-message vote-message-error">{error}</p>
           ) : null}
           {message ? (
-            <p className="border border-[var(--accent-3)] bg-[var(--panel-3)] px-4 py-3 text-sm text-[var(--accent-3)]">
-              {message}
-            </p>
+            <p className="vote-message vote-message-success">{message}</p>
           ) : null}
         </div>
 
-        <div className="flex justify-end">
+        <div className="vote-results-actions">
           <button
             type="button"
             onClick={closeResultsView}
-            className="display-face border border-[var(--line)] px-4 py-3 text-xs font-bold uppercase tracking-[0.18em] text-[var(--muted)] transition hover:border-[var(--accent)] hover:text-[var(--accent-2)]"
+            className="ui-button ui-button-muted"
           >
             Back To Index
           </button>
         </div>
 
         {resultsLoading ? (
-          <section className="border border-[var(--line)] bg-[var(--panel)] px-5 py-6">
-            <p className="text-sm text-[var(--muted)]">Loading results...</p>
+          <section className="vote-loading-panel">
+            <p className="vote-loading-copy">Loading results...</p>
           </section>
         ) : (
           <TournamentResultsPage tournament={resultsTournament} matches={resultsMatches} />
@@ -436,15 +431,8 @@ export function VoteScreenPanels({
   }
 
   return (
-    <div className="space-y-6">
-      <section className="grid gap-px border border-[var(--line)] bg-[var(--line)] lg:grid-cols-3">
-        <SummaryBlock
-          label="Active"
-          value={active.length}
-          toneClass="text-[var(--accent-3)]"
-          isOpen={mobileOpenSection === "active"}
-          onToggle={() => setMobileOpenSection((current) => (current === "active" ? null : "active"))}
-        />
+    <div className="vote-page">
+      <section className="vote-summary-grid">
         <SummaryBlock
           label="Open Matches"
           value={openMatchCount}
@@ -463,32 +451,24 @@ export function VoteScreenPanels({
         />
       </section>
 
-      <div className="space-y-4">
+      <div className="vote-page-messages">
         {error ? (
-          <p className="border border-[var(--accent)] bg-[var(--panel-3)] px-4 py-3 text-sm text-[var(--accent-2)]">
-            {error}
-          </p>
+          <p className="vote-message vote-message-error">{error}</p>
         ) : null}
         {message ? (
-          <p className="border border-[var(--accent-3)] bg-[var(--panel-3)] px-4 py-3 text-sm text-[var(--accent-3)]">
-            {message}
-          </p>
+          <p className="vote-message vote-message-success">{message}</p>
           ) : null}
         {signInRequiredTournament ? (
-          <section className="border border-[var(--line)] bg-[var(--panel)]">
-            <div className="border-b border-[var(--line)] bg-[var(--panel-3)] px-5 py-4">
-              <p className="text-[11px] uppercase tracking-[0.22em] text-[var(--accent-3)]">
-                Sign-In Required
-              </p>
-              <h2 className="display-face mt-2 text-2xl font-black">
-                {signInRequiredTournament.title}
-              </h2>
+          <section className="vote-callout-panel">
+            <div className="vote-rail-header">
+              <p className="vote-kicker">Sign-In Required</p>
+              <h2 className="vote-rail-title display-face">{signInRequiredTournament.title}</h2>
             </div>
-            <div className="space-y-4 px-5 py-5">
-              <p className="text-sm leading-7 text-[var(--muted)]">
+            <div className="vote-callout-body">
+              <p className="vote-callout-copy">
                 This public bracket is visible, but voting in it requires a signed-in account.
               </p>
-              <div className="flex flex-wrap gap-3">
+              <div className="vote-callout-actions">
                 <Link href="/api/auth/signin" className="ui-button ui-button-primary">
                   Sign In To Vote
                 </Link>
@@ -504,29 +484,11 @@ export function VoteScreenPanels({
         ) : null}
       </div>
 
-      <div className="space-y-4 lg:hidden">
-        {mobileOpenSection === "active" ? (
-          <section className="border border-[var(--line)] bg-[var(--panel)]">
-            <div className="border-b border-[var(--line)] bg-[var(--panel-3)] px-5 py-4">
-              <h2 className="display-face text-2xl font-black uppercase tracking-[0.1em]">
-                Active
-              </h2>
-            </div>
-            <TournamentListSection
-              tournaments={active}
-              emptyTitle="No Active Brackets"
-              emptySubtitle="Nothing is waiting on a vote."
-              onSelectTournament={setFocusedTournamentId}
-            />
-          </section>
-        ) : null}
-
+      <div className="vote-mobile-sections lg:hidden">
         {mobileOpenSection === "open" ? (
-          <section className="border border-[var(--line)] bg-[var(--panel)]">
-            <div className="border-b border-[var(--line)] bg-[var(--panel-3)] px-5 py-4">
-              <h2 className="display-face text-2xl font-black uppercase tracking-[0.1em]">
-                Open Matches
-              </h2>
+          <section className="vote-rail">
+            <div className="vote-rail-header">
+              <h2 className="vote-rail-title display-face">Vote Now</h2>
             </div>
             <TournamentListSection
               tournaments={openActiveTournaments}
@@ -538,23 +500,19 @@ export function VoteScreenPanels({
         ) : null}
 
         {mobileOpenSection === "completed" ? (
-          <section className="border border-[var(--line)] bg-[var(--panel)]">
-            <div className="border-b border-[var(--line)] bg-[var(--panel-3)] px-5 py-4">
-              <h2 className="display-face text-2xl font-black uppercase tracking-[0.1em]">
-                Completed
-              </h2>
+          <section className="vote-rail">
+            <div className="vote-rail-header">
+              <h2 className="vote-rail-title display-face">Completed</h2>
             </div>
             <CompletedListSection tournaments={completed} onOpenResults={openResultsModal} />
           </section>
         ) : null}
       </div>
 
-      <div className="hidden gap-6 lg:grid lg:grid-cols-[1.05fr_0.95fr]">
-        <section className="border border-[var(--line)] bg-[var(--panel)]">
-          <div className="border-b border-[var(--line)] bg-[var(--panel-3)] px-5 py-4">
-            <h2 className="display-face text-2xl font-black uppercase tracking-[0.1em]">
-              Open Matches
-            </h2>
+      <div className="vote-desktop-grid hidden lg:grid">
+        <section className="vote-rail">
+          <div className="vote-rail-header">
+            <h2 className="vote-rail-title display-face">Vote Now</h2>
           </div>
           <TournamentListSection
             tournaments={openActiveTournaments}
@@ -564,39 +522,35 @@ export function VoteScreenPanels({
           />
         </section>
 
-        <section className="border border-[var(--line)] bg-[var(--panel)]">
-          <div className="border-b border-[var(--line)] bg-[var(--panel-3)] px-5 py-4">
-            <h2 className="display-face text-2xl font-black uppercase tracking-[0.1em]">Completed</h2>
+        <section className="vote-rail">
+          <div className="vote-rail-header">
+            <h2 className="vote-rail-title display-face">Completed</h2>
           </div>
           <CompletedListSection tournaments={completed} onOpenResults={openResultsModal} />
         </section>
       </div>
 
       {focusedTournament && focusedMatch ? (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/85 px-4 py-6">
-          <div className="mx-auto w-full max-w-6xl border border-[var(--line)] bg-[var(--panel)]">
-            <div className="flex items-start justify-between gap-4 border-b border-[var(--line)] bg-[var(--panel-3)] px-5 py-4">
+        <div className="vote-modal-overlay">
+          <div className="vote-modal-shell vote-match-modal-shell">
+            <div className="vote-match-modal-header">
               <div>
-                <p className="text-[11px] uppercase tracking-[0.22em] text-[var(--accent-3)]">
-                  {formatRoundLabel(focusedMatch, focusedTournament)}
-                </p>
-                <h2 className="display-face mt-2 text-[1.5rem] font-black leading-[0.95] sm:text-3xl">
-                  {focusedTournament.title}
-                </h2>
+                <p className="vote-kicker">{formatRoundLabel(focusedMatch, focusedTournament)}</p>
+                <h2 className="vote-match-modal-title display-face">{focusedTournament.title}</h2>
                 {currentRoundProgress.total > 0 ? (
-                  <div className="mt-2 flex max-w-xs items-center gap-3">
-                    <div className="h-2 min-w-0 flex-1 overflow-hidden border border-[var(--line)] bg-[var(--panel)]">
+                  <div className="vote-match-progress">
+                    <div className="vote-match-progress-bar">
                       <div
-                        className="h-full bg-[var(--accent-3)] transition-[width] duration-300"
+                        className="vote-match-progress-fill"
                         style={{ width: `${currentRoundProgress.percent}%` }}
                       />
                     </div>
-                    <p className="shrink-0 text-[10px] uppercase tracking-[0.18em] text-[var(--accent-3)]">
+                    <p className="vote-match-progress-count">
                       {currentRoundProgress.completed}/{currentRoundProgress.total}
                     </p>
                   </div>
                 ) : (
-                  <p className="mt-2 text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
+                  <p className="vote-match-open-count">
                     {focusedMatches.length} open {focusedMatches.length === 1 ? "match" : "matches"} remain
                   </p>
                 )}
@@ -604,41 +558,38 @@ export function VoteScreenPanels({
               <button
                 type="button"
                 onClick={() => setFocusedTournamentId(null)}
-                className="display-face text-xs font-bold uppercase tracking-[0.18em] text-[var(--accent-2)]"
+                className="vote-modal-close display-face"
               >
                 Close
               </button>
             </div>
             {transitionMessage ? (
-              <div className="border-b border-[var(--line)] bg-[var(--panel)] px-5 py-4">
-                <p className="text-sm leading-6 text-[var(--accent-2)]">{transitionMessage}</p>
+              <div className="vote-transition-bar">
+                <p className="vote-transition-copy">{transitionMessage}</p>
               </div>
             ) : null}
 
-            <div className="bg-[var(--line)] md:grid md:grid-cols-[1fr_auto_1fr] md:gap-px">
+            <div className="vote-matchup-grid">
               <CandidateVoteCard
                 name={focusedMatch.leftName}
-                seed={focusedMatch.leftSeed}
                 description={focusedMatch.leftDescription}
                 imageUrl={focusedMatch.leftImageUrl}
                 disabled={pendingVoteMatchId === focusedMatch.id}
                 onVote={() => vote(focusedMatch.id, focusedTournament.id, focusedMatch.leftEntryId)}
+                side="left"
               />
-              <div className="relative h-10 bg-[var(--panel)] md:flex md:h-auto md:items-center md:justify-center md:bg-[var(--panel-3)] md:px-6 md:py-8">
-                <div className="absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2 rounded-full border border-[var(--line)] bg-[var(--panel)] px-3 py-1.5 shadow-[0_8px_24px_rgba(0,0,0,0.45)] md:static md:translate-x-0 md:translate-y-0 md:rounded-none md:border-0 md:bg-transparent md:px-0 md:py-0 md:shadow-none">
-                  <p className="display-face text-2xl font-black tracking-[0.18em] text-[var(--accent-2)]">
-                    Vs
-                  </p>
+              <div className="vote-match-vs-column">
+                <div className="vote-match-vs-badge">
+                  <p className="vote-match-vs-text display-face">Vs</p>
                 </div>
-                <div className="absolute left-0 right-0 top-1/2 h-px -translate-y-1/2 bg-[var(--line)] md:hidden" />
               </div>
               <CandidateVoteCard
                 name={focusedMatch.rightName}
-                seed={focusedMatch.rightSeed}
                 description={focusedMatch.rightDescription}
                 imageUrl={focusedMatch.rightImageUrl}
                 disabled={pendingVoteMatchId === focusedMatch.id}
                 onVote={() => vote(focusedMatch.id, focusedTournament.id, focusedMatch.rightEntryId)}
+                side="right"
               />
             </div>
           </div>
@@ -646,41 +597,31 @@ export function VoteScreenPanels({
       ) : null}
 
       {focusedTournament && isFocusedTournamentWaiting ? (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/85 px-4 py-6">
-          <div className="mx-auto w-full max-w-3xl border border-[var(--line)] bg-[var(--panel)]">
-            <div className="border-b border-[var(--line)] bg-[var(--panel-3)] px-5 py-4">
-              <p className="text-[11px] uppercase tracking-[0.22em] text-[var(--accent-3)]">
-                Round Complete
-              </p>
-              <h2 className="display-face mt-2 text-3xl font-black">{focusedTournament.title}</h2>
-              <p className="mt-2 text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
-                Waiting for the next round to open
-              </p>
+        <div className="vote-modal-overlay">
+          <div className="vote-modal-shell vote-waiting-modal-shell">
+            <div className="vote-match-modal-header">
+              <div>
+                <p className="vote-kicker">Round Complete</p>
+                <h2 className="vote-match-modal-title display-face">{focusedTournament.title}</h2>
+                <p className="vote-match-open-count">Waiting for the next round to open</p>
+              </div>
             </div>
-            <div className="space-y-5 px-5 py-6">
+            <div className="vote-waiting-body">
               {transitionMessage ? (
-                <p className="text-sm leading-7 text-[var(--accent-2)]">{transitionMessage}</p>
+                <p className="vote-transition-copy">{transitionMessage}</p>
               ) : null}
-              <p className="text-sm leading-7 text-[var(--ink)]">
+              <p className="vote-callout-copy">
                 Your current round is done. This page will keep checking for the next matchup and
                 update automatically when it opens.
               </p>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="border border-[var(--line)] bg-[var(--panel-2)] px-4 py-4">
-                  <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--muted)]">
-                    Polling
-                  </p>
-                  <p className="display-face mt-2 text-xl font-black text-[var(--accent-2)]">
-                    Every 10 seconds
-                  </p>
+              <div className="vote-waiting-stats">
+                <div className="vote-waiting-stat">
+                  <p className="vote-waiting-stat-label">Polling</p>
+                  <p className="vote-waiting-stat-value display-face">Every 10 seconds</p>
                 </div>
-                <div className="border border-[var(--line)] bg-[var(--panel-2)] px-4 py-4">
-                  <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--muted)]">
-                    Checks Remaining
-                  </p>
-                  <p className="display-face mt-2 text-xl font-black text-[var(--accent-2)]">
-                    {Math.max(18 - postRoundPollCount, 0)}
-                  </p>
+                <div className="vote-waiting-stat">
+                  <p className="vote-waiting-stat-label">Checks Remaining</p>
+                  <p className="vote-waiting-stat-value display-face">{Math.max(18 - postRoundPollCount, 0)}</p>
                 </div>
               </div>
             </div>
@@ -693,41 +634,38 @@ export function VoteScreenPanels({
 
 function CandidateVoteCard({
   name,
-  seed,
   description,
   imageUrl,
   onVote,
-  disabled = false
+  disabled = false,
+  side = "left"
 }) {
   return (
     <button
       type="button"
       onClick={onVote}
       disabled={disabled}
-      className="group flex h-full min-h-[14rem] max-h-[17rem] flex-col overflow-hidden bg-[var(--panel-2)] text-left transition hover:bg-[var(--panel)] disabled:cursor-wait disabled:opacity-70 sm:min-h-[16rem] sm:max-h-[20rem] md:min-h-[20rem] md:max-h-[29rem]"
+      className={`vote-candidate-card vote-candidate-card-${side}`}
     >
-      <div className="border-b border-[var(--line)] px-4 py-2 sm:px-5 sm:py-4">
-        <p className="text-xs uppercase tracking-[0.16em] text-[var(--accent-2)]">Seed {seed}</p>
-      </div>
       {imageUrl ? (
-        <div className="relative min-h-0 max-h-[13.5rem] flex-1 overflow-hidden bg-[var(--panel-3)] sm:max-h-[12rem] md:max-h-none">
+        <div className="vote-candidate-image-shell">
           <BackdropRemoteImage
             src={imageUrl}
             alt={name}
-            className="h-full w-full"
-            backdropClassName="opacity-35 blur-2xl saturate-125"
-            imageClassName="object-contain p-0 shadow-[0_10px_30px_rgba(0,0,0,0.35)] transition duration-200 group-hover:scale-[1.03] sm:p-3 md:p-5"
-            undersizedImageClassName="min-h-[46%] min-w-[46%] max-h-[80%] max-w-[80%] object-contain shadow-[0_10px_30px_rgba(0,0,0,0.35)] transition duration-200 group-hover:scale-[1.03]"
-            foregroundWrapperClassName="px-5 py-4 sm:px-6 sm:py-5 md:px-8 md:py-7"
+            className="vote-candidate-backdrop-host"
+            backdropClassName="vote-candidate-backdrop"
+            imageClassName="vote-candidate-image"
+            undersizedImageClassName="vote-candidate-image vote-candidate-image-undersized"
+            foregroundWrapperClassName="vote-candidate-image-frame"
             minimumSourceWidth={180}
             minimumSourceHeight={180}
           />
         </div>
       ) : null}
-      <div className={`px-4 py-2 sm:px-5 sm:py-5 ${imageUrl ? "" : "mt-auto"}`}>
-        <p className="display-face text-[1.45rem] font-black leading-tight sm:text-3xl">{name}</p>
+      <div className={`vote-candidate-copy ${imageUrl ? "" : "vote-candidate-copy-no-image"}`}>
+        <p className="vote-candidate-name display-face">{name}</p>
         {description ? (
-          <p className="mt-1 max-w-xl text-sm leading-6 text-[var(--muted)]">{description}</p>
+          <p className="vote-candidate-description">{description}</p>
         ) : null}
       </div>
     </button>
@@ -740,20 +678,20 @@ function SummaryBlock({ label, value, toneClass, isOpen, onToggle }) {
       <button
         type="button"
         onClick={onToggle}
-        className="bg-[var(--panel-3)] px-5 py-4 text-left lg:hidden"
+        className="vote-summary-mobile lg:hidden"
         aria-expanded={isOpen}
       >
-        <p className="text-[11px] uppercase tracking-[0.22em] text-[var(--muted)]">{label}</p>
-        <div className="mt-2 flex items-center justify-between gap-3">
-          <p className={`display-face text-2xl font-black ${toneClass}`}>{value}</p>
-          <p className="text-[10px] uppercase tracking-[0.18em] text-[var(--muted)]">
+        <p className="vote-summary-label">{label}</p>
+        <div className="vote-summary-mobile-row">
+          <p className={`vote-summary-value display-face ${toneClass}`}>{value}</p>
+          <p className="vote-summary-toggle-copy">
             {isOpen ? "Hide" : "Show"}
           </p>
         </div>
       </button>
-      <div className="hidden bg-[var(--panel-3)] px-5 py-4 lg:block">
-        <p className="text-[11px] uppercase tracking-[0.22em] text-[var(--muted)]">{label}</p>
-        <p className={`display-face mt-2 text-2xl font-black ${toneClass}`}>{value}</p>
+      <div className="vote-summary-desktop hidden lg:block">
+        <p className="vote-summary-label">{label}</p>
+        <p className={`vote-summary-value display-face ${toneClass}`}>{value}</p>
       </div>
     </>
   );
@@ -767,13 +705,11 @@ function TournamentListSection({
 }) {
   if (tournaments.length === 0) {
     return (
-      <div className="px-5 py-8">
-        <div className="border border-[var(--line)] bg-[var(--panel-2)] px-5 py-6">
-          <p className="display-face text-xl font-black text-[var(--muted)]">{emptyTitle}</p>
+      <div className="vote-list-empty-wrap">
+        <div className="vote-list-empty-panel">
+          <p className="vote-list-empty-title display-face">{emptyTitle}</p>
           {emptySubtitle ? (
-            <p className="mt-2 text-xs uppercase tracking-[0.18em] text-[var(--accent-3)]">
-              {emptySubtitle}
-            </p>
+            <p className="vote-list-empty-subtitle">{emptySubtitle}</p>
           ) : null}
         </div>
       </div>
@@ -788,31 +724,22 @@ function TournamentListSection({
         return (
           <div
             key={tournament.id}
-            className="border-b border-[var(--line)] bg-[var(--panel-2)] p-5 last:border-b-0"
+            className="vote-list-item"
           >
-            <div className="flex items-start justify-between gap-3">
+            <div className="vote-list-item-header">
               <div>
-                <h3 className="display-face text-2xl font-black">{tournament.title}</h3>
-                <p className="mt-1 text-sm uppercase tracking-[0.15em] text-[var(--muted)]">
-                  {tournament.sharingMode.replace("_", " ")} | {tournament.entryCount} entries
-                </p>
-              </div>
-              <StatusPill>{tournament.status}</StatusPill>
-            </div>
-            <div className="mt-5 flex flex-wrap items-end justify-between gap-4 border-t border-[var(--line)] pt-5">
-              <div>
-                <p className="text-xs uppercase tracking-[0.18em] text-[var(--accent-3)]">
-                  {openMatches.length} open {openMatches.length === 1 ? "match" : "matches"}
-                </p>
-                <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-                  Pool: {tournament.sourcePoolName || "Unknown pool"}.
+                <h3 className="vote-list-item-title display-face">{tournament.title}</h3>
+                <p className="vote-list-item-meta">
+                  {tournament.sharingMode.replace("_", " ")} | {tournament.entryCount} entries |{" "}
+                  {openMatches.length} open {openMatches.length === 1 ? "match" : "matches"} | Pool:{" "}
+                  {tournament.sourcePoolName || "Unknown pool"}
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => onSelectTournament(tournament.id)}
                 disabled={openMatches.length === 0}
-                className="display-face border border-[var(--accent)] bg-[var(--accent)] px-4 py-3 text-sm font-bold uppercase tracking-[0.18em] text-black transition hover:bg-[var(--accent-2)] disabled:border-[var(--line)] disabled:bg-[var(--panel-3)] disabled:text-[var(--muted)]"
+                className="ui-button ui-button-primary"
               >
                 Vote
               </button>
@@ -826,12 +753,10 @@ function TournamentListSection({
 
 function CompletedListSection({ tournaments, onOpenResults }) {
   return (
-    <div className="space-y-4 px-5 py-5">
+    <div className="vote-completed-list">
       {tournaments.length === 0 ? (
-        <div className="border border-[var(--line)] bg-[var(--panel-2)] px-5 py-6">
-          <p className="display-face text-xl font-black text-[var(--muted)]">
-            No Completed Brackets
-          </p>
+        <div className="vote-list-empty-panel">
+          <p className="vote-list-empty-title display-face">No Completed Brackets</p>
         </div>
       ) : (
         tournaments.map((tournament) => (
@@ -839,15 +764,30 @@ function CompletedListSection({ tournaments, onOpenResults }) {
             key={tournament.id}
             type="button"
             onClick={() => onOpenResults(tournament)}
-            className="w-full border border-[var(--line)] bg-[var(--panel-2)] px-5 py-4 text-left transition hover:border-[var(--accent-3)] hover:bg-[var(--panel)]"
+            className="vote-completed-item"
           >
-            <h3 className="display-face text-lg font-black">{tournament.title}</h3>
-            {tournament.winnerName ? (
-              <p className="mt-3 display-face text-xl font-black text-[var(--accent-3)]">
-                Winner: {tournament.winnerName}
-                {tournament.winnerSeed ? ` (Seed ${tournament.winnerSeed})` : ""}
-              </p>
-            ) : null}
+            <div className="vote-completed-item-body">
+              <div>
+                <h3 className="vote-completed-title display-face">{tournament.title}</h3>
+                {tournament.winnerName ? (
+                  <p className="vote-completed-winner display-face">
+                    Winner: {tournament.winnerName}
+                    {tournament.winnerSeed ? ` (Seed ${tournament.winnerSeed})` : ""}
+                  </p>
+                ) : null}
+              </div>
+              {tournament.winnerImageUrl ? (
+                <BackdropRemoteImage
+                  src={tournament.winnerImageUrl}
+                  alt={tournament.winnerName || tournament.title}
+                  className="vote-completed-image"
+                  imageClassName="object-cover object-center"
+                  undersizedImageClassName="object-contain p-2"
+                  minimumSourceWidth={96}
+                  minimumSourceHeight={96}
+                />
+              ) : null}
+            </div>
           </button>
         ))
       )}

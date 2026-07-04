@@ -24,7 +24,7 @@ export default async function HomePage() {
                 className="home-hero-image"
               />
               <p className="home-hero-tagline">
-                Turn any pool into a bracket, then vote or share it.
+                In a world of choice, take it one matchup at a time.
               </p>
             </div>
           </div>
@@ -44,6 +44,11 @@ export default async function HomePage() {
 
       <div className="home-feature-grid">
         <section className="home-vote-rail">
+          <div className="home-vote-rail-header">
+            <div className="home-vote-rail-header-text">
+              <h2 className="home-vote-rail-title display-face">Try a Quick Matchup</h2>
+            </div>
+          </div>
           <FeaturedHomeVoteSection items={featuredPublicMatchups} />
         </section>
 
@@ -53,7 +58,7 @@ export default async function HomePage() {
               <div className="home-pool-rail-header-text">
                 <h2 className="home-pool-rail-title display-face">
                   <Link href="/pools" className="home-pool-rail-title-link">
-                    Published Pools
+                    Start from a pool
                   </Link>
                 </h2>
               </div>

@@ -4,12 +4,9 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { ResilientRemoteImage } from "@/components/resilient-remote-image";
 
-function FeaturedHomeMatchCard({ name, seed, imageUrl }) {
+function FeaturedHomeMatchCard({ name, imageUrl, side }) {
   return (
-    <div className="home-match-card">
-      <div className="home-match-card-seed">
-        <p className="home-match-seed-text">Seed {seed}</p>
-      </div>
+    <div className={`home-match-card home-match-card-${side}`}>
       <div className="home-match-card-image-wrap">
         {imageUrl ? (
           <>
@@ -47,18 +44,18 @@ function MatchupRow({ item }) {
     <div className="home-matchup-row">
       <FeaturedHomeMatchCard
         name={item.leftName}
-        seed={item.leftSeed}
         imageUrl={item.leftImageUrl}
+        side="left"
       />
       <div className="home-match-vs-column">
-        <div>
-          <p className="home-match-vs-text display-face">Vs</p>
-        </div>
+        <p className="home-match-vs-text display-face">
+          <span className="home-match-vs-text-inner">Vs</span>
+        </p>
       </div>
       <FeaturedHomeMatchCard
         name={item.rightName}
-        seed={item.rightSeed}
         imageUrl={item.rightImageUrl}
+        side="right"
       />
     </div>
   );
@@ -136,9 +133,8 @@ export function FeaturedHomeVoteSection({ items }) {
         <div className="home-mobile-vote-header">
           <div className="home-mobile-vote-header-row">
             <div>
-              <p className="ui-section-kicker">Vote Right Now</p>
-              <h2 className="home-vote-header-title display-face">{activeItem.tournamentTitle}</h2>
-              <p className="home-vote-header-meta">
+              <h2 className="home-vote-entry-title display-face">{activeItem.tournamentTitle}</h2>
+              <p className="home-vote-entry-meta">
                 {`Round ${activeItem.roundNumber} | Live Voting Now`}
               </p>
             </div>
@@ -183,9 +179,8 @@ export function FeaturedHomeVoteSection({ items }) {
               className="home-desktop-vote-link"
             >
               <div className="home-desktop-vote-header">
-                <p className="ui-section-kicker">{index === 0 ? "Vote Right Now" : "Also Live"}</p>
-                <h2 className="home-desktop-vote-title display-face">{item.tournamentTitle}</h2>
-                <p className="home-vote-header-meta">
+                <h2 className="home-vote-entry-title display-face">{item.tournamentTitle}</h2>
+                <p className="home-vote-entry-meta">
                   {`Round ${item.roundNumber} | Live Voting Now`}
                 </p>
               </div>
