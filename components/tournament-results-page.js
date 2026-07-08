@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { BackdropRemoteImage } from "@/components/resilient-remote-image";
@@ -96,8 +96,8 @@ function describeUserVote(match, entryId) {
   }
 
   return match.userVoteEntryId === entryId
-    ? { label: "✓ You voted for this pick", className: "text-[var(--accent-2)]" }
-    : { label: "✓ You voted against it", className: "text-[var(--accent)]" };
+    ? { label: "You voted for this pick", className: "results-history-vote-for" }
+    : { label: "You voted against it", className: "results-history-vote-against" };
 }
 
 function describeHistoryOpponent(match, entryId) {
@@ -135,17 +135,17 @@ function getDisplayRank(entry, orderedEntries, fallbackIndex = 0) {
 
 function ResultEntryDetails({ tournament, orderedEntries, selectedEntry, selectedEntryHistory }) {
   if (!selectedEntry) {
-    return <p className="text-sm text-[var(--muted)]">No result details available.</p>;
+    return <p className="results-empty-copy">No result details available.</p>;
   }
 
   return (
     <>
-      <div className="flex items-start gap-4 border-b border-[var(--line)] pb-4">
+      <div className="results-details-header">
         {selectedEntry.candidateImageUrl ? (
           <BackdropRemoteImage
             src={selectedEntry.candidateImageUrl}
             alt={selectedEntry.candidateName}
-            className="h-20 w-20 rounded-sm"
+            className="results-details-image"
             imageClassName="object-cover object-center"
             undersizedImageClassName="object-contain p-2"
             minimumSourceWidth={96}
@@ -153,76 +153,72 @@ function ResultEntryDetails({ tournament, orderedEntries, selectedEntry, selecte
           />
         ) : null}
         <div>
-          <p className="text-[11px] uppercase tracking-[0.22em] text-[var(--accent-3)]">
-            Candidate Details
-          </p>
-          <h2 className="display-face mt-2 text-2xl font-black">{selectedEntry.candidateName}</h2>
-          <p className="mt-2 text-xs uppercase tracking-[0.14em] text-[var(--muted)]">
-            Rank {getDisplayRank(selectedEntry, orderedEntries)} • Seed {selectedEntry.seed} •{" "}
+          <p className="results-kicker">Candidate Details</p>
+          <h2 className="results-details-title">{selectedEntry.candidateName}</h2>
+          <p className="results-details-meta">
+            Rank {getDisplayRank(selectedEntry, orderedEntries)} | Seed {selectedEntry.seed} | {" "}
             {formatRecord(selectedEntryHistory, selectedEntry.id)}
           </p>
         </div>
       </div>
 
-      <div className="mt-5">
-        <p className="display-face text-sm font-black uppercase tracking-[0.18em] text-[var(--accent-3)]">
-          Match History
-        </p>
-        <div className="mt-4 space-y-3">
+      <section className="results-history">
+        <h3 className="results-section-title">Match History</h3>
+        <div className="results-history-list">
           {selectedEntryHistory.length === 0 ? (
-            <p className="text-sm text-[var(--muted)]">No played matches to show yet.</p>
+            <p className="results-empty-copy">No played matches to show yet.</p>
           ) : (
-            selectedEntryHistory.map((match) => (
-              <div
-                key={match.id}
-                className="border border-[var(--line)] bg-[var(--panel-2)] px-4 py-4"
-              >
-                <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--accent-2)]">
-                  {formatRoundLabel(match, tournament)}
-                </p>
-                <div className="mt-3 flex items-start justify-between gap-4">
-                  <div>
-                    <p className="display-face text-lg font-black">
-                      {describeHistoryResult(match, selectedEntry.id)}
-                    </p>
-                    {describeUserVote(match, selectedEntry.id) ? (
-                      <p
-                        className={`mt-1 text-xs uppercase tracking-[0.18em] ${
-                          describeUserVote(match, selectedEntry.id).className
-                        }`}
-                      >
-                        {describeUserVote(match, selectedEntry.id).label}
+            selectedEntryHistory.map((match) => {
+              const voteNote = describeUserVote(match, selectedEntry.id);
+              const opponentLabel = describeHistoryOpponent(match, selectedEntry.id);
+              const opponentImageUrl = getOpponentImageUrl(match, selectedEntry.id);
+
+              return (
+                <article key={match.id} className="results-history-card">
+                  <p className="results-history-round">{formatRoundLabel(match, tournament)}</p>
+                  <div className="results-history-card-body">
+                    <div>
+                      <p className="results-history-result">
+                        {describeHistoryResult(match, selectedEntry.id)}
                       </p>
+                      {voteNote ? (
+                        <p className={`results-history-vote-note ${voteNote.className}`}>
+                          {voteNote.label}
+                        </p>
+                      ) : null}
+                      <p className="results-history-tally">
+                        Vote: {formatVoteTally(match, selectedEntry.id)}
+                      </p>
+                      <p className="results-history-opponent">{opponentLabel}</p>
+                    </div>
+                    {opponentImageUrl ? (
+                      <BackdropRemoteImage
+                        src={opponentImageUrl}
+                        alt={opponentLabel}
+                        className="results-history-image"
+                        imageClassName="object-cover object-center"
+                        undersizedImageClassName="object-contain p-2"
+                        minimumSourceWidth={100}
+                        minimumSourceHeight={100}
+                      />
                     ) : null}
-                    <p className="mt-1 text-xs uppercase tracking-[0.18em] text-[var(--accent-3)]">
-                      Vote: {formatVoteTally(match, selectedEntry.id)}
-                    </p>
-                    <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-                      {describeHistoryOpponent(match, selectedEntry.id)}
-                    </p>
                   </div>
-                  {getOpponentImageUrl(match, selectedEntry.id) ? (
-                    <BackdropRemoteImage
-                      src={getOpponentImageUrl(match, selectedEntry.id)}
-                      alt={describeHistoryOpponent(match, selectedEntry.id)}
-                      className="h-20 w-28 flex-shrink-0 rounded-sm sm:h-24 sm:w-32"
-                      imageClassName="object-cover object-center"
-                      undersizedImageClassName="object-contain p-2"
-                      minimumSourceWidth={100}
-                      minimumSourceHeight={100}
-                    />
-                  ) : null}
-                </div>
-              </div>
-            ))
+                </article>
+              );
+            })
           )}
         </div>
-      </div>
+      </section>
     </>
   );
 }
 
-export function TournamentResultsPage({ tournament, matches }) {
+export function TournamentResultsPage({
+  tournament,
+  matches,
+  headerAction = null,
+  headerNotice = null
+}) {
   const orderedEntries = orderResultEntries(tournament.entries ?? [], matches ?? [], tournament);
   const [selectedEntryId, setSelectedEntryId] = useState(orderedEntries[0]?.id ?? null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -245,86 +241,83 @@ export function TournamentResultsPage({ tournament, matches }) {
   }
 
   return (
-    <div className="space-y-6">
-      <section className="border border-[var(--line)] bg-[var(--panel)]">
-        <div className="flex items-start justify-between gap-4 border-b border-[var(--line)] bg-[var(--panel-3)] px-5 py-4">
-          <div>
-            <p className="text-[11px] uppercase tracking-[0.22em] text-[var(--accent-3)]">
-              Bracket Results
-            </p>
-            <h1 className="display-face mt-2 text-3xl font-black">{tournament.title}</h1>
-            <p className="mt-2 text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
-              {tournament.resultMode.replace("_", " ")} • {orderedEntries.length} ranked entries
-            </p>
+    <div className="results-page">
+      <section className="results-shell">
+        <header className="results-header">
+          <div className="results-header-row">
+            <div className="results-header-copy">
+              <p className="results-kicker">Bracket Results</p>
+              <h1 className="results-title">{tournament.title}</h1>
+              <p className="results-meta">
+                {tournament.resultMode.replaceAll("_", " ")} | {orderedEntries.length} ranked
+                entries
+              </p>
+              {headerNotice ? <div className="mt-4">{headerNotice}</div> : null}
+            </div>
+            {headerAction ? <div className="results-header-action">{headerAction}</div> : null}
           </div>
-        </div>
+        </header>
 
-        <div className="grid gap-px bg-[var(--line)] lg:grid-cols-[0.9fr_1.1fr]">
-          <div className="bg-[var(--panel)] px-5 py-5">
-            <p className="display-face text-sm font-black uppercase tracking-[0.18em] text-[var(--accent-3)]">
-              Final Ranking
-            </p>
-            <div className="mt-4 space-y-2">
+        <div className="results-grid">
+          <section className="results-ranking-rail">
+            <h2 className="results-section-title">Final Ranking</h2>
+            <div className="results-ranking-list">
               {orderedEntries.map((entry, index) => (
                 <button
                   key={entry.id}
                   type="button"
                   onClick={() => handleSelectEntry(entry.id)}
-                  className={`flex w-full items-center gap-3 border px-3 py-3 text-left transition ${
+                  className={`results-ranking-item ${
                     selectedEntry?.id === entry.id
-                      ? "border-[var(--accent-3)] bg-[var(--panel-2)]"
-                      : "border-[var(--line)] bg-[var(--panel-2)] hover:border-[var(--accent-2)]"
+                      ? "results-ranking-item-active"
+                      : "results-ranking-item-idle"
                   }`}
                 >
-                  <span className="display-face w-12 text-lg font-black uppercase text-[var(--accent-2)]">
+                  <span className="results-ranking-rank">
                     {getDisplayRank(entry, orderedEntries, index)}
                   </span>
                   {entry.candidateImageUrl ? (
                     <BackdropRemoteImage
                       src={entry.candidateImageUrl}
                       alt={entry.candidateName}
-                      className="h-12 w-12 rounded-sm"
+                      className="results-ranking-image"
                       imageClassName="object-cover object-center"
                       undersizedImageClassName="object-contain p-1.5"
                       minimumSourceWidth={72}
                       minimumSourceHeight={72}
                     />
                   ) : null}
-                  <div className="min-w-0 flex-1">
-                    <p className="display-face truncate text-sm font-black">{entry.candidateName}</p>
-                    <p className="mt-1 text-xs uppercase tracking-[0.14em] text-[var(--muted)]">
-                      Seed {entry.seed}
-                    </p>
+                  <div className="results-ranking-copy">
+                    <p className="results-ranking-name">{entry.candidateName}</p>
+                    <p className="results-ranking-seed">Seed {entry.seed}</p>
                   </div>
                 </button>
               ))}
             </div>
-          </div>
+          </section>
 
-          <div className="ui-scroll-subtle hidden bg-[var(--panel)] px-5 py-5 lg:block lg:sticky lg:top-4 lg:self-start lg:max-h-[calc(100vh-5rem)] lg:overflow-y-auto">
+          <aside className="results-details-rail ui-scroll-subtle">
             <ResultEntryDetails
               tournament={tournament}
               orderedEntries={orderedEntries}
               selectedEntry={selectedEntry}
               selectedEntryHistory={selectedEntryHistory}
             />
-          </div>
+          </aside>
         </div>
       </section>
       {isDrawerOpen && selectedEntry ? (
-        <div className="fixed inset-0 z-50 bg-black/70 lg:hidden" onClick={() => setIsDrawerOpen(false)}>
+        <div className="results-drawer-overlay" onClick={() => setIsDrawerOpen(false)}>
           <div
-            className="ui-scroll-subtle absolute inset-x-0 bottom-0 max-h-[82vh] overflow-y-auto border-t border-[var(--line)] bg-[var(--panel)] px-5 py-5"
+            className="results-drawer ui-scroll-subtle"
             onClick={(event) => event.stopPropagation()}
           >
-            <div className="mb-4 flex items-center justify-between gap-4">
-              <p className="display-face text-sm font-black uppercase tracking-[0.18em] text-[var(--accent-3)]">
-                Candidate Details
-              </p>
+            <div className="results-drawer-header">
+              <p className="results-section-title">Candidate Details</p>
               <button
                 type="button"
                 onClick={() => setIsDrawerOpen(false)}
-                className="display-face text-xs font-bold uppercase tracking-[0.18em] text-[var(--accent-2)]"
+                className="results-drawer-close"
               >
                 Close
               </button>

@@ -1,4 +1,5 @@
 import { getCurrentUser, getOptionalCurrentUser } from "@/lib/auth/current-user";
+import { getAnonymousVoterTokenFromRequest } from "@/lib/auth/viewer";
 import {
   archiveTournament,
   getAccessibleTournamentById,
@@ -13,7 +14,8 @@ export const GET = withRouteErrorHandling(async function GET(request, { params }
   const { tournamentId } = await params;
   const tournament = await getAccessibleTournamentById({
     tournamentId,
-    userId: user?.id ?? null
+    userId: user?.id ?? null,
+    anonymousVoterToken: getAnonymousVoterTokenFromRequest(request)
   });
 
   const response = json({ item: tournament });

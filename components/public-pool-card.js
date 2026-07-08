@@ -138,7 +138,7 @@ export function PublicPoolCard({
     }
 
     startFavoriting(async () => {
-      const response = await fetch(`/api/pools/${pool.id}/favorite`, {
+      const response = await fetch(`/api/pools/${pool.id}/favorites`, {
         method: "POST"
       });
 

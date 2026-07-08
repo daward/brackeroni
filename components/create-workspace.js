@@ -26,34 +26,29 @@ const emptyTournamentForm = {
 };
 
 export function CreateWorkspace() {
-  const [candidates, setCandidates] = useState([]);
   const [pools, setPools] = useState([]);
   const [tournaments, setTournaments] = useState([]);
   const [poolDetails, setPoolDetails] = useState({});
   const [candidateDrafts, setCandidateDrafts] = useState({});
   const [poolForm, setPoolForm] = useState(emptyPoolForm);
   const [tournamentForm, setTournamentForm] = useState(emptyTournamentForm);
-  const [poolCandidateSelections, setPoolCandidateSelections] = useState({});
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [isPending, startTransition] = useTransition();
 
   async function loadWorkspace() {
-    const [candidateResponse, poolResponse, tournamentResponse] = await Promise.all([
-      fetch("/api/candidates", { cache: "no-store" }),
+    const [poolResponse, tournamentResponse] = await Promise.all([
       fetch("/api/pools", { cache: "no-store" }),
       fetch("/api/tournaments", { cache: "no-store" })
     ]);
 
-    if (!candidateResponse.ok || !poolResponse.ok || !tournamentResponse.ok) {
+    if (!poolResponse.ok || !tournamentResponse.ok) {
       throw new Error("Failed to load create workspace.");
     }
 
-    const candidateData = await candidateResponse.json();
     const poolData = await poolResponse.json();
     const tournamentData = await tournamentResponse.json();
 
-    setCandidates(candidateData.items ?? []);
     setPools(poolData.items ?? []);
     setTournaments(tournamentData.items ?? []);
 
@@ -88,7 +83,7 @@ export function CreateWorkspace() {
 
     const draft = candidateDrafts[poolId] || emptyCandidateForm;
 
-    const candidateResponse = await fetch("/api/candidates", {
+    const candidateResponse = await fetch(`/api/pools/${poolId}/candidates`, {
       method: "POST",
       headers: {
         "content-type": "application/json"
@@ -103,22 +98,6 @@ export function CreateWorkspace() {
     const candidateData = await candidateResponse.json();
     if (!candidateResponse.ok) {
       setErrorMessage(candidateData.error?.message || "Failed to create candidate.");
-      return;
-    }
-
-    const attachResponse = await fetch(`/api/pools/${poolId}/candidates`, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json"
-      },
-      body: JSON.stringify({
-        candidateIds: [candidateData.item.id]
-      })
-    });
-
-    const attachData = await attachResponse.json();
-    if (!attachResponse.ok) {
-      setErrorMessage(attachData.error?.message || "Failed to add candidate to pool.");
       return;
     }
 
@@ -181,41 +160,6 @@ export function CreateWorkspace() {
 
     setTournamentForm(emptyTournamentForm);
     setSuccessMessage("Draft tournament created.");
-    await loadWorkspace();
-  }
-
-  async function handleAddCandidateToPool(poolId) {
-    const candidateId = poolCandidateSelections[poolId];
-
-    if (!candidateId) {
-      setErrorMessage("Choose a candidate before adding it to a pool.");
-      return;
-    }
-
-    setErrorMessage("");
-    setSuccessMessage("");
-
-    const response = await fetch(`/api/pools/${poolId}/candidates`, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json"
-      },
-      body: JSON.stringify({
-        candidateIds: [candidateId]
-      })
-    });
-
-    const data = await response.json();
-    if (!response.ok) {
-      setErrorMessage(data.error?.message || "Failed to add candidate to pool.");
-      return;
-    }
-
-    setPoolCandidateSelections((current) => ({
-      ...current,
-      [poolId]: ""
-    }));
-    setSuccessMessage("Candidate added to pool.");
     await loadWorkspace();
   }
 
@@ -347,39 +291,7 @@ export function CreateWorkspace() {
                   {pool.description ? (
                     <p className="mt-3 text-sm leading-6 text-[var(--muted)]">{pool.description}</p>
                   ) : null}
-                  <div className="mt-5 grid gap-3 lg:grid-cols-[0.9fr_1.1fr]">
-                    <div className="space-y-3 border border-[var(--line)] bg-[var(--panel-3)] p-4">
-                      <p className="display-face text-xs font-black uppercase tracking-[0.18em] text-[var(--accent-2)]">
-                        Reuse Existing
-                      </p>
-                      <div className="flex flex-col gap-3 sm:flex-row">
-                        <select
-                          value={poolCandidateSelections[pool.id] || ""}
-                          onChange={(event) =>
-                            setPoolCandidateSelections((current) => ({
-                              ...current,
-                              [pool.id]: event.target.value
-                            }))
-                          }
-                          className="w-full border border-[var(--line)] bg-[var(--panel)] px-4 py-3 text-sm text-[var(--ink)] outline-none focus:border-[var(--accent)]"
-                        >
-                          <option value="">Choose candidate</option>
-                          {candidates.map((candidate) => (
-                            <option key={candidate.id} value={candidate.id}>
-                              {candidate.name}
-                            </option>
-                          ))}
-                        </select>
-                        <button
-                          type="button"
-                          onClick={() => handleAddCandidateToPool(pool.id)}
-                          className="display-face border border-[var(--accent-2)] px-4 py-3 text-sm font-black uppercase tracking-[0.18em] text-[var(--accent-2)] transition hover:bg-[var(--accent-2)] hover:text-black"
-                        >
-                          Add
-                        </button>
-                      </div>
-                    </div>
-
+                  <div className="mt-5">
                     <div className="space-y-3 border border-[var(--line)] bg-[var(--panel-3)] p-4">
                       <p className="display-face text-xs font-black uppercase tracking-[0.18em] text-[var(--accent)]">
                         Create Here

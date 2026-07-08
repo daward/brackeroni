@@ -9,17 +9,17 @@ The architecture should optimize for:
 3. Clear support for authenticated users, private data, and invite-based sharing
 4. Reliable bracket generation and round progression logic
 5. Straightforward deployment without building excessive infrastructure too early
+6. Clear separation between normal round-synchronized brackets and newer aggregate bracket modes
 
 # Hosting Decision
-## MVP Recommendation
-Use `Vercel Hobby` for the MVP.
+## Recommendation
+Use `Vercel Hobby` while the product is still iterating quickly.
 
 Reasons:
 
-1. The MVP no longer depends on public tournaments or precise scheduled round closure.
-2. Private and friends-only tournaments avoid the biggest immediate need for cron-driven automation.
-3. Hobby is sufficient for local development, preview deployment, and early testing of the core product.
-4. This keeps deployment friction low while the bracket engine and invite flow are still being proven.
+1. The product still benefits from fast preview deploys and low infrastructure overhead.
+2. Public content exists now, but most heavy logic is still request-driven rather than cron-driven.
+3. This keeps deployment friction low while bracket variants and public surfaces are still being proven.
 
 # Recommended Stack
 ## Frontend and Backend
@@ -39,13 +39,21 @@ Use:
 1. `React`
 2. `JavaScript`
 3. `Tailwind CSS`
-4. A small component primitive library such as `shadcn/ui` where useful, but do not let it dictate the whole visual identity.
+4. A very small layer of semantic app classes for shared page patterns
+5. A small component primitive library such as `shadcn/ui` where useful, but do not let it dictate the whole visual identity
 
 Reasons:
 
 1. Tailwind is fast for building the kind of dashboard and card-based UI this product needs.
 2. The product has several management and workflow screens where a utility-first approach will move quickly.
 3. Hand-drawn mockups suggest custom layout work, not an off-the-shelf admin template.
+4. Recent work has shown that raw utility strings alone become unreadable quickly on shared surfaces such as the home page and vote flows.
+
+Implementation guidance:
+
+1. Repeated patterns should graduate into semantic classes in shared CSS.
+2. Avoid giant one-off `className` strings for full page sections.
+3. Prefer named rails, headers, cards, and layout wrappers when a pattern is product-level.
 
 ## Database
 Use `PostgreSQL`.
@@ -100,6 +108,14 @@ The OpenAPI document should describe:
 4. Response shapes
 5. Error formats
 
+REST constraints for this project:
+
+1. Paths should be resource-oriented and noun-based, not RPC style. Avoid verb paths such as `/start`, `/close`, `/run`, and similar action endpoints.
+2. State transitions should be represented by updating a resource (`PATCH /resource/{id}`) or creating a sub-resource (`POST /resource/{id}/sub-resources`) rather than command routes.
+3. The API contract should expose hypermedia navigation with HAL-style `_links` metadata on resource and collection responses so clients can discover related actions and resources.
+4. Each documented operation must be specific enough to be implementation-grade: include concrete request and response schemas, required fields, and expected error responses.
+5. If a legacy or compatibility route is still present but not aligned with these rules, document it as deprecated behavior and keep it out of the primary REST resource model.
+
 ## Authentication
 Use `NextAuth.js` / `Auth.js` with Google as the initial provider.
 
@@ -126,19 +142,20 @@ Notes:
 3. The chosen image stored by the app is still only the external URL
 
 ## Scheduling
-Scheduled round closure is not part of the MVP.
+Scheduled round closure is still not a primary product requirement.
 
-Later, if public tournaments or scheduled closure are added, use a simple scheduled job mechanism rather than a custom worker system.
+Use a simple scheduled job mechanism rather than a custom worker system if background cleanup or stale-public-content maintenance becomes necessary.
 
 Recommended options for that later phase:
 
 1. Vercel cron jobs if hosted on Vercel
 2. A lightweight background runner if hosted elsewhere
 
-The scheduler should only be responsible for:
+Any scheduler should only be responsible for:
 
 1. Detecting rounds that should close
 2. Running round closure logic idempotently
+3. Optionally identifying stale public content for admin review
 
 ## Testing
 Use:
@@ -212,7 +229,7 @@ Core fields:
 6. timestamps
 
 ## CandidatePool
-Private to its creator.
+May be private or published.
 
 Core fields:
 
@@ -244,7 +261,7 @@ Core fields:
 5. `sourcePoolId` nullable
 6. `sharingMode` enum: `private`, `with_friends`
 7. `playStyle` enum: `reseed`, `fixed_bracket`
-8. `resultMode` enum: `winner_only`, `full_ranking`
+8. `resultMode` enum: `winner_only`, `full_ranking`, `fast_full_rank`
 9. `tieBreakMode` enum: `higher_seed_wins`, `random`
 10. `status` enum: `draft`, `active`, `complete`
 11. `roundClosureMode` enum: `manual`, `all_votes_received`, `automatic_when_settled`
@@ -259,6 +276,47 @@ Notes:
 2. `automatic_when_settled` is effectively the private mode behavior
 3. `scheduledCloseAt` is reserved for a later phase and should remain unused in MVP
 4. `sourcePoolId` being nullable is intentional so a draft bracket can exist before a pool is attached
+5. Normal `tournament` rows represent the round-synchronized bracket family only
+
+## ParallelTournament
+Represents an aggregate bracket whose participants each receive a personal child tournament.
+
+Core fields:
+
+1. `id`
+2. `creatorUserId`
+3. `title`
+4. optional `description`
+5. `sourcePoolId`
+6. `sharingMode`
+7. `visibility`
+8. `votingAccess`
+9. `tieBreakMode`
+10. `status`
+11. timestamps
+
+Notes:
+
+1. This exists as a separate structure on top of normal tournaments.
+2. It should not be squeezed into the normal `tournament.resultMode` lifecycle because the progression model is materially different.
+
+## ParallelTournamentParticipant
+Represents one participant in a parallel bracket.
+
+Core fields:
+
+1. `id`
+2. `parallelTournamentId`
+3. nullable `userId`
+4. nullable `anonymousVoterToken`
+5. nullable `tournamentId` for the personal child bracket
+6. `status`
+7. timestamps
+
+Notes:
+
+1. The participant may be authenticated or anonymous for public voting contexts.
+2. `tournamentId` points at the participant's personal child bracket when it has been opened.
 
 ## TournamentEntry
 Represents a candidate's placement inside a tournament.
@@ -350,13 +408,15 @@ Core fields:
 
 1. `id`
 2. `matchId`
-3. `userId`
-4. `selectedEntryId`
+3. nullable `userId`
+4. nullable `anonymousVoterToken`
+5. `selectedEntryId`
 5. timestamps
 
 Constraints:
 
-1. Unique on `matchId + userId`
+1. Unique on `matchId + userId` when `userId` is present
+2. Unique on `matchId + anonymousVoterToken` when anonymous voting is present
 
 # Core Logic Boundaries
 ## Bracket Engine
@@ -385,6 +445,8 @@ Use server-side services for:
 4. Voting
 5. Round closure
 6. Invite join flow
+7. Parallel bracket participant management
+8. Public featured-content management
 
 These services should own authorization and transactional updates.
 
@@ -405,6 +467,7 @@ At minimum enforce:
 3. Only eligible users can vote in a match
 4. Only creators can manually start or close tournaments
 5. Only creators can generate or revoke share links for their draft friends tournaments
+6. Only admins can modify published pools or manage featured public content
 
 # Scheduling and Idempotency
 Round closure must be idempotent.
@@ -423,8 +486,14 @@ Use transactions around:
 4. Starting a tournament
 
 # MVP UI Sections
-## Explore
-Not part of the MVP.
+## Public Surfaces
+The product now includes public-facing surfaces.
+
+These include:
+
+1. Home page featuring
+2. Public pools index
+3. Public bracket visibility
 
 ## Vote
 Show:
@@ -447,6 +516,7 @@ Notes:
 2. Draft brackets are edited inline rather than through a dedicated creation modal
 3. Draft bracket fields persist as the user edits them
 4. Draft brackets should support a collapsed summary state after editing
+5. `parallel_full_ranking` should appear as a normal result-mode choice in the create experience even if its backend structure is different
 
 # Development Iterations
 ## Iteration 1: Foundation
@@ -547,6 +617,7 @@ Deliver:
 2. Vote index page
 3. Management views
 4. Status badging
+5. Public browse surfaces
 
 Exit criteria:
 
@@ -573,9 +644,17 @@ The bracket engine is the highest-risk part of the system, especially:
 This is why tournament logic should be isolated and tested before heavy UI polish.
 
 ## Product Risk
-The main MVP product risk is complexity in the ranking and bracket rules, not scale. Do not add public discovery or scheduling concerns back into the MVP prematurely.
+The main product risk is still complexity in the ranking and bracket rules, not scale.
 
 Another meaningful MVP risk is external image suggestion quality. Public/open providers may be good enough for many queries but weak for ambiguous movie, show, and pop-culture names.
+
+Another meaningful risk now is conceptual drift between:
+
+1. normal round-synchronized brackets
+2. public visibility and access rules
+3. parallel aggregate brackets
+
+The UI should keep those differences clear without creating separate-feeling products unless the behavior truly differs.
 
 # Open Implementation Questions
 These are not product-definition gaps, but implementation choices that may still need decisions later:

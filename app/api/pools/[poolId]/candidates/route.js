@@ -1,30 +1,31 @@
 import { getCurrentUser } from "@/lib/auth/current-user";
-import { addCandidatesToPool, removeCandidateFromPool } from "@/lib/data/pools";
+import { addCandidatesToPool, createCandidateInPool } from "@/lib/data/pools";
 import { json, readJson, withRouteErrorHandling } from "@/lib/api/http";
-import { poolCandidateAttachSchema, poolCandidateRemoveSchema } from "@/lib/validation/pool";
+import { poolCandidateAttachSchema, poolCandidateCreateSchema } from "@/lib/validation/pool";
 
 export const POST = withRouteErrorHandling(async function POST(request, { params }) {
   const user = await getCurrentUser(request);
   const { poolId } = await params;
-  const payload = poolCandidateAttachSchema.parse(await readJson(request));
-  const pool = await addCandidatesToPool({
-    poolId,
-    creatorUserId: user.id,
-    candidateIds: payload.candidateIds
-  });
+  const body = await readJson(request);
+  let pool;
 
-  return json({ item: pool });
-});
-
-export const DELETE = withRouteErrorHandling(async function DELETE(request, { params }) {
-  const user = await getCurrentUser(request);
-  const { poolId } = await params;
-  const payload = poolCandidateRemoveSchema.parse(await readJson(request));
-  const pool = await removeCandidateFromPool({
-    poolId,
-    creatorUserId: user.id,
-    candidateId: payload.candidateId
-  });
+  if (Array.isArray(body?.candidateIds)) {
+    const payload = poolCandidateAttachSchema.parse(body);
+    pool = await addCandidatesToPool({
+      poolId,
+      creatorUserId: user.id,
+      candidateIds: payload.candidateIds
+    });
+  } else {
+    const payload = poolCandidateCreateSchema.parse(body);
+    pool = await createCandidateInPool({
+      poolId,
+      creatorUserId: user.id,
+      name: payload.name,
+      description: payload.description,
+      imageUrl: payload.imageUrl
+    });
+  }
 
   return json({ item: pool });
 });

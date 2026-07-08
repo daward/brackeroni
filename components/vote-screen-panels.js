@@ -15,6 +15,13 @@ function nextPowerOfTwo(value) {
 }
 
 function openMatchesForTournament(tournament) {
+  if (tournament.kind === "parallel_parent") {
+    return tournament.status === "active" &&
+      tournament.viewerParticipantStatus !== "complete"
+      ? [{ id: `parallel:${tournament.id}`, status: "open" }]
+      : [];
+  }
+
   return (tournament.matches || []).filter(
     (match) => match.status === "open" && !match.userVoteEntryId
   );
@@ -59,8 +66,12 @@ function buildCreateReturnUrl(tournamentId, stage = "active") {
   return `/create?stage=${stage}&tournament=${tournamentId}`;
 }
 
-function buildResultsUrl(tournamentId) {
-  return `/results/${tournamentId}`;
+function buildResultsUrl(tournamentOrId) {
+  if (typeof tournamentOrId === "string") {
+    return `/results/${tournamentOrId}`;
+  }
+
+  return `/results/${tournamentOrId.parentParallelTournamentId || tournamentOrId.id}`;
 }
 
 function getCurrentRoundProgress(tournament, focusedMatch, focusedOpenMatches) {
@@ -129,7 +140,11 @@ export function VoteScreenPanels({
     focusedMatches
   );
   const waitingTournamentIds = active
-    .filter((tournament) => openMatchesForTournament(tournament).length === 0)
+    .filter(
+      (tournament) =>
+        tournament.kind !== "parallel_parent" &&
+        openMatchesForTournament(tournament).length === 0
+    )
     .map((tournament) => tournament.id)
     .sort();
   const waitingTournamentKey = waitingTournamentIds.join(":");
@@ -142,6 +157,7 @@ export function VoteScreenPanels({
     !shouldReturnToCreate;
   const isFocusedTournamentWaiting =
     Boolean(focusedTournament) &&
+    focusedTournament.kind !== "parallel_parent" &&
     !focusedMatch &&
     waitingTournamentIds.includes(focusedTournament.id) &&
     postRoundPollEnabled;
@@ -282,7 +298,7 @@ export function VoteScreenPanels({
       setActive((current) => current.filter((tournament) => tournament.id !== tournamentId));
       setCompleted((current) => [tournamentData.item, ...current]);
       setFocusedTournamentId(null);
-      router.replace(buildResultsUrl(tournamentId));
+      router.replace(buildResultsUrl(tournamentData.item));
       return;
     }
 
@@ -333,7 +349,7 @@ export function VoteScreenPanels({
       setActive((current) => current.filter((tournament) => tournament.id !== tournamentId));
       setCompleted((current) => [tournamentData.item, ...current]);
       setFocusedTournamentId(null);
-      router.replace(buildResultsUrl(tournamentId));
+      router.replace(buildResultsUrl(tournamentData.item));
       return;
     }
 
@@ -351,7 +367,22 @@ export function VoteScreenPanels({
     );
   }
 
+  function handleSelectTournament(tournament) {
+    if (tournament.kind === "parallel_parent") {
+      const returnToParam = initialReturnTo ? `&returnTo=${initialReturnTo}` : "";
+      router.push(`/vote?parallelTournament=${tournament.id}${returnToParam}`);
+      return;
+    }
+
+    setFocusedTournamentId(tournament.id);
+  }
+
   async function openResultsModal(tournament) {
+    if (tournament.kind === "parallel_parent") {
+      router.push(buildResultsUrl(tournament));
+      return;
+    }
+
     setError("");
     setMessage("");
     setResultsTournament(tournament);
@@ -409,22 +440,24 @@ export function VoteScreenPanels({
           ) : null}
         </div>
 
-        <div className="vote-results-actions">
-          <button
-            type="button"
-            onClick={closeResultsView}
-            className="ui-button ui-button-muted"
-          >
-            Back To Index
-          </button>
-        </div>
-
         {resultsLoading ? (
           <section className="vote-loading-panel">
             <p className="vote-loading-copy">Loading results...</p>
           </section>
         ) : (
-          <TournamentResultsPage tournament={resultsTournament} matches={resultsMatches} />
+          <TournamentResultsPage
+            tournament={resultsTournament}
+            matches={resultsMatches}
+            headerAction={
+              <button
+                type="button"
+                onClick={closeResultsView}
+                className="ui-button ui-button-muted"
+              >
+                Back To Index
+              </button>
+            }
+          />
         )}
       </div>
     );
@@ -432,25 +465,6 @@ export function VoteScreenPanels({
 
   return (
     <div className="vote-page">
-      <section className="vote-summary-grid">
-        <SummaryBlock
-          label="Open Matches"
-          value={openMatchCount}
-          toneClass="text-[var(--accent-2)]"
-          isOpen={mobileOpenSection === "open"}
-          onToggle={() => setMobileOpenSection((current) => (current === "open" ? null : "open"))}
-        />
-        <SummaryBlock
-          label="Completed"
-          value={completed.length}
-          toneClass="text-[var(--accent)]"
-          isOpen={mobileOpenSection === "completed"}
-          onToggle={() =>
-            setMobileOpenSection((current) => (current === "completed" ? null : "completed"))
-          }
-        />
-      </section>
-
       <div className="vote-page-messages">
         {error ? (
           <p className="vote-message vote-message-error">{error}</p>
@@ -473,7 +487,7 @@ export function VoteScreenPanels({
                   Sign In To Vote
                 </Link>
                 <Link
-                  href={buildResultsUrl(signInRequiredTournament.id)}
+                  href={buildResultsUrl(signInRequiredTournament)}
                   className="ui-button ui-button-muted"
                 >
                   View Results
@@ -485,46 +499,66 @@ export function VoteScreenPanels({
       </div>
 
       <div className="vote-mobile-sections lg:hidden">
-        {mobileOpenSection === "open" ? (
-          <section className="vote-rail">
-            <div className="vote-rail-header">
-              <h2 className="vote-rail-title display-face">Vote Now</h2>
-            </div>
+        <section className="vote-rail">
+          <button
+            type="button"
+            onClick={() => setMobileOpenSection((current) => (current === "open" ? null : "open"))}
+            className="vote-rail-header vote-rail-header-button"
+            aria-expanded={mobileOpenSection === "open"}
+          >
+            <h2 className="vote-rail-title display-face">
+              Vote Now <span className="vote-rail-count">({openMatchCount} open matches)</span>
+            </h2>
+          </button>
+          {mobileOpenSection === "open" ? (
             <TournamentListSection
               tournaments={openActiveTournaments}
               emptyTitle="No Open Matches"
               emptySubtitle="Nothing is waiting on a vote."
-              onSelectTournament={setFocusedTournamentId}
+              onSelectTournament={handleSelectTournament}
             />
-          </section>
-        ) : null}
+          ) : null}
+        </section>
 
-        {mobileOpenSection === "completed" ? (
-          <section className="vote-rail">
-            <div className="vote-rail-header">
-              <h2 className="vote-rail-title display-face">Completed</h2>
-            </div>
+        <section className="vote-rail">
+          <button
+            type="button"
+            onClick={() =>
+              setMobileOpenSection((current) => (current === "completed" ? null : "completed"))
+            }
+            className="vote-rail-header vote-rail-header-button"
+            aria-expanded={mobileOpenSection === "completed"}
+          >
+            <h2 className="vote-rail-title display-face">
+              Completed <span className="vote-rail-count">({completed.length})</span>
+            </h2>
+          </button>
+          {mobileOpenSection === "completed" ? (
             <CompletedListSection tournaments={completed} onOpenResults={openResultsModal} />
-          </section>
-        ) : null}
+          ) : null}
+        </section>
       </div>
 
       <div className="vote-desktop-grid hidden lg:grid">
         <section className="vote-rail">
           <div className="vote-rail-header">
-            <h2 className="vote-rail-title display-face">Vote Now</h2>
+            <h2 className="vote-rail-title display-face">
+              Vote Now <span className="vote-rail-count">({openMatchCount} open matches)</span>
+            </h2>
           </div>
           <TournamentListSection
             tournaments={openActiveTournaments}
             emptyTitle="No Open Matches"
             emptySubtitle="Nothing is waiting on a vote."
-            onSelectTournament={setFocusedTournamentId}
+            onSelectTournament={handleSelectTournament}
           />
         </section>
 
         <section className="vote-rail">
           <div className="vote-rail-header">
-            <h2 className="vote-rail-title display-face">Completed</h2>
+            <h2 className="vote-rail-title display-face">
+              Completed <span className="vote-rail-count">({completed.length})</span>
+            </h2>
           </div>
           <CompletedListSection tournaments={completed} onOpenResults={openResultsModal} />
         </section>
@@ -672,31 +706,6 @@ function CandidateVoteCard({
   );
 }
 
-function SummaryBlock({ label, value, toneClass, isOpen, onToggle }) {
-  return (
-    <>
-      <button
-        type="button"
-        onClick={onToggle}
-        className="vote-summary-mobile lg:hidden"
-        aria-expanded={isOpen}
-      >
-        <p className="vote-summary-label">{label}</p>
-        <div className="vote-summary-mobile-row">
-          <p className={`vote-summary-value display-face ${toneClass}`}>{value}</p>
-          <p className="vote-summary-toggle-copy">
-            {isOpen ? "Hide" : "Show"}
-          </p>
-        </div>
-      </button>
-      <div className="vote-summary-desktop hidden lg:block">
-        <p className="vote-summary-label">{label}</p>
-        <p className={`vote-summary-value display-face ${toneClass}`}>{value}</p>
-      </div>
-    </>
-  );
-}
-
 function TournamentListSection({
   tournaments,
   emptyTitle,
@@ -731,13 +740,16 @@ function TournamentListSection({
                 <h3 className="vote-list-item-title display-face">{tournament.title}</h3>
                 <p className="vote-list-item-meta">
                   {tournament.sharingMode.replace("_", " ")} | {tournament.entryCount} entries |{" "}
-                  {openMatches.length} open {openMatches.length === 1 ? "match" : "matches"} | Pool:{" "}
+                  {tournament.kind === "parallel_parent"
+                    ? `${tournament.completedParticipantCount ?? 0}/${tournament.participantCount ?? 0} complete`
+                    : `${openMatches.length} open ${openMatches.length === 1 ? "match" : "matches"}`}{" "}
+                  | Pool:{" "}
                   {tournament.sourcePoolName || "Unknown pool"}
                 </p>
               </div>
               <button
                 type="button"
-                onClick={() => onSelectTournament(tournament.id)}
+                onClick={() => onSelectTournament(tournament)}
                 disabled={openMatches.length === 0}
                 className="ui-button ui-button-primary"
               >

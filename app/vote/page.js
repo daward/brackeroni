@@ -1,7 +1,13 @@
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { getOptionalCurrentUser } from "@/lib/auth/current-user";
 import { ANONYMOUS_VOTER_COOKIE } from "@/lib/auth/viewer";
 import { listMatchesForTournament } from "@/lib/data/matches";
+import {
+  listAccessibleParallelTournaments,
+  listPublicParallelTournaments,
+  openParallelTournamentParticipantBracket
+} from "@/lib/data/parallel-tournaments";
 import {
   getAccessibleTournamentById,
   listAccessibleTournaments,
@@ -15,17 +21,77 @@ export const metadata = {
 
 export const dynamic = "force-dynamic";
 
+function normalizeParallelTournamentForVoteIndex(item) {
+  return {
+    id: item.id,
+    title: item.title,
+    description: item.description,
+    sourcePoolId: item.sourcePoolId,
+    sourcePoolName: item.sourcePoolName,
+    sharingMode: item.sharingMode,
+    visibility: item.visibility,
+    votingAccess: item.votingAccess,
+    playStyle: "fixed_bracket",
+    resultMode: "parallel_full_ranking",
+    tieBreakMode: item.tieBreakMode,
+    status: item.status,
+    startedAt: item.startedAt,
+    completedAt: item.completedAt,
+    archivedAt: item.archivedAt,
+    createdAt: item.createdAt,
+    updatedAt: item.updatedAt,
+    entryCount: item.candidateCount ?? 0,
+    participantCount: item.participantCount ?? 0,
+    completedParticipantCount: item.completedParticipantCount ?? 0,
+    viewerParticipantId: item.viewerParticipantId ?? null,
+    viewerParticipantStatus: item.viewerParticipantStatus ?? null,
+    viewerTournamentId: item.viewerTournamentId ?? null,
+    kind: "parallel_parent",
+    matches: []
+  };
+}
+
 export default async function VotePage({ searchParams }) {
   const params = (await searchParams) ?? {};
   const user = await getOptionalCurrentUser();
   const cookieStore = await cookies();
   const anonymousVoterToken = cookieStore.get(ANONYMOUS_VOTER_COOKIE)?.value ?? null;
-  const [accessibleTournaments, publicTournaments] = await Promise.all([
+  const requestedParallelTournamentId =
+    typeof params.parallelTournament === "string" ? params.parallelTournament : null;
+
+  if (requestedParallelTournamentId) {
+    const openedParallelTournament = await openParallelTournamentParticipantBracket({
+      parallelTournamentId: requestedParallelTournamentId,
+      userId: user?.id ?? null,
+      anonymousVoterToken
+    });
+    const returnToParam = typeof params.returnTo === "string" ? `&returnTo=${params.returnTo}` : "";
+    redirect(`/vote?tournament=${openedParallelTournament.tournamentId}${returnToParam}`);
+  }
+
+  const [
+    accessibleTournaments,
+    publicTournaments,
+    accessibleParallelTournaments,
+    publicParallelTournaments
+  ] = await Promise.all([
     user ? listAccessibleTournaments({ userId: user.id }) : Promise.resolve([]),
-    listPublicTournaments({ statuses: ["active", "complete"], limit: 24 })
+    listPublicTournaments({ statuses: ["active", "complete"], limit: 24 }),
+    user
+      ? listAccessibleParallelTournaments({
+          userId: user.id,
+          anonymousVoterToken
+        })
+      : Promise.resolve([]),
+    listPublicParallelTournaments({ statuses: ["active", "complete"], limit: 24 })
   ]);
   const requestedTournamentId = typeof params.tournament === "string" ? params.tournament : null;
-  const tournaments = [...accessibleTournaments, ...publicTournaments].filter(
+  const tournaments = [
+    ...accessibleTournaments.map((item) => ({ ...item, kind: "standard" })),
+    ...publicTournaments.map((item) => ({ ...item, kind: "standard" })),
+    ...accessibleParallelTournaments.map(normalizeParallelTournamentForVoteIndex),
+    ...publicParallelTournaments.map(normalizeParallelTournamentForVoteIndex)
+  ].filter(
     (tournament, index, items) => items.findIndex((candidate) => candidate.id === tournament.id) === index
   );
   const activeTournaments = await Promise.all(
@@ -33,9 +99,17 @@ export default async function VotePage({ searchParams }) {
       .filter(
         (tournament) =>
           tournament.status === "active" &&
+          !(
+            tournament.kind === "parallel_parent" &&
+            tournament.viewerParticipantStatus === "complete"
+          ) &&
           (user || tournament.visibility === "public_listed" || tournament.visibility === "public_unlisted")
       )
       .map(async (tournament) => {
+        if (tournament.kind === "parallel_parent") {
+          return tournament;
+        }
+
         const result = await listMatchesForTournament({
           tournamentId: tournament.id,
           userId: user?.id ?? null,
@@ -48,12 +122,51 @@ export default async function VotePage({ searchParams }) {
         };
       })
   );
-  const completedTournaments = tournaments.filter((tournament) => tournament.status === "complete");
+  const completedTournaments = tournaments.filter((tournament) => {
+    if (tournament.kind === "parallel_parent") {
+      return (
+        tournament.status === "complete" ||
+        tournament.viewerParticipantStatus === "complete"
+      );
+    }
+
+    return tournament.status === "complete";
+  });
+  const requestedTournament =
+    requestedTournamentId
+      ? await getAccessibleTournamentById({
+          tournamentId: requestedTournamentId,
+          userId: user?.id ?? null,
+          anonymousVoterToken
+        }).catch(() => null)
+      : null;
+  const requestedTournamentMatches =
+    requestedTournament && requestedTournament.status === "active"
+      ? await listMatchesForTournament({
+          tournamentId: requestedTournament.id,
+          userId: user?.id ?? null,
+          anonymousVoterToken
+        }).then((result) => result.matches)
+      : [];
+  const requestedActiveTournament =
+    requestedTournament && requestedTournament.status === "active"
+      ? {
+          ...requestedTournament,
+          matches: requestedTournamentMatches
+        }
+      : null;
+  const mergedActiveTournaments = requestedActiveTournament
+    ? [
+        requestedActiveTournament,
+        ...activeTournaments.filter((tournament) => tournament.id !== requestedActiveTournament.id)
+      ]
+    : activeTournaments;
   const lockedFocusedTournament =
     !user && requestedTournamentId
       ? await getAccessibleTournamentById({
           tournamentId: requestedTournamentId,
-          userId: null
+          userId: null,
+          anonymousVoterToken
         }).catch(() => null)
       : null;
   const signInRequiredTournament =
@@ -66,7 +179,7 @@ export default async function VotePage({ searchParams }) {
   return (
     <div>
       <VoteScreenPanels
-        activeTournaments={activeTournaments}
+        activeTournaments={mergedActiveTournaments}
         completedTournaments={completedTournaments}
         initialFocusedTournamentId={requestedTournamentId}
         initialResultsTournamentId={typeof params.results === "string" ? params.results : null}

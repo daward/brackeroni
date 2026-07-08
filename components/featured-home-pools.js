@@ -1,12 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
+import { MobileSwipeRail } from "@/components/mobile-swipe-rail";
 import { PublicPoolCard } from "@/components/public-pool-card";
 
 export function FeaturedHomePools({ pools }) {
   const safePools = useMemo(() => pools ?? [], [pools]);
-  const [mobileIndex, setMobileIndex] = useState(0);
-  const activePool = safePools[mobileIndex] ?? safePools[0] ?? null;
 
   if (!safePools.length) {
     return (
@@ -19,30 +18,12 @@ export function FeaturedHomePools({ pools }) {
   return (
     <>
       <div className="home-pool-list-mobile">
-        {safePools.length > 1 ? (
-          <div className="home-mobile-pager home-mobile-pager-compact">
-            <button
-              type="button"
-              onClick={() =>
-                setMobileIndex((current) => (current - 1 + safePools.length) % safePools.length)
-              }
-              className="home-pager-button"
-              aria-label="Previous pool"
-            >
-              &lt;
-            </button>
-            <p className="home-pager-counter">{mobileIndex + 1} / {safePools.length}</p>
-            <button
-              type="button"
-              onClick={() => setMobileIndex((current) => (current + 1) % safePools.length)}
-              className="home-pager-button"
-              aria-label="Next pool"
-            >
-              &gt;
-            </button>
-          </div>
-        ) : null}
-        {activePool ? <PublicPoolCard pool={activePool} /> : null}
+        <MobileSwipeRail
+          items={safePools}
+          getKey={(pool) => pool.id}
+          railClassName="home-mobile-swipe-rail-pools"
+          renderItem={(pool) => <PublicPoolCard pool={pool} />}
+        />
       </div>
 
       <div className="home-pool-list-desktop">

@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { ShareLinkWaitingRoom } from "@/components/share-link-waiting-room";
 import { getCurrentUser, requireCurrentUserPage } from "@/lib/auth/current-user";
-import { getTournamentByShareToken } from "@/lib/data/tournaments";
+import { getShareLinkTarget } from "@/lib/data/share-links";
 
 export const metadata = {
   title: "Join Bracket | Brackeroni"
@@ -15,7 +15,7 @@ export default async function JoinBracketPage({ params }) {
   const user = await getCurrentUser();
 
   try {
-    const item = await getTournamentByShareToken({
+    const item = await getShareLinkTarget({
       token,
       userId: user.id
     });

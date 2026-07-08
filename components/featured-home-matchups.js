@@ -1,7 +1,8 @@
 ﻿"use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
+import { MobileSwipeRail } from "@/components/mobile-swipe-rail";
 import { ResilientRemoteImage } from "@/components/resilient-remote-image";
 
 function FeaturedHomeMatchCard({ name, imageUrl, side }) {
@@ -111,8 +112,6 @@ function MobileMatchupCard({ item }) {
 
 export function FeaturedHomeVoteSection({ items }) {
   const safeItems = useMemo(() => items ?? [], [items]);
-  const [mobileIndex, setMobileIndex] = useState(0);
-  const activeItem = safeItems[mobileIndex] ?? safeItems[0] ?? null;
   const desktopItems = safeItems.slice(0, 2);
 
   if (!safeItems.length) {
@@ -130,44 +129,31 @@ export function FeaturedHomeVoteSection({ items }) {
   return (
     <div className="home-vote-section">
       <div className="home-mobile-vote-only">
-        <div className="home-mobile-vote-header">
-          <div className="home-mobile-vote-header-row">
-            <div>
-              <h2 className="home-vote-entry-title display-face">{activeItem.tournamentTitle}</h2>
-              <p className="home-vote-entry-meta">
-                {`Round ${activeItem.roundNumber} | Live Voting Now`}
-              </p>
-            </div>
-            {safeItems.length > 1 ? (
-              <div className="home-pager-buttons">
-                <button
-                  type="button"
-                  onClick={() =>
-                    setMobileIndex((current) => (current - 1 + safeItems.length) % safeItems.length)
-                  }
-                  className="home-pager-button"
-                  aria-label="Previous bracket"
-                >
-                  &lt;
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setMobileIndex((current) => (current + 1) % safeItems.length)}
-                  className="home-pager-button"
-                  aria-label="Next bracket"
-                >
-                  &gt;
-                </button>
+        <MobileSwipeRail
+          items={safeItems}
+          getKey={(item) => `${item.tournamentId}:${item.matchId}`}
+          railClassName="home-mobile-swipe-rail-votes"
+          renderItem={(item) => (
+            <>
+              <div className="home-mobile-vote-header">
+                <div className="home-mobile-vote-header-row">
+                  <div>
+                    <h2 className="home-vote-entry-title display-face">{item.tournamentTitle}</h2>
+                    <p className="home-vote-entry-meta">
+                      {`Round ${item.roundNumber} | Live Voting Now`}
+                    </p>
+                  </div>
+                </div>
               </div>
-            ) : null}
-          </div>
-          {safeItems.length > 1 ? (
-            <p className="home-pager-counter">{mobileIndex + 1} / {safeItems.length}</p>
-          ) : null}
-        </div>
-        <Link href={`/vote?tournament=${activeItem.tournamentId}`} className="home-mobile-vote-link">
-          <MobileMatchupCard item={activeItem} />
-        </Link>
+              <Link
+                href={item.voteHref || `/vote?tournament=${item.tournamentId}`}
+                className="home-mobile-vote-link"
+              >
+                <MobileMatchupCard item={item} />
+              </Link>
+            </>
+          )}
+        />
       </div>
 
       <div className="home-desktop-vote-list">
@@ -175,7 +161,7 @@ export function FeaturedHomeVoteSection({ items }) {
           {desktopItems.map((item, index) => (
             <Link
               key={`${item.tournamentId}:${item.matchId}`}
-              href={`/vote?tournament=${item.tournamentId}`}
+              href={item.voteHref || `/vote?tournament=${item.tournamentId}`}
               className="home-desktop-vote-link"
             >
               <div className="home-desktop-vote-header">

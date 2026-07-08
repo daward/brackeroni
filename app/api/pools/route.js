@@ -53,7 +53,9 @@ export const POST = withRouteErrorHandling(async function POST(request) {
     name: payload.name,
     description: payload.description,
     visibility: payload.visibility,
-    candidates
+    candidates,
+    importSourceUrl: payload.source?.type === "extract" ? payload.source.pageUrl || null : null,
+    importSourceTitle: payload.source?.type === "extract" ? payload.source.pageTitle || null : null
   });
 
   return json(

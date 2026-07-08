@@ -50,9 +50,9 @@ export function ShareLinkWaitingRoom({ token, initialItem }) {
 
   useEffect(() => {
     if (item.accessState === "active") {
-      router.replace(`/vote?tournament=${item.tournamentId}`);
+      router.replace(item.votePath);
     }
-  }, [item.accessState, item.tournamentId, router]);
+  }, [item.accessState, item.votePath, router]);
 
   useEffect(() => {
     if (!pollEnabled) {
@@ -110,7 +110,7 @@ export function ShareLinkWaitingRoom({ token, initialItem }) {
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             {item.accessState === "active" ? (
               <Link
-                href={`/vote?tournament=${item.tournamentId}`}
+                href={item.votePath}
                 className="display-face border border-[var(--accent-2)] bg-[var(--accent-2)] px-5 py-4 text-sm font-bold uppercase tracking-[0.18em] text-black transition hover:border-[var(--accent-3)] hover:bg-[var(--accent-3)]"
               >
                 Open Bracket
@@ -118,7 +118,7 @@ export function ShareLinkWaitingRoom({ token, initialItem }) {
             ) : null}
             {item.accessState === "complete" ? (
               <Link
-                href={`/results/${item.tournamentId}`}
+                href={item.resultsPath}
                 className="display-face border border-[var(--accent-2)] bg-[var(--accent-2)] px-5 py-4 text-sm font-bold uppercase tracking-[0.18em] text-black transition hover:border-[var(--accent-3)] hover:bg-[var(--accent-3)]"
               >
                 View Results

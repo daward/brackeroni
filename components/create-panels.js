@@ -211,6 +211,61 @@ function formatBracketDate(value) {
   }).format(new Date(value));
 }
 
+function normalizeParallelBracketItem(item) {
+  return {
+    ...item,
+    kind: "parallel_parent",
+    playStyle: "fixed_bracket",
+    resultMode: "parallel_full_ranking",
+    entryCount: item.candidateCount ?? 0,
+    activeRoundNumber: null,
+    activeRoundOpenMatchCount: 0,
+    openVoteCount: 0,
+    winnerEntryId: null,
+    winnerName: null,
+    winnerSeed: null
+  };
+}
+
+function sortManagedBrackets(items) {
+  return [...items].sort((left, right) => {
+    const statusRank = {
+      active: 0,
+      draft: 1,
+      complete: 2
+    };
+
+    const leftRank = statusRank[left.status] ?? 99;
+    const rightRank = statusRank[right.status] ?? 99;
+
+    if (leftRank !== rightRank) {
+      return leftRank - rightRank;
+    }
+
+    return new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime();
+  });
+}
+
+function sortManagedPools(items) {
+  return [...items].sort((left, right) => {
+    const leftOwnedRank = left.isOwned ? 0 : 1;
+    const rightOwnedRank = right.isOwned ? 0 : 1;
+
+    if (leftOwnedRank !== rightOwnedRank) {
+      return leftOwnedRank - rightOwnedRank;
+    }
+
+    const leftUpdatedAt = new Date(left.updatedAt || left.createdAt || 0).getTime();
+    const rightUpdatedAt = new Date(right.updatedAt || right.createdAt || 0).getTime();
+
+    if (leftUpdatedAt !== rightUpdatedAt) {
+      return rightUpdatedAt - leftUpdatedAt;
+    }
+
+    return left.name.localeCompare(right.name);
+  });
+}
+
 function InlineTitleField({ autoFocus = false, value, onChange, onBlur, onKeyDown }) {
   return (
     <input
@@ -271,6 +326,7 @@ function CandidateManagerPanel({
   imageSuggestionLoading,
   onDraftChange,
   onCreateCandidate,
+  onImportCandidates,
   onSubmit,
   onCloseEditor,
   onSuggestImages,
@@ -292,13 +348,24 @@ function CandidateManagerPanel({
             {listHeading}
           </p>
           {!readOnly ? (
-            <button
-              type="button"
-              onClick={onCreateCandidate}
-              className="ui-button ui-button-accent"
-            >
-              Add Candidate
-            </button>
+            <div className="flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={onCreateCandidate}
+                className="ui-button ui-button-accent"
+              >
+                Add Candidate
+              </button>
+              {onImportCandidates ? (
+                <button
+                  type="button"
+                  onClick={onImportCandidates}
+                  className="ui-button ui-button-muted"
+                >
+                  Import Candidates
+                </button>
+              ) : null}
+            </div>
           ) : null}
         </div>
         <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
@@ -596,6 +663,7 @@ export function CreatePanels() {
     favoritePoolId: null,
     makeBracketFromPoolId: null
   });
+  const poolSearchScrollHandledRef = useRef(null);
 
   function beginAction(actionKey) {
     setPendingActions((current) => ({
@@ -623,7 +691,9 @@ export function CreatePanels() {
     );
 
     const inviteEntries = await Promise.all(
-      withFriendsTournaments.map(async (tournament) => {
+      withFriendsTournaments
+        .filter((tournament) => tournament.kind !== "parallel_parent")
+        .map(async (tournament) => {
         const response = await fetch(`/api/tournaments/${tournament.id}/invites`, {
           cache: "no-store"
         });
@@ -637,31 +707,56 @@ export function CreatePanels() {
       })
     );
 
-    const linkEntries = await Promise.all(
+    const parallelEntries = await Promise.all(
       withFriendsTournaments
-        .filter((tournament) => tournament.status === "draft" || tournament.status === "active")
+        .filter((tournament) => tournament.kind === "parallel_parent")
         .map(async (tournament) => {
-        const response = await fetch(`/api/tournaments/${tournament.id}/links`, {
-          cache: "no-store"
-        });
+          const response = await fetch(`/api/parallel-tournaments/${tournament.id}`, {
+            cache: "no-store"
+          });
 
-        if (!response.ok) {
-          throw new Error(`Failed to load share links for ${tournament.title}.`);
-        }
+          if (!response.ok) {
+            throw new Error(`Failed to load participants for ${tournament.title}.`);
+          }
 
-        const data = await response.json();
-        return [tournament.id, data.items ?? []];
+          const data = await response.json();
+          return [tournament.id, data.item?.participants ?? []];
         })
     );
 
-    setTournamentInvites(Object.fromEntries(inviteEntries));
+    const linkEntries = await Promise.all(
+      withFriendsTournaments
+        .filter(
+          (tournament) => tournament.status === "draft" || tournament.status === "active"
+        )
+        .map(async (tournament) => {
+          const response = await fetch(
+            tournament.kind === "parallel_parent"
+              ? `/api/parallel-tournaments/${tournament.id}/links`
+              : `/api/tournaments/${tournament.id}/links`,
+            {
+              cache: "no-store"
+            }
+          );
+
+          if (!response.ok) {
+            throw new Error(`Failed to load share links for ${tournament.title}.`);
+          }
+
+          const data = await response.json();
+          return [tournament.id, data.items ?? []];
+        })
+    );
+
+    setTournamentInvites(Object.fromEntries([...inviteEntries, ...parallelEntries]));
     setTournamentShareLinks(Object.fromEntries(linkEntries));
   }
 
   async function loadWorkspace() {
-    const [poolResponse, tournamentResponse] = await Promise.all([
+    const [poolResponse, tournamentResponse, parallelTournamentResponse] = await Promise.all([
       fetch("/api/pools", { cache: "no-store" }),
-      fetch("/api/tournaments", { cache: "no-store" })
+      fetch("/api/tournaments", { cache: "no-store" }),
+      fetch("/api/parallel-tournaments", { cache: "no-store" }).catch(() => null)
     ]);
 
     if (!poolResponse.ok || !tournamentResponse.ok) {
@@ -670,15 +765,25 @@ export function CreatePanels() {
 
     const poolData = await poolResponse.json();
     const tournamentData = await tournamentResponse.json();
+    const parallelTournamentData =
+      parallelTournamentResponse && parallelTournamentResponse.ok
+        ? await parallelTournamentResponse.json()
+        : { items: [] };
+    const normalizedTournaments = sortManagedBrackets([
+      ...(tournamentData.items ?? []).map((item) => ({ ...item, kind: "standard" })),
+      ...(parallelTournamentData.items ?? []).map(normalizeParallelBracketItem)
+    ]);
 
-    setPools(poolData.items ?? []);
-    setTournaments(tournamentData.items ?? []);
+    setPools(sortManagedPools(poolData.items ?? []));
+    setTournaments(normalizedTournaments);
     setExpandedPoolId((current) => {
-      if (!poolData.items?.length) {
+      const sortedPools = sortManagedPools(poolData.items ?? []);
+
+      if (!sortedPools.length) {
         return null;
       }
 
-      if (current && poolData.items.some((pool) => pool.id === current)) {
+      if (current && sortedPools.some((pool) => pool.id === current)) {
         return current;
       }
 
@@ -686,7 +791,7 @@ export function CreatePanels() {
     });
 
     const detailEntries = await Promise.all(
-      (poolData.items ?? []).map(async (pool) => {
+      sortManagedPools(poolData.items ?? []).map(async (pool) => {
         const response = await fetch(`/api/pools/${pool.id}`, { cache: "no-store" });
         if (!response.ok) {
           throw new Error(`Failed to load pool ${pool.name}.`);
@@ -698,7 +803,7 @@ export function CreatePanels() {
     );
 
     setPoolDetails(Object.fromEntries(detailEntries));
-    await loadFriendsTournamentMeta(tournamentData.items ?? []);
+    await loadFriendsTournamentMeta(normalizedTournaments);
   }
 
   useEffect(() => {
@@ -886,6 +991,12 @@ export function CreatePanels() {
 
     setExpandedPoolId(requestedPool.id);
 
+    if (poolSearchScrollHandledRef.current === requestedPool.id) {
+      return;
+    }
+
+    poolSearchScrollHandledRef.current = requestedPool.id;
+
     const timer = setTimeout(() => {
       poolCardRefs.current[requestedPool.id]?.scrollIntoView({
         behavior: "smooth",
@@ -914,7 +1025,7 @@ export function CreatePanels() {
 
     startTransition(async () => {
       try {
-        const response = await fetch(`/api/pools/${requestedFavoritePoolId}/favorite`, {
+        const response = await fetch(`/api/pools/${requestedFavoritePoolId}/favorites`, {
           method: "POST"
         });
         const data = await response.json();
@@ -1008,7 +1119,7 @@ export function CreatePanels() {
     try {
       const draft = candidateDrafts[poolId] || emptyCandidateForm;
 
-      const candidateResponse = await fetch("/api/candidates", {
+      const candidateResponse = await fetch(`/api/pools/${poolId}/candidates`, {
         method: "POST",
         headers: {
           "content-type": "application/json"
@@ -1023,22 +1134,6 @@ export function CreatePanels() {
       const candidateData = await candidateResponse.json();
       if (!candidateResponse.ok) {
         setErrorMessage(candidateData.error?.message || "Failed to create candidate.");
-        return;
-      }
-
-      const attachResponse = await fetch(`/api/pools/${poolId}/candidates`, {
-        method: "POST",
-        headers: {
-          "content-type": "application/json"
-        },
-        body: JSON.stringify({
-          candidateIds: [candidateData.item.id]
-        })
-      });
-
-      const attachData = await attachResponse.json();
-      if (!attachResponse.ok) {
-        setErrorMessage(attachData.error?.message || "Failed to add candidate to pool.");
         return;
       }
 
@@ -1084,12 +1179,6 @@ export function CreatePanels() {
   }
 
   async function handleRemoveCandidateFromPool(poolId, candidate) {
-    const confirmed = window.confirm(`Remove "${candidate.name}" from this pool?`);
-
-    if (!confirmed) {
-      return;
-    }
-
     const actionKey = `remove-candidate:${poolId}:${candidate.id}`;
     if (isActionPending(actionKey)) {
       return;
@@ -1098,16 +1187,14 @@ export function CreatePanels() {
     beginAction(actionKey);
     setErrorMessage("");
     setSuccessMessage("");
+    const scrollTopBeforeRemoval =
+      typeof window !== "undefined"
+        ? window.scrollY || window.pageYOffset || document.documentElement.scrollTop || 0
+        : 0;
 
     try {
-      const response = await fetch(`/api/pools/${poolId}/candidates`, {
-        method: "DELETE",
-        headers: {
-          "content-type": "application/json"
-        },
-        body: JSON.stringify({
-          candidateId: candidate.id
-        })
+      const response = await fetch(`/api/pools/${poolId}/candidates/${candidate.id}`, {
+        method: "DELETE"
       });
       const data = await response.json();
 
@@ -1138,8 +1225,46 @@ export function CreatePanels() {
         closeCandidateEditor(poolId);
       }
 
+      setPools((current) =>
+        sortManagedPools(
+          current.map((pool) =>
+            pool.id === poolId
+              ? {
+                  ...pool,
+                  candidateCount: Math.max((pool.candidateCount || 0) - 1, 0)
+                }
+              : pool
+          )
+        )
+      );
+      setPoolDetails((current) => {
+        const pool = current[poolId];
+
+        if (!pool) {
+          return current;
+        }
+
+        return {
+          ...current,
+          [poolId]: {
+            ...pool,
+            candidateCount: Math.max((pool.candidateCount || 0) - 1, 0),
+            candidates: (pool.candidates || []).filter(
+              (entry) => entry.id !== candidate.id
+            )
+          }
+        };
+      });
+
       setSuccessMessage("Candidate removed from pool.");
-      await loadWorkspace();
+      if (typeof window !== "undefined") {
+        window.requestAnimationFrame(() => {
+          window.scrollTo({ top: scrollTopBeforeRemoval, behavior: "auto" });
+          window.requestAnimationFrame(() => {
+            window.scrollTo({ top: scrollTopBeforeRemoval, behavior: "auto" });
+          });
+        });
+      }
     } finally {
       endAction(actionKey);
     }
@@ -1419,38 +1544,62 @@ export function CreatePanels() {
 
   async function handleTournamentSubmit(event) {
     event.preventDefault();
-    if (isActionPending("create-tournament")) {
+    const isParallelMode = tournamentForm.resultMode === "parallel_full_ranking";
+    const actionKey = isParallelMode ? "create-parallel-tournament" : "create-tournament";
+
+    if (isActionPending(actionKey)) {
       return;
     }
 
-    beginAction("create-tournament");
+    beginAction(actionKey);
     setErrorMessage("");
     setSuccessMessage("");
 
     try {
-      const response = await fetch("/api/tournaments", {
+      const response = await fetch(isParallelMode ? "/api/parallel-tournaments" : "/api/tournaments", {
         method: "POST",
         headers: {
           "content-type": "application/json"
         },
         body: JSON.stringify({
           ...tournamentForm,
+          ...(isParallelMode
+            ? {
+                tieBreakMode: tournamentForm.tieBreakMode
+              }
+            : {
+                playStyle: tournamentForm.playStyle,
+                resultMode: tournamentForm.resultMode
+              }),
           description: null
         })
       });
 
       const data = await response.json();
       if (!response.ok) {
-        setErrorMessage(data.error?.message || "Failed to create bracket.");
+        setErrorMessage(
+          data.error?.message ||
+            (isParallelMode ? "Failed to create parallel bracket." : "Failed to create bracket.")
+        );
         return;
       }
 
       setTournamentForm(emptyTournamentForm);
       setIsTournamentModalOpen(false);
+      if (isParallelMode) {
+        setWorkspaceView("tournaments");
+        setTournamentStageView("draft");
+        setExpandedDraftTournamentId(data.item.id);
+        setEditingTournamentTitleId(null);
+        setSuccessMessage("Draft bracket created.");
+        await loadWorkspace();
+        return;
+      }
+
       setSuccessMessage("Draft bracket created.");
       await loadWorkspace();
     } finally {
-      endAction("create-tournament");
+      endAction(actionKey);
     }
   }
 
@@ -1470,7 +1619,7 @@ export function CreatePanels() {
     setSuccessMessage("");
 
     try {
-      const response = await fetch(`/api/pools/${poolId}/merge`, {
+      const response = await fetch(`/api/pools/${poolId}/imports`, {
         method: "POST",
         headers: {
           "content-type": "application/json"
@@ -1508,17 +1657,25 @@ export function CreatePanels() {
       return;
     }
 
+    const tournament = tournaments.find((entry) => entry.id === tournamentId);
+    const isParallelParent = tournament?.kind === "parallel_parent";
+
     beginAction(actionKey);
     setErrorMessage("");
 
     try {
-      const response = await fetch(`/api/tournaments/${tournamentId}`, {
+      const response = await fetch(
+        isParallelParent
+          ? `/api/parallel-tournaments/${tournamentId}`
+          : `/api/tournaments/${tournamentId}`,
+        {
         method: "PATCH",
         headers: {
           "content-type": "application/json"
         },
         body: JSON.stringify(patch)
-      });
+        }
+      );
       const data = await response.json();
 
       if (!response.ok) {
@@ -1541,6 +1698,72 @@ export function CreatePanels() {
       await loadWorkspace();
     } finally {
       endAction(actionKey);
+    }
+  }
+
+  async function convertTournamentDraftToParallel(tournament, { actionKey = null } = {}) {
+    const draft = tournamentInlineDrafts[tournament.id] ?? tournament;
+    const title = draft.title?.trim() || tournament.title?.trim() || "";
+    const sourcePoolId = draft.sourcePoolId || tournament.sourcePoolId || "";
+
+    if (!title) {
+      setErrorMessage("Parallel brackets need a title.");
+      return false;
+    }
+
+    if (!sourcePoolId) {
+      setErrorMessage("Pick a pool before creating this parallel bracket.");
+      return false;
+    }
+
+    const effectiveActionKey = actionKey || `convert-tournament:${tournament.id}`;
+    if (isActionPending(effectiveActionKey)) {
+      return false;
+    }
+
+    if (!actionKey) {
+      beginAction(effectiveActionKey);
+    }
+    setErrorMessage("");
+
+    try {
+      const createResponse = await fetch("/api/parallel-tournaments", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json"
+        },
+        body: JSON.stringify({
+          title,
+          description: draft.description ?? tournament.description ?? "",
+          sourcePoolId,
+          sharingMode: draft.sharingMode || tournament.sharingMode || "private",
+          visibility: draft.visibility || tournament.visibility || "private",
+          votingAccess: draft.votingAccess || tournament.votingAccess || "signed_in_only",
+          tieBreakMode: draft.tieBreakMode || tournament.tieBreakMode || "higher_seed_wins"
+        })
+      });
+      const createData = await createResponse.json();
+
+      if (!createResponse.ok) {
+        setErrorMessage(createData.error?.message || "Failed to create parallel bracket.");
+        return false;
+      }
+
+      await fetch(`/api/tournaments/${tournament.id}`, {
+        method: "DELETE"
+      });
+
+      setSuccessMessage("Parallel bracket created.");
+      setWorkspaceView("tournaments");
+      setTournamentStageView("draft");
+      setExpandedDraftTournamentId(createData.item.id);
+      setEditingTournamentTitleId(null);
+      await loadWorkspace();
+      return true;
+    } finally {
+      if (!actionKey) {
+        endAction(effectiveActionKey);
+      }
     }
   }
 
@@ -1710,7 +1933,7 @@ export function CreatePanels() {
             continue;
           }
 
-          const saveResponse = await fetch(`/api/candidates/${candidate.id}`, {
+          const saveResponse = await fetch(`/api/pools/${poolId}/candidates/${candidate.id}`, {
             method: "PATCH",
             headers: {
               "content-type": "application/json"
@@ -1762,12 +1985,45 @@ export function CreatePanels() {
       return;
     }
 
+    const tournament = tournaments.find((entry) => entry.id === tournamentId);
+    const bracketDraft = tournament
+      ? (tournamentInlineDrafts[tournamentId] ?? {
+          title: tournament.title,
+          sourcePoolId: tournament.sourcePoolId || "",
+          sharingMode: tournament.sharingMode,
+          playStyle: tournament.playStyle,
+          resultMode: tournament.resultMode,
+          tieBreakMode: tournament.tieBreakMode
+        })
+      : null;
+
+    if (tournament && bracketDraft?.resultMode === "parallel_full_ranking" && tournament.kind !== "parallel_parent") {
+      beginAction(actionKey);
+      setErrorMessage("");
+      setSuccessMessage("");
+      try {
+        const converted = await convertTournamentDraftToParallel(tournament, {
+          actionKey
+        });
+      if (converted) {
+        setExpandedDraftTournamentId(null);
+      }
+      } finally {
+        endAction(actionKey);
+      }
+      return;
+    }
+
     beginAction(actionKey);
     setErrorMessage("");
     setSuccessMessage("");
 
     try {
-      const response = await fetch(`/api/tournaments/${tournamentId}`, {
+      const response = await fetch(
+        tournament?.kind === "parallel_parent"
+          ? `/api/parallel-tournaments/${tournamentId}`
+          : `/api/tournaments/${tournamentId}`,
+        {
         method: "PATCH",
         headers: {
           "content-type": "application/json"
@@ -1775,7 +2031,8 @@ export function CreatePanels() {
         body: JSON.stringify({
           status: "active"
         })
-      });
+        }
+      );
 
       const data = await response.json();
       if (!response.ok) {
@@ -1809,6 +2066,9 @@ export function CreatePanels() {
       return null;
     }
 
+    const tournament = tournaments.find((entry) => entry.id === tournamentId);
+    const isParallelParent = tournament?.kind === "parallel_parent";
+
     beginAction(actionKey);
     if (!silent) {
       setErrorMessage("");
@@ -1816,13 +2076,18 @@ export function CreatePanels() {
     }
 
     try {
-      const response = await fetch(`/api/tournaments/${tournamentId}/links`, {
+      const response = await fetch(
+        isParallelParent
+          ? `/api/parallel-tournaments/${tournamentId}/links`
+          : `/api/tournaments/${tournamentId}/links`,
+        {
         method: "POST",
         headers: {
           "content-type": "application/json"
         },
         body: JSON.stringify(rotate ? { rotate: true } : {})
-      });
+        }
+      );
       const data = await response.json();
 
       if (!response.ok) {
@@ -1882,7 +2147,35 @@ export function CreatePanels() {
     }
   }
 
+  function handleImportCandidatesIntoPool(pool) {
+    setOpenPoolActionsMenuId(null);
+    setOpenPoolMergeMenuId(null);
+    if (pool.importSourceUrl) {
+      try {
+        const url = new URL(pool.importSourceUrl);
+        const hashParams = new URLSearchParams(
+          url.hash.startsWith("#") ? url.hash.slice(1) : url.hash
+        );
+        hashParams.set("brackeroni-continue-pool", pool.id);
+        hashParams.set("brackeroni-continue-name", pool.name);
+        url.hash = hashParams.toString();
+        window.open(url.toString(), "_blank");
+        return;
+      } catch {}
+    }
+
+    router.push(
+      `/tools/import?poolId=${encodeURIComponent(pool.id)}&poolName=${encodeURIComponent(pool.name)}`
+    );
+  }
+
   async function handleSyncTournamentWithPool(tournamentId) {
+    const tournament = tournaments.find((entry) => entry.id === tournamentId);
+    if (tournament?.kind === "parallel_parent") {
+      setSuccessMessage("Parallel brackets read directly from their pool. No sync needed.");
+      return;
+    }
+
     const actionKey = `sync-tournament:${tournamentId}`;
     if (isActionPending(actionKey)) {
       return;
@@ -1934,7 +2227,7 @@ export function CreatePanels() {
     setSuccessMessage("");
 
     try {
-      const response = await fetch(`/api/tournaments/${tournamentId}/reruns`, {
+      const response = await fetch(`/api/tournaments/${tournamentId}/rerun-drafts`, {
         method: "POST"
       });
 
@@ -2173,17 +2466,20 @@ export function CreatePanels() {
     try {
       const draft = candidateDrafts[poolId] || emptyCandidateForm;
 
-      const response = await fetch(`/api/candidates/${candidateEditor.candidateId}`, {
-        method: "PATCH",
-        headers: {
-          "content-type": "application/json"
-        },
-        body: JSON.stringify({
-          name: draft.name,
-          description: draft.description || null,
-          imageUrl: draft.imageUrl || null
-        })
-      });
+      const response = await fetch(
+        `/api/pools/${poolId}/candidates/${candidateEditor.candidateId}`,
+        {
+          method: "PATCH",
+          headers: {
+            "content-type": "application/json"
+          },
+          body: JSON.stringify({
+            name: draft.name,
+            description: draft.description || null,
+            imageUrl: draft.imageUrl || null
+          })
+        }
+      );
 
       const data = await response.json();
       if (!response.ok) {
@@ -2213,14 +2509,22 @@ export function CreatePanels() {
       return;
     }
 
+    const tournament = tournaments.find((entry) => entry.id === tournamentId);
+    const isParallelParent = tournament?.kind === "parallel_parent";
+
     beginAction(actionKey);
     setErrorMessage("");
     setSuccessMessage("");
 
     try {
-      const response = await fetch(`/api/tournaments/${tournamentId}`, {
-        method: "DELETE"
-      });
+      const response = await fetch(
+        isParallelParent
+          ? `/api/parallel-tournaments/${tournamentId}`
+          : `/api/tournaments/${tournamentId}`,
+        {
+          method: "DELETE"
+        }
+      );
 
       const data = await response.json();
       if (!response.ok) {
@@ -2436,6 +2740,14 @@ export function CreatePanels() {
                               {describePoolVisibility(pool.visibility)}
                               {poolIsReadOnly ? " • locked" : ""}
                             </p>
+                            {pool.importSourceUrl ? (
+                              <p className="mt-2 text-xs leading-5 text-[var(--muted)]">
+                                Imported from{" "}
+                                <span className="text-[var(--ink)]">
+                                  {pool.importSourceTitle || pool.importSourceUrl}
+                                </span>
+                              </p>
+                            ) : null}
                             <textarea
                               value={inlinePoolDraft.description}
                               disabled={poolIsReadOnly}
@@ -2597,19 +2909,6 @@ export function CreatePanels() {
                                         Hide
                                       </span>
                                     </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => handleArchivePool(pool.id, pool.name)}
-                                      disabled={poolIsReadOnly || isActionPending(`archive-pool:${pool.id}`)}
-                                      className="flex w-full items-center justify-between gap-3 px-3 py-3 text-left transition hover:bg-[var(--panel-3)] disabled:opacity-60"
-                                    >
-                                      <span className="text-sm">
-                                        {isActionPending(`archive-pool:${pool.id}`) ? "Archiving" : "Archive"}
-                                      </span>
-                                      <span className="text-[11px] uppercase tracking-[0.18em] text-[var(--muted)]">
-                                        Hide
-                                      </span>
-                                    </button>
                                   </div>
                                 </div>
                               ) : null}
@@ -2638,6 +2937,7 @@ export function CreatePanels() {
                           imageSuggestionLoading={Boolean(imageSuggestionLoading[pool.id])}
                           onDraftChange={(field, value) => updateCandidateDraft(pool.id, field, value)}
                           onCreateCandidate={() => openCandidateCreator(pool.id)}
+                          onImportCandidates={() => handleImportCandidatesIntoPool(pool)}
                           onSubmit={() =>
                             isEditingPoolCandidate
                               ? handleCandidateEditSubmit(pool.id)
@@ -2674,6 +2974,14 @@ export function CreatePanels() {
                           <p className="mt-1 text-[11px] uppercase tracking-[0.14em] text-[var(--muted)]">
                             {describePoolVisibility(pool.visibility)}
                           </p>
+                          {pool.importSourceUrl ? (
+                            <p className="mt-2 text-xs leading-5 text-[var(--muted)]">
+                              Imported from{" "}
+                              <span className="text-[var(--ink)]">
+                                {pool.importSourceTitle || pool.importSourceUrl}
+                              </span>
+                            </p>
+                          ) : null}
                           {pool.description ? (
                             <p className="mt-3 text-sm leading-6 text-[var(--muted)]">{pool.description}</p>
                           ) : null}
@@ -2806,6 +3114,7 @@ export function CreatePanels() {
                 const selectedPoolCandidateCount = hasSourcePool
                   ? (poolDetails[bracketDraft.sourcePoolId]?.candidates || []).length
                   : 0;
+                const isParallelParent = tournament.kind === "parallel_parent";
                 const activeShareLink =
                   tournamentShareLinks[tournament.id]?.find((item) => item.active) || null;
                 const invitees = tournamentInvites[tournament.id] || [];
@@ -3056,7 +3365,7 @@ export function CreatePanels() {
                             <span>Result Mode</span>
                             <button
                               type="button"
-                              title="Winner Only crowns a champion. Full Ranking keeps going until every place is set."
+                              title="Winner Only crowns a champion. Full Ranking keeps going until every place is set. Fast Full Rank uses swiss-style rounds to reduce drag. Parallel Full Ranking gives each participant a personal full-ranking bracket and averages the final ranks."
                               className="cursor-help border border-[var(--line)] px-2 py-0.5 text-[10px] text-[var(--muted)]"
                             >
                               ?
@@ -3065,6 +3374,7 @@ export function CreatePanels() {
                           <select
                             aria-label="Result Mode"
                             value={bracketDraft.resultMode}
+                            disabled={isParallelParent}
                             onChange={(event) => {
                               const resultMode = event.target.value;
                               setTournamentInlineDrafts((current) => ({
@@ -3074,13 +3384,26 @@ export function CreatePanels() {
                                   resultMode
                                 }
                               }));
-                              updateTournamentInline(tournament.id, { resultMode }, { silent: false });
+                              if (resultMode !== "parallel_full_ranking") {
+                                updateTournamentInline(
+                                  tournament.id,
+                                  { resultMode },
+                                  { silent: false }
+                                );
+                              }
                             }}
                             className="ui-field ui-field-panel ui-field-select"
                           >
-                            <option value="winner_only">Winner Only</option>
-                            <option value="full_ranking">Full Ranking</option>
-                            <option value="fast_full_rank">Fast Full Rank</option>
+                            {isParallelParent ? (
+                              <option value="parallel_full_ranking">Parallel Full Ranking</option>
+                            ) : (
+                              <>
+                                <option value="winner_only">Winner Only</option>
+                                <option value="full_ranking">Full Ranking</option>
+                                <option value="fast_full_rank">Fast Full Rank</option>
+                                <option value="parallel_full_ranking">Parallel Full Ranking</option>
+                              </>
+                            )}
                           </select>
                         </div>
                         <div className="space-y-2">
@@ -3159,14 +3482,16 @@ export function CreatePanels() {
                               >
                                 Pick Pool
                               </button>
-                              <button
-                                type="button"
-                                onClick={() => handleSyncTournamentWithPool(tournament.id)}
-                                disabled={isPublishedTournament || isActionPending(`sync-tournament:${tournament.id}`)}
-                                className="ui-button ui-button-muted"
-                              >
-                                {isActionPending(`sync-tournament:${tournament.id}`) ? "Syncing" : "Sync With Pool"}
-                              </button>
+                              {!isParallelParent ? (
+                                <button
+                                  type="button"
+                                  onClick={() => handleSyncTournamentWithPool(tournament.id)}
+                                  disabled={isPublishedTournament || isActionPending(`sync-tournament:${tournament.id}`)}
+                                  className="ui-button ui-button-muted"
+                                >
+                                  {isActionPending(`sync-tournament:${tournament.id}`) ? "Syncing" : "Sync With Pool"}
+                                </button>
+                              ) : null}
                               {isPoolMenuOpen ? (
                                 <div className="absolute right-0 top-full z-20 mt-2 w-64 border border-[var(--line)] bg-[var(--panel)] p-2 shadow-[0_10px_30px_rgba(0,0,0,0.35)]">
                                   <div className="max-h-72 overflow-y-auto">
@@ -3374,6 +3699,12 @@ export function CreatePanels() {
                             updateCandidateDraft(bracketDraft.sourcePoolId, field, value)
                           }
                           onCreateCandidate={() => openCandidateCreator(bracketDraft.sourcePoolId)}
+                          onImportCandidates={() =>
+                            handleImportCandidatesIntoPool({
+                              id: bracketDraft.sourcePoolId,
+                              name: linkedPool?.name || "Selected Pool"
+                            })
+                          }
                           onSubmit={() =>
                             candidateEditor?.poolId === bracketDraft.sourcePoolId &&
                             candidateEditor?.candidateId
@@ -3434,7 +3765,7 @@ export function CreatePanels() {
                           ) : (
                             <>
                               <p className="display-face text-xs font-bold uppercase tracking-[0.18em] text-[var(--accent-3)]">
-                                Waiting On Start
+                                {isParallelParent ? "Participants" : "Waiting On Start"}
                               </p>
                               <div className="mt-2 space-y-2">
                                 {invitees.map((invite) => (
@@ -3446,9 +3777,11 @@ export function CreatePanels() {
                                       <p className="display-face truncate text-sm font-black">
                                         {invite.name || invite.email}
                                       </p>
-                                      <p className="mt-1 truncate text-xs tracking-[0.08em] text-[var(--muted)]">
-                                        {invite.email}
-                                      </p>
+                                      {invite.email ? (
+                                        <p className="mt-1 truncate text-xs tracking-[0.08em] text-[var(--muted)]">
+                                          {invite.email}
+                                        </p>
+                                      ) : null}
                                     </div>
                                     <span className="display-face text-xs font-bold uppercase tracking-[0.18em] text-[var(--accent-2)]">
                                       {invite.status}
@@ -3511,6 +3844,101 @@ export function CreatePanels() {
                       </div>
                     )
                   ) : tournament.status === "active" ? (
+                    isParallelParent ? (
+                    <div className="mt-4 grid gap-4 xl:grid-cols-[14rem_minmax(0,1fr)] xl:items-start">
+                      <div className="flex flex-col gap-3">
+                        <Link
+                          href={`/vote?parallelTournament=${tournament.id}&returnTo=create`}
+                          className="cta-link ui-button ui-button-primary w-full"
+                        >
+                          Vote
+                        </Link>
+                        {tournament.sharingMode === "with_friends" ? (
+                          <button
+                            type="button"
+                            onClick={() => handleCopyShareLink(tournament.id)}
+                            disabled={isActionPending(`share-link:${tournament.id}`)}
+                            className="ui-button ui-button-accent w-full"
+                          >
+                            {activeShareLink ? "Copy Link" : "Preparing"}
+                          </button>
+                        ) : null}
+                        <button
+                          type="button"
+                          onClick={() => updateTournamentInline(tournament.id, { status: "complete" }, { silent: false })}
+                          disabled={isActionPending(`update-tournament:${tournament.id}`)}
+                          className="ui-button ui-button-muted w-full"
+                        >
+                          {isActionPending(`update-tournament:${tournament.id}`) ? "Closing" : "Close Bracket"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleArchiveTournament(tournament.id, tournament.title)}
+                          disabled={isActionPending(`archive-tournament:${tournament.id}`)}
+                          className="ui-button ui-button-muted w-full"
+                        >
+                          {isActionPending(`archive-tournament:${tournament.id}`) ? "Archiving" : "Archive"}
+                        </button>
+                      </div>
+                      <div>
+                        <div className="border border-[var(--line)] bg-[var(--panel)] p-4">
+                          <div className="flex flex-wrap items-start justify-between gap-4">
+                            <div className="min-w-0 flex-1">
+                              <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--accent-3)]">
+                                Participant Progress
+                              </p>
+                              <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+                                Each participant votes through a personal full-ranking bracket. The parent bracket aggregates those final rankings.
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <p className="display-face text-lg font-black text-[var(--accent-2)]">
+                                {tournament.completedParticipantCount ?? 0}/{tournament.participantCount ?? 0}
+                              </p>
+                              <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--muted)]">
+                                complete
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="mt-3 flex flex-wrap gap-2 text-[11px] uppercase tracking-[0.18em] text-[var(--muted)]">
+                          <span>{describeTournamentAudienceMode(tournament)}</span>
+                          <span>•</span>
+                          <span>{tournament.resultMode.replace("_", " ")}</span>
+                          <span>•</span>
+                          <span>{tournament.tieBreakMode.replace("_", " ")}</span>
+                          <span>•</span>
+                          <span>{tournament.entryCount} entries</span>
+                          <span>•</span>
+                          <span>{tournament.participantCount ?? 0} participants</span>
+                        </div>
+                        {invitees.length > 0 ? (
+                          <div className="mt-4 space-y-2">
+                            {invitees.map((invite) => (
+                              <div
+                                key={invite.id}
+                                className="flex items-center justify-between gap-3 border border-[var(--line)] bg-[var(--panel-2)] px-4 py-4"
+                              >
+                                <div className="min-w-0">
+                                  <p className="display-face truncate text-sm font-black">
+                                    {invite.name || invite.email || "Anonymous voter"}
+                                  </p>
+                                  {invite.email ? (
+                                    <p className="mt-1 truncate text-xs tracking-[0.08em] text-[var(--muted)]">
+                                      {invite.email}
+                                    </p>
+                                  ) : null}
+                                </div>
+                                <span className="display-face text-xs font-bold uppercase tracking-[0.18em] text-[var(--accent-2)]">
+                                  {invite.status}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        ) : null}
+                      </div>
+                    </div>
+                    ) : (
                     <div className="mt-4 grid gap-4 xl:grid-cols-[14rem_minmax(0,1fr)] xl:items-start">
                       <div className="flex flex-col gap-3">
                         {hasOpenVotes ? (
@@ -3652,6 +4080,7 @@ export function CreatePanels() {
                         </div>
                       </div>
                     </div>
+                    )
                   ) : tournament.status === "complete" ? (
                     <div className="mt-4 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
                       <div className="min-w-0 space-y-3">
@@ -3985,6 +4414,7 @@ export function CreatePanels() {
                   <div className="sm:col-span-2">
                     <TournamentPublishWarning visibility={tournamentForm.visibility} />
                   </div>
+                  {tournamentForm.resultMode !== "parallel_full_ranking" ? (
                   <div className="block space-y-2">
                     <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.18em] text-[var(--accent-3)]">
                       <span className="pointer-events-none">Bracket Style</span>
@@ -4008,12 +4438,13 @@ export function CreatePanels() {
                       <option value="reseed">Reseed</option>
                     </select>
                   </div>
+                  ) : null}
                   <div className="block space-y-2">
                     <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.18em] text-[var(--accent-3)]">
                       <span className="pointer-events-none">Result Mode</span>
                       <button
                         type="button"
-                        title="Winner Only crowns a champion. Full Ranking keeps going until every place is set."
+                        title="Winner Only crowns a champion. Full Ranking keeps going until every place is set. Parallel Full Ranking gives each participant their own personal full-ranking bracket and averages the final ranks."
                         className="cursor-help border border-[var(--line)] px-2 py-0.5 text-[10px] text-[var(--muted)]"
                       >
                         ?
@@ -4030,8 +4461,17 @@ export function CreatePanels() {
                       <option value="winner_only">Winner Only</option>
                       <option value="full_ranking">Full Ranking</option>
                       <option value="fast_full_rank">Fast Full Rank</option>
+                      <option value="parallel_full_ranking">Parallel Full Ranking</option>
                     </select>
                   </div>
+                  {tournamentForm.resultMode === "parallel_full_ranking" ? (
+                    <div className="sm:col-span-2">
+                      <p className="border border-[var(--line)] bg-[var(--panel-2)] px-4 py-3 text-xs leading-6 text-[var(--muted)]">
+                        Each participant completes a personal full-ranking bracket from this pool.
+                        Final results are aggregated from those completed rankings.
+                      </p>
+                    </div>
+                  ) : null}
                   <div className="block space-y-2">
                     <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.18em] text-[var(--accent-3)]">
                       <span className="pointer-events-none">Tie Break</span>
@@ -4062,10 +4502,16 @@ export function CreatePanels() {
                 <div className="flex flex-wrap gap-3">
                   <button
                     type="submit"
-                    disabled={isPending || isActionPending("create-tournament")}
+                    disabled={
+                      isPending ||
+                      isActionPending("create-tournament") ||
+                      isActionPending("create-parallel-tournament")
+                    }
                     className="ui-button ui-button-primary"
                   >
-                    {isActionPending("create-tournament") ? "Creating" : "Create Bracket"}
+                    {isActionPending("create-tournament") || isActionPending("create-parallel-tournament")
+                      ? "Creating"
+                      : "Create Bracket"}
                   </button>
                   <button
                     type="button"
