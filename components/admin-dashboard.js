@@ -28,6 +28,10 @@ function labelForVisibility(visibility) {
   return "Private";
 }
 
+function labelForEnum(value) {
+  return String(value || "").replaceAll("_", " ");
+}
+
 export function AdminDashboard({ pools, tournaments }) {
   const router = useRouter();
   const [pendingAction, setPendingAction] = useState("");
@@ -228,6 +232,11 @@ export function AdminDashboard({ pools, tournaments }) {
                   <p className="mt-1 text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
                     {labelForVisibility(tournament.visibility)} / {tournament.status} /{" "}
                     {tournament.entryCount} entries / {tournament.creatorEmail}
+                  </p>
+                  <p className="mt-2 text-[11px] uppercase tracking-[0.16em] text-[var(--accent-3)]">
+                    {labelForEnum(tournament.sharingMode)} / {labelForEnum(tournament.playStyle)} /{" "}
+                    {labelForEnum(tournament.resultMode)} / {labelForEnum(tournament.tieBreakMode)} /{" "}
+                    {labelForEnum(tournament.votingAccess)} / {labelForEnum(tournament.roundClosureMode)}
                   </p>
                   {tournament.isStalePublic ? (
                     <p className="mt-2 text-xs uppercase tracking-[0.18em] text-[var(--accent-2)]">
