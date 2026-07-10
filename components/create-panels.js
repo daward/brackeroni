@@ -211,6 +211,10 @@ function formatBracketDate(value) {
   }).format(new Date(value));
 }
 
+function formatBracketRuleLabel(value) {
+  return String(value || "unknown").replaceAll("_", " ");
+}
+
 function normalizeParallelBracketItem(item) {
   return {
     ...item,
@@ -1701,7 +1705,10 @@ export function CreatePanels() {
     }
   }
 
-  async function convertTournamentDraftToParallel(tournament, { actionKey = null } = {}) {
+  async function convertTournamentDraftToParallel(
+    tournament,
+    { actionKey = null, startAfterCreate = false } = {}
+  ) {
     const draft = tournamentInlineDrafts[tournament.id] ?? tournament;
     const title = draft.title?.trim() || tournament.title?.trim() || "";
     const sourcePoolId = draft.sourcePoolId || tournament.sourcePoolId || "";
@@ -1749,13 +1756,33 @@ export function CreatePanels() {
         return false;
       }
 
+      const createdParallelId = createData.item?.id;
+
+      if (startAfterCreate && createdParallelId) {
+        const startResponse = await fetch(`/api/parallel-tournaments/${createdParallelId}`, {
+          method: "PATCH",
+          headers: {
+            "content-type": "application/json"
+          },
+          body: JSON.stringify({
+            status: "active"
+          })
+        });
+        const startData = await startResponse.json();
+
+        if (!startResponse.ok) {
+          setErrorMessage(startData.error?.message || "Failed to start parallel bracket.");
+          return false;
+        }
+      }
+
       await fetch(`/api/tournaments/${tournament.id}`, {
         method: "DELETE"
       });
 
-      setSuccessMessage("Parallel bracket created.");
+      setSuccessMessage(startAfterCreate ? "Parallel bracket started." : "Parallel bracket created.");
       setWorkspaceView("tournaments");
-      setTournamentStageView("draft");
+      setTournamentStageView(startAfterCreate ? "active" : "draft");
       setExpandedDraftTournamentId(createData.item.id);
       setEditingTournamentTitleId(null);
       await loadWorkspace();
@@ -2003,7 +2030,8 @@ export function CreatePanels() {
       setSuccessMessage("");
       try {
         const converted = await convertTournamentDraftToParallel(tournament, {
-          actionKey
+          actionKey,
+          startAfterCreate: true
         });
       if (converted) {
         setExpandedDraftTournamentId(null);
@@ -2043,8 +2071,12 @@ export function CreatePanels() {
       setTournamentStageView("active");
       setExpandedDraftTournamentId(null);
       if (data.item) {
+        const nextTournament =
+          tournament?.kind === "parallel_parent"
+            ? normalizeParallelBracketItem(data.item)
+            : { ...data.item, kind: "standard" };
         setTournaments((current) =>
-          current.map((tournament) => (tournament.id === tournamentId ? data.item : tournament))
+          current.map((tournament) => (tournament.id === tournamentId ? nextTournament : tournament))
         );
       }
       setSuccessMessage("Bracket started.");
@@ -3910,9 +3942,9 @@ export function CreatePanels() {
                         <div className="mt-3 flex flex-wrap gap-2 text-[11px] uppercase tracking-[0.18em] text-[var(--muted)]">
                           <span>{describeTournamentAudienceMode(tournament)}</span>
                           <span>•</span>
-                          <span>{tournament.resultMode.replace("_", " ")}</span>
+                          <span>{formatBracketRuleLabel(tournament.resultMode)}</span>
                           <span>•</span>
-                          <span>{tournament.tieBreakMode.replace("_", " ")}</span>
+                          <span>{formatBracketRuleLabel(tournament.tieBreakMode)}</span>
                           <span>•</span>
                           <span>{tournament.entryCount} entries</span>
                           <span>•</span>
@@ -4078,11 +4110,11 @@ export function CreatePanels() {
                         <div className="mt-3 flex flex-wrap gap-2 text-[11px] uppercase tracking-[0.18em] text-[var(--muted)]">
                           <span>{describeTournamentAudienceMode(tournament)}</span>
                           <span>•</span>
-                          <span>{tournament.playStyle.replace("_", " ")}</span>
+                          <span>{formatBracketRuleLabel(tournament.playStyle)}</span>
                           <span>•</span>
-                          <span>{tournament.resultMode.replace("_", " ")}</span>
+                          <span>{formatBracketRuleLabel(tournament.resultMode)}</span>
                           <span>•</span>
-                          <span>{tournament.tieBreakMode.replace("_", " ")}</span>
+                          <span>{formatBracketRuleLabel(tournament.tieBreakMode)}</span>
                         </div>
                       </div>
                     </div>
@@ -4100,11 +4132,11 @@ export function CreatePanels() {
                           <div className="flex flex-wrap gap-2 text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
                             <span>{describeTournamentAudienceMode(tournament)}</span>
                             <span>/</span>
-                            <span>{tournament.playStyle.replace("_", " ")}</span>
+                            <span>{formatBracketRuleLabel(tournament.playStyle)}</span>
                             <span>/</span>
-                            <span>{tournament.resultMode.replace("_", " ")}</span>
+                            <span>{formatBracketRuleLabel(tournament.resultMode)}</span>
                             <span>/</span>
-                            <span>{tournament.tieBreakMode.replace("_", " ")}</span>
+                            <span>{formatBracketRuleLabel(tournament.tieBreakMode)}</span>
                             <span>/</span>
                             <span>{tournament.entryCount} entries</span>
                           </div>
@@ -4140,9 +4172,9 @@ export function CreatePanels() {
                   <div className="mt-4 flex flex-wrap gap-2 text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
                     <span>{describeTournamentAudienceMode(tournament)}</span>
                     <span>/</span>
-                    <span>{tournament.playStyle.replace("_", " ")}</span>
+                    <span>{formatBracketRuleLabel(tournament.playStyle)}</span>
                     <span>/</span>
-                    <span>{tournament.resultMode.replace("_", " ")}</span>
+                    <span>{formatBracketRuleLabel(tournament.resultMode)}</span>
                     <span>/</span>
                     <span>{tournament.entryCount} entries</span>
                   </div>
