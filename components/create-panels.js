@@ -3143,6 +3143,12 @@ export function CreatePanels() {
                   hasSourcePool &&
                   Math.max(tournament.entryCount ?? 0, selectedPoolCandidateCount) > 0;
                 const hasOpenVotes = (tournament.openVoteCount ?? 0) > 0;
+                const viewerParallelBracketComplete =
+                  isParallelParent && tournament.viewerParticipantStatus === "complete";
+                const primaryParallelActionHref = viewerParallelBracketComplete
+                  ? `/results/${tournament.id}`
+                  : `/vote?parallelTournament=${tournament.id}&returnTo=create`;
+                const primaryParallelActionLabel = viewerParallelBracketComplete ? "Results" : "Vote";
 
                 return (
                 <div
@@ -3848,10 +3854,10 @@ export function CreatePanels() {
                     <div className="mt-4 grid gap-4 xl:grid-cols-[14rem_minmax(0,1fr)] xl:items-start">
                       <div className="flex flex-col gap-3">
                         <Link
-                          href={`/vote?parallelTournament=${tournament.id}&returnTo=create`}
+                          href={primaryParallelActionHref}
                           className="cta-link ui-button ui-button-primary w-full"
                         >
-                          Vote
+                          {primaryParallelActionLabel}
                         </Link>
                         {tournament.sharingMode === "with_friends" ? (
                           <button

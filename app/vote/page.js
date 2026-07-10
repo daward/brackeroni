@@ -4,6 +4,7 @@ import { getOptionalCurrentUser } from "@/lib/auth/current-user";
 import { ANONYMOUS_VOTER_COOKIE } from "@/lib/auth/viewer";
 import { listMatchesForTournament } from "@/lib/data/matches";
 import {
+  getAccessibleParallelTournamentById,
   listAccessibleParallelTournaments,
   listPublicParallelTournaments,
   openParallelTournamentParticipantBracket
@@ -60,6 +61,16 @@ export default async function VotePage({ searchParams }) {
     typeof params.parallelTournament === "string" ? params.parallelTournament : null;
 
   if (requestedParallelTournamentId) {
+    const requestedParallelTournament = await getAccessibleParallelTournamentById({
+      parallelTournamentId: requestedParallelTournamentId,
+      userId: user?.id ?? null,
+      anonymousVoterToken
+    });
+
+    if (requestedParallelTournament.viewerParticipantStatus === "complete") {
+      redirect(`/results/${requestedParallelTournamentId}`);
+    }
+
     const openedParallelTournament = await openParallelTournamentParticipantBracket({
       parallelTournamentId: requestedParallelTournamentId,
       userId: user?.id ?? null,
@@ -148,6 +159,19 @@ export default async function VotePage({ searchParams }) {
           anonymousVoterToken
         }).then((result) => result.matches)
       : [];
+  const requestedTournamentHasRemainingVotes = requestedTournamentMatches.some(
+    (match) => match.status === "open" && !match.userVoteEntryId
+  );
+
+  if (
+    requestedTournament &&
+    requestedTournament.status === "active" &&
+    requestedTournamentId &&
+    !requestedTournamentHasRemainingVotes
+  ) {
+    redirect(`/results/${requestedTournament.parentParallelTournamentId || requestedTournament.id}`);
+  }
+
   const requestedActiveTournament =
     requestedTournament && requestedTournament.status === "active"
       ? {

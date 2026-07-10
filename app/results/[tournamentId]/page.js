@@ -68,6 +68,11 @@ export default async function ResultsPage({ params }) {
                 </Link>
               </span>
             </div>
+          ) : tournament.status === "active" ? (
+            <div className="border border-[var(--line)] bg-[var(--panel-2)] px-4 py-3 text-sm leading-6 text-[var(--muted)]">
+              You already voted in the currently available matchup for this bracket.
+              <span className="ml-2">These are the live results while voting continues.</span>
+            </div>
           ) : null
         }
       />
