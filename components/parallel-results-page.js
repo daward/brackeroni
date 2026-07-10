@@ -3,6 +3,14 @@
 import { useState } from "react";
 import { BackdropRemoteImage } from "@/components/resilient-remote-image";
 
+const AGGREGATE_SORT_OPTIONS = {
+  aggregateRank: { key: "finalRank", direction: "asc" },
+  show: { key: "candidateName", direction: "asc" },
+  yourRank: { key: "yourRank", direction: "asc" },
+  averageRank: { key: "averageRank", direction: "asc" },
+  rankStdDev: { key: "rankStdDev", direction: "asc" }
+};
+
 function formatRank(value) {
   if (typeof value !== "number" || Number.isNaN(value)) {
     return "n/a";
@@ -45,6 +53,190 @@ function describeHistoryOpponent(match, candidateEntryId) {
 
 function getOpponentImageUrl(match, candidateEntryId) {
   return match.leftEntryId === candidateEntryId ? match.rightImageUrl : match.leftImageUrl;
+}
+
+function AggregateEntryDetails({
+  selectedEntry,
+  participants,
+  viewerParticipant,
+  hasOpenBallots
+}) {
+  if (!selectedEntry) {
+    return <p className="results-empty-copy">No aggregate results available yet.</p>;
+  }
+
+  const participantScores = [...participants]
+    .map((participant) => ({
+      id: participant.id,
+      name: participant.name || participant.email || "Anonymous voter",
+      rank: participant.candidateRanks[selectedEntry.candidateId]?.finalRank ?? null
+    }))
+    .filter((participant) => typeof participant.rank === "number")
+    .sort((left, right) => {
+      if (left.rank !== right.rank) {
+        return left.rank - right.rank;
+      }
+
+      return left.name.localeCompare(right.name);
+    });
+
+  return (
+    <>
+      <div className="results-details-header">
+        {selectedEntry.candidateImageUrl ? (
+          <BackdropRemoteImage
+            src={selectedEntry.candidateImageUrl}
+            alt={selectedEntry.candidateName}
+            className="results-details-image"
+            imageClassName="object-cover object-center"
+            undersizedImageClassName="object-contain p-2"
+            minimumSourceWidth={96}
+            minimumSourceHeight={96}
+          />
+        ) : null}
+        <div>
+          <p className="results-kicker">Candidate Details</p>
+          <h2 className="results-details-title">{selectedEntry.candidateName}</h2>
+          <p className="results-details-meta">
+            Rank {selectedEntry.finalRank} | Avg rank {formatRank(selectedEntry.averageRank)} | Spread{" "}
+            {formatRank(selectedEntry.rankStdDev)}
+          </p>
+          {viewerParticipant ? (
+            <p className="results-details-meta">
+              Your rank {selectedEntry.yourRank ?? "n/a"}
+            </p>
+          ) : null}
+        </div>
+      </div>
+
+      <section className="results-history">
+        <h3 className="results-section-title">
+          {hasOpenBallots ? "Participant Scores So Far" : "Participant Scores"}
+        </h3>
+        <div className="results-table-wrap results-table-wrap-compact">
+          {participantScores.length === 0 ? (
+            <p className="results-empty-copy">No completed participant ranks are available yet.</p>
+          ) : (
+            <table className="results-table results-table-compact">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Rank</th>
+                </tr>
+              </thead>
+              <tbody>
+                {participantScores.map((participant) => (
+                  <tr key={participant.id}>
+                    <td>{participant.name}</td>
+                    <td>{participant.rank}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </section>
+    </>
+  );
+}
+
+function AggregateResultsTable({
+  entries,
+  selectedEntryId,
+  onSelectEntry,
+  sortKey,
+  sortDirection,
+  onToggleSort
+}) {
+  return (
+    <div className="results-table-wrap">
+      <table className="results-table">
+        <thead>
+          <tr>
+            <th>
+              <button
+                type="button"
+                className="results-table-sort"
+                onClick={() => onToggleSort("aggregateRank")}
+              >
+                Aggregate Rank
+                {sortKey === "aggregateRank" ? ` ${sortDirection === "asc" ? "^" : "v"}` : ""}
+              </button>
+            </th>
+            <th>
+              <button type="button" className="results-table-sort" onClick={() => onToggleSort("show")}>
+                Show
+                {sortKey === "show" ? ` ${sortDirection === "asc" ? "^" : "v"}` : ""}
+              </button>
+            </th>
+            <th>
+              <button
+                type="button"
+                className="results-table-sort"
+                onClick={() => onToggleSort("yourRank")}
+              >
+                Your Rank
+                {sortKey === "yourRank" ? ` ${sortDirection === "asc" ? "^" : "v"}` : ""}
+              </button>
+            </th>
+            <th>
+              <button
+                type="button"
+                className="results-table-sort"
+                onClick={() => onToggleSort("averageRank")}
+              >
+                Avg Rank
+                {sortKey === "averageRank" ? ` ${sortDirection === "asc" ? "^" : "v"}` : ""}
+              </button>
+            </th>
+            <th>
+              <button
+                type="button"
+                className="results-table-sort"
+                onClick={() => onToggleSort("rankStdDev")}
+              >
+                Spread
+                {sortKey === "rankStdDev" ? ` ${sortDirection === "asc" ? "^" : "v"}` : ""}
+              </button>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {entries.map((entry) => (
+            <tr
+              key={entry.id}
+              className={selectedEntryId === entry.id ? "results-table-row-active" : ""}
+            >
+              <td>{entry.finalRank}</td>
+              <td>
+                <button
+                  type="button"
+                  onClick={() => onSelectEntry(entry.id)}
+                  className="results-table-entry"
+                >
+                  {entry.candidateImageUrl ? (
+                    <BackdropRemoteImage
+                      src={entry.candidateImageUrl}
+                      alt={entry.candidateName}
+                      className="results-table-image"
+                      imageClassName="object-cover object-center"
+                      undersizedImageClassName="object-contain p-1.5"
+                      minimumSourceWidth={56}
+                      minimumSourceHeight={56}
+                    />
+                  ) : null}
+                  <span className="results-table-name">{entry.candidateName}</span>
+                </button>
+              </td>
+              <td>{typeof entry.yourRank === "number" ? entry.yourRank : "n/a"}</td>
+              <td>{formatRank(entry.averageRank)}</td>
+              <td>{formatRank(entry.rankStdDev)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
 }
 
 function CandidateHistory({
@@ -132,11 +324,46 @@ export function ParallelResultsPage({
   const [selectedEntryId, setSelectedEntryId] = useState(aggregateEntries[0]?.id ?? null);
   const [selectedParticipantId, setSelectedParticipantId] = useState("aggregate");
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [aggregateSortKey, setAggregateSortKey] = useState("averageRank");
+  const [aggregateSortDirection, setAggregateSortDirection] = useState("asc");
   const showingAggregate = selectedParticipantId === "aggregate";
+  const viewerParticipant =
+    participants.find((participant) => participant.id === tournament.viewerParticipantId) ?? null;
+  const aggregateEntriesWithViewerRank = aggregateEntries.map((entry) => {
+    const viewerRank = viewerParticipant?.candidateRanks?.[entry.candidateId]?.finalRank ?? null;
+
+    return {
+      ...entry,
+      yourRank: viewerRank
+    };
+  });
   const selectedParticipant =
     participants.find((participant) => participant.id === selectedParticipantId) ?? null;
   const displayedEntries = showingAggregate
-    ? aggregateEntries
+    ? [...aggregateEntriesWithViewerRank].sort((left, right) => {
+        const leftValue =
+          aggregateSortKey === "show"
+            ? left.candidateName.toLowerCase()
+            : aggregateSortKey === "yourRank"
+              ? left.yourRank ?? Number.MAX_SAFE_INTEGER
+              : left[AGGREGATE_SORT_OPTIONS[aggregateSortKey].key];
+        const rightValue =
+          aggregateSortKey === "show"
+            ? right.candidateName.toLowerCase()
+            : aggregateSortKey === "yourRank"
+              ? right.yourRank ?? Number.MAX_SAFE_INTEGER
+              : right[AGGREGATE_SORT_OPTIONS[aggregateSortKey].key];
+
+        if (leftValue < rightValue) {
+          return aggregateSortDirection === "asc" ? -1 : 1;
+        }
+
+        if (leftValue > rightValue) {
+          return aggregateSortDirection === "asc" ? 1 : -1;
+        }
+
+        return left.finalRank - right.finalRank;
+      })
     : [...aggregateEntries].sort((left, right) => {
         const leftRank = selectedParticipant?.candidateRanks[left.candidateId]?.finalRank ?? Number.MAX_SAFE_INTEGER;
         const rightRank = selectedParticipant?.candidateRanks[right.candidateId]?.finalRank ?? Number.MAX_SAFE_INTEGER;
@@ -184,10 +411,6 @@ export function ParallelResultsPage({
       : `${completedBallotCount} completed ballots`;
 
   function handleSelectEntry(entryId) {
-    if (showingAggregate) {
-      return;
-    }
-
     setSelectedEntryId(entryId);
 
     if (typeof window !== "undefined" && window.innerWidth < 1024) {
@@ -195,8 +418,18 @@ export function ParallelResultsPage({
     }
   }
 
+  function handleToggleAggregateSort(nextKey) {
+    if (aggregateSortKey === nextKey) {
+      setAggregateSortDirection((current) => (current === "asc" ? "desc" : "asc"));
+      return;
+    }
+
+    setAggregateSortKey(nextKey);
+    setAggregateSortDirection(AGGREGATE_SORT_OPTIONS[nextKey].direction);
+  }
+
   return (
-    <div className="results-page">
+    <div className="results-page results-page-parallel">
       <section className="results-shell">
         <header className="results-header">
           <div className="results-header-row">
@@ -212,53 +445,45 @@ export function ParallelResultsPage({
                   : "All ballots are complete. These are the final aggregate ranks."}
               </p>
             </div>
-            <div className="results-header-action">
-              <div className="flex items-center gap-3">
-                <select
-                  value={selectedParticipantId}
-                  onChange={(event) => setSelectedParticipantId(event.target.value)}
-                  className="ui-field ui-field-panel ui-field-select min-w-[15rem]"
-                >
-                  <option value="aggregate">Final Results</option>
-                  {participants.map((participant) => (
-                    <option key={participant.id} value={participant.id}>
-                      {participant.name || participant.email || "Anonymous voter"}
-                    </option>
-                  ))}
-                </select>
-                {headerAction}
+            {participants.length > 0 || headerAction ? (
+              <div className="results-header-action">
+                <div className="flex items-center gap-3">
+                  {participants.length > 0 ? (
+                    <select
+                      value={selectedParticipantId}
+                      onChange={(event) => setSelectedParticipantId(event.target.value)}
+                      className="ui-field ui-field-panel ui-field-select min-w-[15rem]"
+                    >
+                      <option value="aggregate">Final Results</option>
+                      {participants.map((participant) => (
+                        <option key={participant.id} value={participant.id}>
+                          {participant.name || participant.email || "Anonymous voter"}
+                        </option>
+                      ))}
+                    </select>
+                  ) : null}
+                  {headerAction}
+                </div>
               </div>
-            </div>
+            ) : null}
           </div>
         </header>
 
         <div className="results-grid">
           <section className="results-ranking-rail">
             <h2 className="results-section-title">Final Ranking</h2>
-            <div className="results-ranking-list">
-              {displayedEntries.map((entry, index) =>
-                showingAggregate ? (
-                  <div key={entry.id} className="results-ranking-item results-ranking-item-idle">
-                    <span className="results-ranking-rank">{entry.finalRank}</span>
-                    {entry.candidateImageUrl ? (
-                      <BackdropRemoteImage
-                        src={entry.candidateImageUrl}
-                        alt={entry.candidateName}
-                        className="results-ranking-image"
-                        imageClassName="object-cover object-center"
-                        undersizedImageClassName="object-contain p-1.5"
-                        minimumSourceWidth={72}
-                        minimumSourceHeight={72}
-                      />
-                    ) : null}
-                    <div className="results-ranking-copy">
-                      <p className="results-ranking-name">{entry.candidateName}</p>
-                      <p className="results-ranking-seed">
-                        Avg rank {formatRank(entry.averageRank)} | Spread {formatRank(entry.rankStdDev)}
-                      </p>
-                    </div>
-                  </div>
-                ) : (
+            {showingAggregate ? (
+              <AggregateResultsTable
+                entries={displayedEntries}
+                selectedEntryId={selectedEntry?.id ?? null}
+                onSelectEntry={handleSelectEntry}
+                sortKey={aggregateSortKey}
+                sortDirection={aggregateSortDirection}
+                onToggleSort={handleToggleAggregateSort}
+              />
+            ) : (
+              <div className="results-ranking-list">
+                {displayedEntries.map((entry, index) => (
                   <button
                     key={entry.id}
                     type="button"
@@ -285,38 +510,22 @@ export function ParallelResultsPage({
                     ) : null}
                     <div className="results-ranking-copy">
                       <p className="results-ranking-name">{entry.candidateName}</p>
-                      <p className="results-ranking-seed">
-                        Seed {entry.seed}
-                      </p>
+                      <p className="results-ranking-seed">Seed {entry.seed}</p>
                     </div>
                   </button>
-                )
-              )}
-            </div>
+                ))}
+              </div>
+            )}
           </section>
 
           <aside className="results-details-rail ui-scroll-subtle">
             {showingAggregate ? (
-              <section className="results-history">
-                <h3 className="results-section-title">Final Results</h3>
-                <div className="results-history-list">
-                  <article className="results-history-card">
-                    <p className="results-history-round">Aggregate Summary</p>
-                    <div className="results-history-card-body">
-                      <div>
-                        <p className="results-history-result">
-                          {hasOpenBallots ? "Live aggregate" : "Final aggregate"}
-                        </p>
-                        <p className="results-history-opponent">
-                          {hasOpenBallots
-                            ? `${progressLabel}. Incomplete personal brackets are excluded until they finish.`
-                            : `${progressLabel}. Every personal bracket is included.`}
-                        </p>
-                      </div>
-                    </div>
-                  </article>
-                </div>
-              </section>
+              <AggregateEntryDetails
+                selectedEntry={selectedEntry}
+                participants={participants}
+                viewerParticipant={viewerParticipant}
+                hasOpenBallots={hasOpenBallots}
+              />
             ) : selectedEntry ? (
               <>
                 <div className="results-details-header">
@@ -354,7 +563,7 @@ export function ParallelResultsPage({
           </aside>
         </div>
       </section>
-      {isDrawerOpen && selectedEntry && !showingAggregate ? (
+      {isDrawerOpen && selectedEntry ? (
         <div className="results-drawer-overlay" onClick={() => setIsDrawerOpen(false)}>
           <div
             className="results-drawer ui-scroll-subtle"
@@ -371,33 +580,44 @@ export function ParallelResultsPage({
               </button>
             </div>
             <div className="space-y-6">
-              <div className="results-details-header">
-                {selectedEntry.candidateImageUrl ? (
-                  <BackdropRemoteImage
-                    src={selectedEntry.candidateImageUrl}
-                    alt={selectedEntry.candidateName}
-                    className="results-details-image"
-                    imageClassName="object-cover object-center"
-                    undersizedImageClassName="object-contain p-2"
-                    minimumSourceWidth={96}
-                    minimumSourceHeight={96}
+              {showingAggregate ? (
+                <AggregateEntryDetails
+                  selectedEntry={selectedEntry}
+                  participants={participants}
+                  viewerParticipant={viewerParticipant}
+                  hasOpenBallots={hasOpenBallots}
+                />
+              ) : (
+                <>
+                  <div className="results-details-header">
+                    {selectedEntry.candidateImageUrl ? (
+                      <BackdropRemoteImage
+                        src={selectedEntry.candidateImageUrl}
+                        alt={selectedEntry.candidateName}
+                        className="results-details-image"
+                        imageClassName="object-cover object-center"
+                        undersizedImageClassName="object-contain p-2"
+                        minimumSourceWidth={96}
+                        minimumSourceHeight={96}
+                      />
+                    ) : null}
+                    <div>
+                      <p className="results-kicker">Candidate Details</p>
+                      <h2 className="results-details-title">{selectedEntry.candidateName}</h2>
+                      <p className="results-details-meta">
+                        Rank {selectedParticipant?.candidateRanks[selectedEntry.candidateId]?.finalRank ?? "n/a"} | Seed{" "}
+                        {selectedEntry.seed}
+                      </p>
+                    </div>
+                  </div>
+                  <CandidateHistory
+                    tournament={tournament}
+                    selectedEntry={participantEntry ?? selectedEntry}
+                    selectedParticipant={selectedParticipant}
+                    historyMatches={selectedParticipantHistory}
                   />
-                ) : null}
-                <div>
-                  <p className="results-kicker">Candidate Details</p>
-                  <h2 className="results-details-title">{selectedEntry.candidateName}</h2>
-                  <p className="results-details-meta">
-                    Rank {selectedParticipant?.candidateRanks[selectedEntry.candidateId]?.finalRank ?? "n/a"} | Seed{" "}
-                    {selectedEntry.seed}
-                  </p>
-                </div>
-              </div>
-              <CandidateHistory
-                tournament={tournament}
-                selectedEntry={participantEntry ?? selectedEntry}
-                selectedParticipant={selectedParticipant}
-                historyMatches={selectedParticipantHistory}
-              />
+                </>
+              )}
             </div>
           </div>
         </div>
