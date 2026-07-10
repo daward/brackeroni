@@ -74,6 +74,21 @@ function buildResultsUrl(tournamentOrId) {
   return `/results/${tournamentOrId.parentParallelTournamentId || tournamentOrId.id}`;
 }
 
+function buildVoteUrl({ tournamentId = null, returnTo = null }) {
+  const params = new URLSearchParams();
+
+  if (tournamentId) {
+    params.set("tournament", tournamentId);
+  }
+
+  if (returnTo) {
+    params.set("returnTo", returnTo);
+  }
+
+  const query = params.toString();
+  return query ? `/vote?${query}` : "/vote";
+}
+
 function getCurrentRoundProgress(tournament, focusedMatch, focusedOpenMatches) {
   if (!tournament || !focusedMatch) {
     return { completed: 0, total: 0, percent: 0 };
@@ -206,7 +221,8 @@ export function VoteScreenPanels({
     }
 
     setFocusedTournamentId(null);
-  }, [focusedTournamentId, focusedTournament]);
+    router.replace(buildVoteUrl({ returnTo: initialReturnTo }));
+  }, [focusedTournamentId, focusedTournament, router, initialReturnTo]);
 
   useEffect(() => {
     if (!focusedTournament) {
@@ -218,7 +234,8 @@ export function VoteScreenPanels({
     }
 
     setFocusedTournamentId(null);
-  }, [focusedTournament, focusedMatch, isFocusedTournamentWaiting]);
+    router.replace(buildVoteUrl({ returnTo: initialReturnTo }));
+  }, [focusedTournament, focusedMatch, isFocusedTournamentWaiting, router, initialReturnTo]);
 
   useEffect(() => {
     if (!shouldReturnToCreate || !focusedTournament || focusedMatch || pendingVoteMatchId) {
@@ -375,6 +392,7 @@ export function VoteScreenPanels({
     }
 
     setFocusedTournamentId(tournament.id);
+    router.replace(buildVoteUrl({ tournamentId: tournament.id, returnTo: initialReturnTo }));
   }
 
   async function openResultsModal(tournament) {
@@ -591,7 +609,10 @@ export function VoteScreenPanels({
               </div>
               <button
                 type="button"
-                onClick={() => setFocusedTournamentId(null)}
+                onClick={() => {
+                  setFocusedTournamentId(null);
+                  router.replace(buildVoteUrl({ returnTo: initialReturnTo }));
+                }}
                 className="vote-modal-close display-face"
               >
                 Close
