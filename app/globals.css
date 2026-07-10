@@ -1097,11 +1097,14 @@ optgroup {
   z-index: 10;
   display: grid;
   gap: 1.25rem;
+  align-items: stretch;
   background: transparent;
 }
 
 .home-pool-card-main {
   min-width: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .home-pool-card-topline {
@@ -1222,6 +1225,21 @@ optgroup {
   font-size: 0.625rem;
   letter-spacing: 0.16em;
   text-transform: uppercase;
+}
+
+.home-pool-card-actions {
+  margin-top: auto;
+  padding-top: 1rem;
+}
+
+.home-pool-card-action {
+  pointer-events: auto;
+  position: relative;
+  z-index: 20;
+  padding: 0.45rem 0.8rem;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
 }
 
 .home-pool-card-preview-grid {

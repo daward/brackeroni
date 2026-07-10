@@ -7,6 +7,7 @@ const AGGREGATE_SORT_OPTIONS = {
   aggregateRank: { key: "finalRank", direction: "asc" },
   show: { key: "candidateName", direction: "asc" },
   yourRank: { key: "yourRank", direction: "asc" },
+  rankDifference: { key: "rankDifference", direction: "asc" },
   averageRank: { key: "averageRank", direction: "asc" },
   rankStdDev: { key: "rankStdDev", direction: "asc" }
 };
@@ -17,6 +18,18 @@ function formatRank(value) {
   }
 
   return value.toFixed(2).replace(/\.00$/, "");
+}
+
+function formatSignedRankDiff(value) {
+  if (typeof value !== "number" || Number.isNaN(value)) {
+    return "n/a";
+  }
+
+  if (value === 0) {
+    return "0";
+  }
+
+  return value > 0 ? `+${value}` : `${value}`;
 }
 
 function formatRoundLabel(match, tournament) {
@@ -103,7 +116,8 @@ function AggregateEntryDetails({
           </p>
           {viewerParticipant ? (
             <p className="results-details-meta">
-              Your rank {selectedEntry.yourRank ?? "n/a"}
+              Your rank {selectedEntry.yourRank ?? "n/a"} | Rank diff{" "}
+              {formatSignedRankDiff(selectedEntry.rankDifference)}
             </p>
           ) : null}
         </div>
@@ -183,6 +197,16 @@ function AggregateResultsTable({
               <button
                 type="button"
                 className="results-table-sort"
+                onClick={() => onToggleSort("rankDifference")}
+              >
+                Rank Diff
+                {sortKey === "rankDifference" ? ` ${sortDirection === "asc" ? "^" : "v"}` : ""}
+              </button>
+            </th>
+            <th>
+              <button
+                type="button"
+                className="results-table-sort"
                 onClick={() => onToggleSort("averageRank")}
               >
                 Avg Rank
@@ -229,6 +253,7 @@ function AggregateResultsTable({
                 </button>
               </td>
               <td>{typeof entry.yourRank === "number" ? entry.yourRank : "n/a"}</td>
+              <td>{formatSignedRankDiff(entry.rankDifference)}</td>
               <td>{formatRank(entry.averageRank)}</td>
               <td>{formatRank(entry.rankStdDev)}</td>
             </tr>
@@ -334,7 +359,8 @@ export function ParallelResultsPage({
 
     return {
       ...entry,
-      yourRank: viewerRank
+      yourRank: viewerRank,
+      rankDifference: typeof viewerRank === "number" ? viewerRank - entry.finalRank : null
     };
   });
   const selectedParticipant =

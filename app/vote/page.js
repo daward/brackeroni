@@ -133,16 +133,30 @@ export default async function VotePage({ searchParams }) {
         };
       })
   );
-  const completedTournaments = tournaments.filter((tournament) => {
-    if (tournament.kind === "parallel_parent") {
-      return (
-        tournament.status === "complete" ||
-        tournament.viewerParticipantStatus === "complete"
-      );
-    }
+  const completedTournaments = tournaments
+    .filter((tournament) => {
+      if (tournament.kind === "parallel_parent") {
+        return (
+          tournament.status === "complete" ||
+          tournament.viewerParticipantStatus === "complete"
+        );
+      }
 
-    return tournament.status === "complete";
-  });
+      return tournament.status === "complete";
+    })
+    .sort((left, right) => {
+      const leftTime = left.completedAt ? new Date(left.completedAt).getTime() : 0;
+      const rightTime = right.completedAt ? new Date(right.completedAt).getTime() : 0;
+
+      if (leftTime !== rightTime) {
+        return rightTime - leftTime;
+      }
+
+      const leftUpdated = left.updatedAt ? new Date(left.updatedAt).getTime() : 0;
+      const rightUpdated = right.updatedAt ? new Date(right.updatedAt).getTime() : 0;
+
+      return rightUpdated - leftUpdated;
+    });
   const requestedTournament =
     requestedTournamentId
       ? await getAccessibleTournamentById({

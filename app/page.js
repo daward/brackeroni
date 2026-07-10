@@ -1,11 +1,13 @@
 ﻿import Link from "next/link";
 import { FeaturedHomePools } from "@/components/featured-home-pools";
 import { FeaturedHomeVoteSection } from "@/components/featured-home-matchups";
+import { getOptionalCurrentUser } from "@/lib/auth/current-user";
 import { getFeaturedParallelTeaserMatchups } from "@/lib/data/parallel-tournaments";
 import { listPublicPools } from "@/lib/data/pools";
 import { getFeaturedPublicMatchupsForHomepage } from "@/lib/data/tournaments";
 
 export default async function HomePage() {
+  const user = await getOptionalCurrentUser();
   const [featuredPublicMatchups, featuredParallelMatchups, publicPools] = await Promise.all([
     getFeaturedPublicMatchupsForHomepage({
       limit: 6
@@ -117,7 +119,7 @@ export default async function HomePage() {
                 Browse
               </Link>
             </div>
-            <FeaturedHomePools pools={publicPools} />
+            <FeaturedHomePools pools={publicPools} signedIn={Boolean(user)} />
           </div>
         </section>
       </div>

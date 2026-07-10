@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { MobileSwipeRail } from "@/components/mobile-swipe-rail";
 import { PublicPoolCard } from "@/components/public-pool-card";
 
-export function FeaturedHomePools({ pools }) {
+export function FeaturedHomePools({ pools, signedIn = false }) {
   const safePools = useMemo(() => pools ?? [], [pools]);
 
   if (!safePools.length) {
@@ -22,13 +22,13 @@ export function FeaturedHomePools({ pools }) {
           items={safePools}
           getKey={(pool) => pool.id}
           railClassName="home-mobile-swipe-rail-pools"
-          renderItem={(pool) => <PublicPoolCard pool={pool} />}
+          renderItem={(pool) => <PublicPoolCard pool={pool} signedIn={signedIn} />}
         />
       </div>
 
       <div className="home-pool-list-desktop">
         {safePools.map((pool) => (
-          <PublicPoolCard key={pool.id} pool={pool} />
+          <PublicPoolCard key={pool.id} pool={pool} signedIn={signedIn} />
         ))}
       </div>
     </>

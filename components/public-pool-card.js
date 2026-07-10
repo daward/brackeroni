@@ -48,6 +48,7 @@ export function PublicPoolCard({
   const router = useRouter();
   const pathname = usePathname();
   const [isFavoriting, startFavoriting] = useTransition();
+  const [isCreatingFavoriteBracket, startCreatingFavoriteBracket] = useTransition();
   const previewCandidates = pool.previewCandidates || [];
   const [visibleIndexes, setVisibleIndexes] = useState(() =>
     previewCandidates.slice(0, 4).map((_, index) => index)
@@ -150,6 +151,58 @@ export function PublicPoolCard({
     });
   }
 
+  function handleChooseFavorite(event) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (!signedIn || isCreatingFavoriteBracket) {
+      return;
+    }
+
+    startCreatingFavoriteBracket(async () => {
+      const createResponse = await fetch("/api/tournaments", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json"
+        },
+        body: JSON.stringify({
+          title: `${pool.name} Favorites`,
+          description: pool.description || null,
+          sourcePoolId: pool.id,
+          sharingMode: "private",
+          visibility: "private",
+          votingAccess: "signed_in_only",
+          playStyle: "fixed_bracket",
+          resultMode: "winner_only",
+          tieBreakMode: "higher_seed_wins"
+        })
+      });
+
+      const createData = await createResponse.json();
+
+      if (!createResponse.ok || !createData.item?.id) {
+        return;
+      }
+
+      const tournamentId = createData.item.id;
+      const startResponse = await fetch(`/api/tournaments/${tournamentId}`, {
+        method: "PATCH",
+        headers: {
+          "content-type": "application/json"
+        },
+        body: JSON.stringify({
+          status: "active"
+        })
+      });
+
+      if (!startResponse.ok) {
+        return;
+      }
+
+      window.location.assign(`/vote?tournament=${tournamentId}`);
+    });
+  }
+
   return (
     <div className="home-pool-card">
       <Link
@@ -212,6 +265,25 @@ export function PublicPoolCard({
           <p className="home-pool-card-byline">
             By {pool.creatorName || pool.creatorEmail}
           </p>
+          <div className="home-pool-card-actions">
+            {signedIn ? (
+              <button
+                type="button"
+                onClick={handleChooseFavorite}
+                disabled={isCreatingFavoriteBracket}
+                className="home-pool-card-action ui-button ui-button-highlight"
+              >
+                {isCreatingFavoriteBracket ? "Creating" : "Choose Your Favorite"}
+              </button>
+            ) : (
+              <Link
+                href={signInHref}
+                className="home-pool-card-action ui-button ui-button-highlight"
+              >
+                Choose Your Favorite
+              </Link>
+            )}
+          </div>
         </div>
         <div className="home-pool-card-preview-grid">
           {visibleCandidates.map((candidate, index) => (
