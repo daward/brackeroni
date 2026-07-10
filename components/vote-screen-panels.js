@@ -6,6 +6,8 @@ import { useEffect, useState } from "react";
 import { BackdropRemoteImage } from "@/components/resilient-remote-image";
 import { TournamentResultsPage } from "@/components/tournament-results-page";
 
+const LAST_OPEN_VOTE_TOURNAMENT_KEY = "brackeroni-last-open-vote-tournament";
+
 function nextPowerOfTwo(value) {
   let size = 1;
   while (size < value) {
@@ -87,6 +89,32 @@ function buildVoteUrl({ tournamentId = null, returnTo = null }) {
 
   const query = params.toString();
   return query ? `/vote?${query}` : "/vote";
+}
+
+function readStoredFocusedTournamentId() {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  try {
+    return window.sessionStorage.getItem(LAST_OPEN_VOTE_TOURNAMENT_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function writeStoredFocusedTournamentId(tournamentId) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    if (tournamentId) {
+      window.sessionStorage.setItem(LAST_OPEN_VOTE_TOURNAMENT_KEY, tournamentId);
+    } else {
+      window.sessionStorage.removeItem(LAST_OPEN_VOTE_TOURNAMENT_KEY);
+    }
+  } catch {}
 }
 
 function getCurrentRoundProgress(tournament, focusedMatch, focusedOpenMatches) {
@@ -212,6 +240,46 @@ export function VoteScreenPanels({
   }, [postRoundPollEnabled, postRoundPollCount, waitingTournamentKey]);
 
   useEffect(() => {
+    if (initialFocusedTournamentId || focusedTournamentId) {
+      return;
+    }
+
+    const storedTournamentId = readStoredFocusedTournamentId();
+    if (!storedTournamentId) {
+      return;
+    }
+
+    const storedTournament = active.find((tournament) => tournament.id === storedTournamentId);
+    if (!storedTournament) {
+      writeStoredFocusedTournamentId(null);
+      return;
+    }
+
+    const hasOpenMatches = openMatchesForTournament(storedTournament).length > 0;
+    const isWaiting =
+      storedTournament.kind !== "parallel_parent" &&
+      waitingTournamentIds.includes(storedTournament.id) &&
+      postRoundPollEnabled;
+
+    if (!hasOpenMatches && !isWaiting) {
+      writeStoredFocusedTournamentId(null);
+      return;
+    }
+
+    setFocusedTournamentId(storedTournamentId);
+  }, [
+    active,
+    focusedTournamentId,
+    initialFocusedTournamentId,
+    postRoundPollEnabled,
+    waitingTournamentIds
+  ]);
+
+  useEffect(() => {
+    writeStoredFocusedTournamentId(focusedTournamentId || null);
+  }, [focusedTournamentId]);
+
+  useEffect(() => {
     if (!focusedTournamentId) {
       return;
     }
@@ -221,6 +289,7 @@ export function VoteScreenPanels({
     }
 
     setFocusedTournamentId(null);
+    writeStoredFocusedTournamentId(null);
     router.replace(buildVoteUrl({ returnTo: initialReturnTo }));
   }, [focusedTournamentId, focusedTournament, router, initialReturnTo]);
 
@@ -234,6 +303,7 @@ export function VoteScreenPanels({
     }
 
     setFocusedTournamentId(null);
+    writeStoredFocusedTournamentId(null);
     router.replace(buildVoteUrl({ returnTo: initialReturnTo }));
   }, [focusedTournament, focusedMatch, isFocusedTournamentWaiting, router, initialReturnTo]);
 
@@ -315,6 +385,7 @@ export function VoteScreenPanels({
       setActive((current) => current.filter((tournament) => tournament.id !== tournamentId));
       setCompleted((current) => [tournamentData.item, ...current]);
       setFocusedTournamentId(null);
+      writeStoredFocusedTournamentId(null);
       router.replace(buildResultsUrl(tournamentData.item));
       return;
     }
@@ -366,6 +437,7 @@ export function VoteScreenPanels({
       setActive((current) => current.filter((tournament) => tournament.id !== tournamentId));
       setCompleted((current) => [tournamentData.item, ...current]);
       setFocusedTournamentId(null);
+      writeStoredFocusedTournamentId(null);
       router.replace(buildResultsUrl(tournamentData.item));
       return;
     }
@@ -611,6 +683,7 @@ export function VoteScreenPanels({
                 type="button"
                 onClick={() => {
                   setFocusedTournamentId(null);
+                  writeStoredFocusedTournamentId(null);
                   router.replace(buildVoteUrl({ returnTo: initialReturnTo }));
                 }}
                 className="vote-modal-close display-face"
