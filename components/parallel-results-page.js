@@ -174,6 +174,14 @@ export function ParallelResultsPage({
               match.rightEntryId === participantEntry.participantEntryId)
         )
       : [];
+  const participantCount = tournament.participantCount ?? completedBallotCount;
+  const hasOpenBallots =
+    tournament.status !== "complete" ||
+    completedBallotCount < participantCount;
+  const progressLabel =
+    participantCount > 0
+      ? `${completedBallotCount}/${participantCount} ballots complete`
+      : `${completedBallotCount} completed ballots`;
 
   function handleSelectEntry(entryId) {
     if (showingAggregate) {
@@ -196,10 +204,12 @@ export function ParallelResultsPage({
               <p className="results-kicker">Bracket Results</p>
               <h1 className="results-title">{tournament.title}</h1>
               <p className="results-meta">
-                Parallel full ranking | {aggregateEntries.length} ranked entries | {completedBallotCount} completed ballots
+                Parallel full ranking | {aggregateEntries.length} ranked entries | {progressLabel}
               </p>
               <p className="results-meta">
-                Aggregates update as more personal brackets finish. Incomplete brackets are excluded.
+                {hasOpenBallots
+                  ? "Voting is still in progress. These aggregate ranks update as more personal brackets finish."
+                  : "All ballots are complete. These are the final aggregate ranks."}
               </p>
             </div>
             <div className="results-header-action">
@@ -294,9 +304,13 @@ export function ParallelResultsPage({
                     <p className="results-history-round">Aggregate Summary</p>
                     <div className="results-history-card-body">
                       <div>
-                        <p className="results-history-result">{completedBallotCount} completed ballots</p>
+                        <p className="results-history-result">
+                          {hasOpenBallots ? "Live aggregate" : "Final aggregate"}
+                        </p>
                         <p className="results-history-opponent">
-                          Aggregates update as more personal brackets finish. Incomplete brackets are excluded.
+                          {hasOpenBallots
+                            ? `${progressLabel}. Incomplete personal brackets are excluded until they finish.`
+                            : `${progressLabel}. Every personal bracket is included.`}
                         </p>
                       </div>
                     </div>

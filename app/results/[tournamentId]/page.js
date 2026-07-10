@@ -51,7 +51,7 @@ export default async function ResultsPage({ params }) {
               href={`/results/${tournament.parentParallelTournamentId}`}
               className="ui-button ui-button-primary"
             >
-              View Aggregate
+              View Live Aggregate
             </Link>
           ) : null
         }
@@ -64,7 +64,7 @@ export default async function ResultsPage({ params }) {
                   href={`/results/${tournament.parentParallelTournamentId}`}
                   className="text-[var(--accent-3)] underline-offset-4 hover:underline"
                 >
-                  View the aggregate bracket results.
+                  View the live aggregate results.
                 </Link>
               </span>
             </div>
