@@ -155,7 +155,9 @@ export function VoteScreenPanels({
   const router = useRouter();
   const [active, setActive] = useState(activeTournaments);
   const [completed, setCompleted] = useState(completedTournaments);
-  const [focusedTournamentId, setFocusedTournamentId] = useState(initialFocusedTournamentId);
+  const [focusedTournamentId, setFocusedTournamentId] = useState(() => {
+    return initialFocusedTournamentId || readStoredFocusedTournamentId() || null;
+  });
   const [resultsTournament, setResultsTournament] = useState(null);
   const [resultsMatches, setResultsMatches] = useState([]);
   const [resultsLoading, setResultsLoading] = useState(false);
@@ -267,11 +269,14 @@ export function VoteScreenPanels({
     }
 
     setFocusedTournamentId(storedTournamentId);
+    router.replace(buildVoteUrl({ tournamentId: storedTournamentId, returnTo: initialReturnTo }));
   }, [
     active,
     focusedTournamentId,
     initialFocusedTournamentId,
+    initialReturnTo,
     postRoundPollEnabled,
+    router,
     waitingTournamentIds
   ]);
 
@@ -451,9 +456,13 @@ export function VoteScreenPanels({
     setActive((current) =>
       current.map((tournament) => (tournament.id === tournamentId ? refreshedTournament : tournament))
     );
-    setFocusedTournamentId(
-      focusedTournamentId === tournamentId || remainingOpenMatches > 0 ? tournamentId : null
-    );
+    setFocusedTournamentId((currentFocusedTournamentId) => {
+      if (currentFocusedTournamentId !== tournamentId) {
+        return currentFocusedTournamentId;
+      }
+
+      return remainingOpenMatches > 0 ? tournamentId : null;
+    });
   }
 
   function handleSelectTournament(tournament) {
