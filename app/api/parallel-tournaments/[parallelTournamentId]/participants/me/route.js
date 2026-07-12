@@ -6,23 +6,29 @@ import {
 } from "@/lib/auth/viewer";
 import { openParallelTournamentParticipantBracket } from "@/lib/data/parallel-tournaments";
 import { json, withRouteErrorHandling } from "@/lib/api/http";
+import { NextResponse } from "next/server";
 
-export const POST = withRouteErrorHandling(async function POST(request, { params }) {
+async function openParticipantBracket(request, { params }) {
   const user = await getOptionalCurrentUser(request);
   const { parallelTournamentId } = await params;
   const existingAnonymousVoterToken = getAnonymousVoterTokenFromRequest(request);
   const anonymousVoterToken = user ? null : existingAnonymousVoterToken || createAnonymousVoterToken();
 
-  const result = await openParallelTournamentParticipantBracket({
+  const item = await openParallelTournamentParticipantBracket({
     parallelTournamentId,
     userId: user?.id ?? null,
     anonymousVoterToken
   });
 
-  const response = json({
-    item: result
-  });
+  return {
+    user,
+    item,
+    existingAnonymousVoterToken,
+    anonymousVoterToken
+  };
+}
 
+function applyAnonymousCookie(response, { user, anonymousVoterToken, existingAnonymousVoterToken }) {
   if (!user && anonymousVoterToken && anonymousVoterToken !== existingAnonymousVoterToken) {
     response.headers.set(
       "set-cookie",
@@ -31,4 +37,30 @@ export const POST = withRouteErrorHandling(async function POST(request, { params
   }
 
   return response;
+}
+
+export const POST = withRouteErrorHandling(async function POST(request, context) {
+  const result = await openParticipantBracket(request, context);
+
+  const response = json({
+    item: result.item
+  });
+
+  return applyAnonymousCookie(response, result);
+});
+
+export const GET = withRouteErrorHandling(async function GET(request, context) {
+  const result = await openParticipantBracket(request, context);
+  const destination = new URL(
+    `/vote?tournament=${result.item.tournamentId}`,
+    request.url
+  );
+  const returnTo = request.nextUrl.searchParams.get("returnTo");
+
+  if (returnTo) {
+    destination.searchParams.set("returnTo", returnTo);
+  }
+
+  const response = NextResponse.redirect(destination);
+  return applyAnonymousCookie(response, result);
 });

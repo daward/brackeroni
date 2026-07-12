@@ -61,6 +61,13 @@ export default async function VotePage({ searchParams }) {
     typeof params.parallelTournament === "string" ? params.parallelTournament : null;
 
   if (requestedParallelTournamentId) {
+    if (!user && !anonymousVoterToken) {
+      const returnToParam = typeof params.returnTo === "string" ? `?returnTo=${params.returnTo}` : "";
+      redirect(
+        `/api/parallel-tournaments/${requestedParallelTournamentId}/participants/me${returnToParam}`
+      );
+    }
+
     const requestedParallelTournament = await getAccessibleParallelTournamentById({
       parallelTournamentId: requestedParallelTournamentId,
       userId: user?.id ?? null,

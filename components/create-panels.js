@@ -215,6 +215,30 @@ function formatBracketRuleLabel(value) {
   return String(value || "unknown").replaceAll("_", " ");
 }
 
+function isPublicBracketVisibility(visibility) {
+  return visibility === "public_listed" || visibility === "public_unlisted";
+}
+
+function canCopyBracketLink(tournament) {
+  return tournament?.sharingMode === "with_friends" || isPublicBracketVisibility(tournament?.visibility);
+}
+
+function buildDirectBracketSharePath(tournament) {
+  if (!tournament) {
+    return "/";
+  }
+
+  if (tournament.status === "complete") {
+    return `/results/${tournament.id}`;
+  }
+
+  if (tournament.kind === "parallel_parent") {
+    return `/vote?parallelTournament=${tournament.id}`;
+  }
+
+  return `/vote?tournament=${tournament.id}`;
+}
+
 function normalizeParallelBracketItem(item) {
   return {
     ...item,
@@ -2144,6 +2168,21 @@ export function CreatePanels() {
     setErrorMessage("");
     setSuccessMessage("");
 
+    const tournament = tournaments.find((entry) => entry.id === tournamentId);
+
+    if (tournament && isPublicBracketVisibility(tournament.visibility)) {
+      const shareUrl = `${window.location.origin}${buildDirectBracketSharePath(tournament)}`;
+
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+        setSuccessMessage("Bracket link copied.");
+      } catch {
+        setErrorMessage("Could not copy the bracket link.");
+      }
+
+      return;
+    }
+
     let link = tournamentShareLinks[tournamentId]?.find((item) => item.active);
     if (!link) {
       link = await handleEnsureShareLink(tournamentId);
@@ -3891,14 +3930,27 @@ export function CreatePanels() {
                         >
                           {primaryParallelActionLabel}
                         </Link>
-                        {tournament.sharingMode === "with_friends" ? (
+                        <Link
+                          href={`/results/${tournament.id}`}
+                          className="ui-button ui-button-accent w-full"
+                        >
+                          Results
+                        </Link>
+                        {canCopyBracketLink(tournament) ? (
                           <button
                             type="button"
                             onClick={() => handleCopyShareLink(tournament.id)}
-                            disabled={isActionPending(`share-link:${tournament.id}`)}
+                            disabled={
+                              tournament.sharingMode === "with_friends" &&
+                              isActionPending(`share-link:${tournament.id}`)
+                            }
                             className="ui-button ui-button-accent w-full"
                           >
-                            {activeShareLink ? "Copy Link" : "Preparing"}
+                            {tournament.sharingMode === "with_friends"
+                              ? activeShareLink
+                                ? "Copy Link"
+                                : "Preparing"
+                              : "Copy Link"}
                           </button>
                         ) : null}
                         <button
@@ -4005,14 +4057,21 @@ export function CreatePanels() {
                             ? "Closing Round"
                             : "Close Current Round"}
                         </button>
-                        {tournament.sharingMode === "with_friends" ? (
+                        {canCopyBracketLink(tournament) ? (
                           <button
                             type="button"
                             onClick={() => handleCopyShareLink(tournament.id)}
-                            disabled={isActionPending(`share-link:${tournament.id}`)}
+                            disabled={
+                              tournament.sharingMode === "with_friends" &&
+                              isActionPending(`share-link:${tournament.id}`)
+                            }
                             className="ui-button ui-button-accent w-full"
                           >
-                            {activeShareLink ? "Copy Link" : "Preparing"}
+                            {tournament.sharingMode === "with_friends"
+                              ? activeShareLink
+                                ? "Copy Link"
+                                : "Preparing"
+                              : "Copy Link"}
                           </button>
                         ) : null}
                         <button
@@ -4143,6 +4202,23 @@ export function CreatePanels() {
                         ) : null}
                       </div>
                       <div className="flex flex-wrap gap-3 lg:justify-end">
+                          {canCopyBracketLink(tournament) ? (
+                            <button
+                              type="button"
+                              onClick={() => handleCopyShareLink(tournament.id)}
+                              disabled={
+                                tournament.sharingMode === "with_friends" &&
+                                isActionPending(`share-link:${tournament.id}`)
+                              }
+                              className="ui-button ui-button-accent"
+                            >
+                              {tournament.sharingMode === "with_friends"
+                                ? activeShareLink
+                                  ? "Copy Link"
+                                  : "Preparing"
+                                : "Copy Link"}
+                            </button>
+                          ) : null}
                           <Link
                             href={`/results/${tournament.id}`}
                             className="ui-button ui-button-accent"
