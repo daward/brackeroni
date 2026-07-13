@@ -40,7 +40,7 @@ A pool is not only a one-time import. It can be reused across sessions. This is 
 
 A session is a run of the decision process against a pool.
 
-A session may be private, friends-only, public listed, or public unlisted. It may use a classic bracket structure, a full-ranking bracket, a faster Swiss-style ranking mode, or a parallel personal-ranking flow aggregated across participants.
+A session may be private, friends-only, public listed, or public unlisted. It may use a classic bracket structure, a full-ranking bracket, a partially ranked top-half mode, a faster Swiss-style ranking mode, or a parallel personal-ranking flow aggregated across participants.
 
 A session should have an intent. The most important intents are:
 

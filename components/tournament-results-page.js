@@ -2,13 +2,18 @@
 
 import { useState } from "react";
 import { BackdropRemoteImage } from "@/components/resilient-remote-image";
+import {
+  formatResultModeLabel,
+  usesOpenEndedRankingMode,
+  usesSwissResultMode
+} from "@/lib/bracket-modes";
 
 function formatRoundLabel(match, tournament) {
-  if (tournament.resultMode === "full_ranking") {
+  if (usesOpenEndedRankingMode(tournament.resultMode)) {
     return `Ranking ${match.rankingTargetRank}: Round ${match.rankingRoundNumber}`;
   }
 
-  if (tournament.resultMode === "fast_full_rank") {
+  if (usesSwissResultMode(tournament.resultMode)) {
     return `Swiss Round ${match.roundNumber}`;
   }
 
@@ -249,7 +254,7 @@ export function TournamentResultsPage({
               <p className="results-kicker">Bracket Results</p>
               <h1 className="results-title">{tournament.title}</h1>
               <p className="results-meta">
-                {tournament.resultMode.replaceAll("_", " ")} | {orderedEntries.length} ranked
+                {formatResultModeLabel(tournament.resultMode)} | {orderedEntries.length} ranked
                 entries
               </p>
               {headerNotice ? <div className="mt-4">{headerNotice}</div> : null}

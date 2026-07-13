@@ -7,8 +7,10 @@ The system must support four result modes:
 
 1. `winner_only`: the tournament ends after first place is determined.
 2. `full_ranking`: the tournament continues after first place so the system can derive a complete ordered ranking without replaying prior matches.
-3. `fast_full_rank`: the tournament still produces a full ranking, but uses swiss-style rounds to reduce the number of tedious late rounds.
-4. `parallel_full_ranking`: each participant completes their own personal full-ranking bracket from the same pool, and the final ordering is aggregated across participants.
+3. `partial_ranking`: the tournament explicitly ranks the top half of the field, then orders the remaining half by performance.
+4. `fast_full_rank`: the tournament still produces a full ranking, but uses swiss-style rounds to reduce the number of tedious late rounds.
+5. `parallel_full_ranking`: each participant completes their own personal full-ranking bracket from the same pool, and the final ordering is aggregated across participants.
+6. `parallel_partial_ranking`: each participant explicitly ranks the top half of the field, then the remaining half is ordered by performance before aggregate ranks are computed.
 
 The ranking behavior is based on tournament sort:
 https://en.wikipedia.org/wiki/Tournament_sort
@@ -33,7 +35,7 @@ The product currently includes:
 6. Tournament cloning
 7. Private, friends, and public sharing modes
 8. Published pools
-9. `winner_only`, `full_ranking`, `fast_full_rank`, and `parallel_full_ranking`
+9. `winner_only`, `full_ranking`, `partial_ranking`, `fast_full_rank`, `parallel_full_ranking`, and `parallel_partial_ranking`
 10. Google authentication
 11. Image suggestion assistance during candidate creation, using external sources only
 12. Home page featuring of public brackets and published pools
@@ -84,7 +86,7 @@ A tournament should support:
 5. Tracking a visible lifecycle status such as `draft`, `active`, and `complete`
 6. Creating new matches from the not-yet-eliminated candidates
 7. `reseed` and `fixed_bracket` play styles
-8. `winner_only`, `full_ranking`, `fast_full_rank`, and `parallel_full_ranking` result modes
+8. `winner_only`, `full_ranking`, `partial_ranking`, `fast_full_rank`, `parallel_full_ranking`, and `parallel_partial_ranking` result modes
 
 The normal bracket modes share the same bracket lifecycle and round logic.
 
@@ -202,7 +204,7 @@ The bracket creation flow should be bracket-first:
 When building from a pool, the user should choose:
 
 1. Tournament play style: `reseed` or `fixed_bracket`
-2. Result mode: `winner_only`, `full_ranking`, `fast_full_rank`, or `parallel_full_ranking`
+2. Result mode: `winner_only`, `full_ranking`, `partial_ranking`, `fast_full_rank`, `parallel_full_ranking`, or `parallel_partial_ranking`
 3. Seeding mode: manual or random
 4. Sharing mode
 5. Tie-break mode

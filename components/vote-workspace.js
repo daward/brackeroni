@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { StatusPill } from "@/components/status-pill";
+import { formatResultModeLabel } from "@/lib/bracket-modes";
 
 export function VoteWorkspace({ activeTournaments, completedTournaments }) {
   const [active, setActive] = useState(activeTournaments);
@@ -235,7 +236,7 @@ export function VoteWorkspace({ activeTournaments, completedTournaments }) {
               >
                 <h3 className="display-face text-lg font-black uppercase">{tournament.title}</h3>
                 <p className="mt-2 display-face text-sm font-bold uppercase tracking-[0.16em] text-[var(--accent-2)]">
-                  {tournament.resultMode.replace("_", " ")}
+                  {formatResultModeLabel(tournament.resultMode)}
                 </p>
                 <p className="mt-1 text-sm text-[var(--muted)]">
                   Completed tournament from {tournament.sourcePoolName || "an unknown pool"}.

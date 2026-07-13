@@ -5,6 +5,20 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { ResilientRemoteImage } from "@/components/resilient-remote-image";
 import { SectionCard } from "@/components/section-card";
+import {
+  BracketStyleField,
+  ParallelResultModeNotice,
+  ResultModeField
+} from "@/components/bracket-config-fields";
+import {
+  TournamentActionGroup,
+  TournamentMetaRow
+} from "@/components/tournament-management";
+import {
+  formatResultModeLabel,
+  isParallelResultMode,
+  usesBracketStyleForResultMode
+} from "@/lib/bracket-modes";
 
 const emptyCandidateForm = {
   name: "",
@@ -212,7 +226,15 @@ function formatBracketDate(value) {
 }
 
 function formatBracketRuleLabel(value) {
-  return String(value || "unknown").replaceAll("_", " ");
+  const staticLabels = {
+    fixed_bracket: "Fixed Bracket",
+    reseed: "Reseed",
+    higher_seed_wins: "Higher Seed Wins",
+    signed_in_only: "Signed In Only",
+    with_friends: "Friends"
+  };
+
+  return staticLabels[value] || formatResultModeLabel(value);
 }
 
 function isPublicBracketVisibility(visibility) {
@@ -244,7 +266,7 @@ function normalizeParallelBracketItem(item) {
     ...item,
     kind: "parallel_parent",
     playStyle: "fixed_bracket",
-    resultMode: "parallel_full_ranking",
+    resultMode: item.resultMode || "parallel_full_ranking",
     entryCount: item.candidateCount ?? 0,
     activeRoundNumber: null,
     activeRoundOpenMatchCount: 0,
@@ -1572,7 +1594,7 @@ export function CreatePanels() {
 
   async function handleTournamentSubmit(event) {
     event.preventDefault();
-    const isParallelMode = tournamentForm.resultMode === "parallel_full_ranking";
+    const isParallelMode = isParallelResultMode(tournamentForm.resultMode);
     const actionKey = isParallelMode ? "create-parallel-tournament" : "create-tournament";
 
     if (isActionPending(actionKey)) {
@@ -1593,6 +1615,7 @@ export function CreatePanels() {
           ...tournamentForm,
           ...(isParallelMode
             ? {
+                resultMode: tournamentForm.resultMode,
                 tieBreakMode: tournamentForm.tieBreakMode
               }
             : {
@@ -1770,6 +1793,7 @@ export function CreatePanels() {
           sharingMode: draft.sharingMode || tournament.sharingMode || "private",
           visibility: draft.visibility || tournament.visibility || "private",
           votingAccess: draft.votingAccess || tournament.votingAccess || "signed_in_only",
+          resultMode: draft.resultMode || tournament.resultMode || "parallel_full_ranking",
           tieBreakMode: draft.tieBreakMode || tournament.tieBreakMode || "higher_seed_wins"
         })
       });
@@ -2048,7 +2072,7 @@ export function CreatePanels() {
         })
       : null;
 
-    if (tournament && bracketDraft?.resultMode === "parallel_full_ranking" && tournament.kind !== "parallel_parent") {
+    if (tournament && isParallelResultMode(bracketDraft?.resultMode) && tournament.kind !== "parallel_parent") {
       beginAction(actionKey);
       setErrorMessage("");
       setSuccessMessage("");
@@ -3380,7 +3404,7 @@ export function CreatePanels() {
                             <div>
                               <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--muted)]">
                                 {bracketDraft.playStyle.replace("_", " ")} {" / "}
-                                {bracketDraft.resultMode.replace("_", " ")} {" / "}
+                                {formatBracketRuleLabel(bracketDraft.resultMode)} {" / "}
                                 {bracketDraft.tieBreakMode.replace("_", " ")}
                               </p>
                               {isPublishedTournament ? (
@@ -3406,22 +3430,9 @@ export function CreatePanels() {
                           </div>
                           {rulesExpanded && !isPublishedTournament ? (
                       <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                        <div className="space-y-2">
-                          <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.18em] text-[var(--accent-3)]">
-                            <span>Bracket Style</span>
-                            <button
-                              type="button"
-                              title="Fixed Bracket keeps the original tree. Reseed reorders survivors each round."
-                              className="cursor-help border border-[var(--line)] px-2 py-0.5 text-[10px] text-[var(--muted)]"
-                            >
-                              ?
-                            </button>
-                          </div>
-                          <select
-                            aria-label="Bracket Style"
-                            value={bracketDraft.playStyle}
-                            onChange={(event) => {
-                              const playStyle = event.target.value;
+                        <BracketStyleField
+                          value={bracketDraft.playStyle}
+                          onChange={(playStyle) => {
                               setTournamentInlineDrafts((current) => ({
                                 ...current,
                                 [tournament.id]: {
@@ -3430,30 +3441,13 @@ export function CreatePanels() {
                                 }
                               }));
                               updateTournamentInline(tournament.id, { playStyle }, { silent: false });
-                            }}
-                            className="ui-field ui-field-panel ui-field-select"
-                          >
-                            <option value="fixed_bracket">Fixed Bracket</option>
-                            <option value="reseed">Reseed</option>
-                          </select>
-                        </div>
-                        <div className="space-y-2">
-                          <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.18em] text-[var(--accent-3)]">
-                            <span>Result Mode</span>
-                            <button
-                              type="button"
-                              title="Winner Only crowns a champion. Full Ranking keeps going until every place is set. Fast Full Rank uses swiss-style rounds to reduce drag. Parallel Full Ranking gives each participant a personal full-ranking bracket and averages the final ranks."
-                              className="cursor-help border border-[var(--line)] px-2 py-0.5 text-[10px] text-[var(--muted)]"
-                            >
-                              ?
-                            </button>
-                          </div>
-                          <select
-                            aria-label="Result Mode"
-                            value={bracketDraft.resultMode}
-                            disabled={isParallelParent}
-                            onChange={(event) => {
-                              const resultMode = event.target.value;
+                          }}
+                          className="ui-field ui-field-panel ui-field-select"
+                        />
+                        <ResultModeField
+                          value={bracketDraft.resultMode}
+                          isParallelParent={isParallelParent}
+                          onChange={(resultMode) => {
                               setTournamentInlineDrafts((current) => ({
                                 ...current,
                                 [tournament.id]: {
@@ -3461,28 +3455,16 @@ export function CreatePanels() {
                                   resultMode
                                 }
                               }));
-                              if (resultMode !== "parallel_full_ranking") {
+                              if (!isParallelResultMode(resultMode)) {
                                 updateTournamentInline(
                                   tournament.id,
                                   { resultMode },
                                   { silent: false }
                                 );
                               }
-                            }}
-                            className="ui-field ui-field-panel ui-field-select"
-                          >
-                            {isParallelParent ? (
-                              <option value="parallel_full_ranking">Parallel Full Ranking</option>
-                            ) : (
-                              <>
-                                <option value="winner_only">Winner Only</option>
-                                <option value="full_ranking">Full Ranking</option>
-                                <option value="fast_full_rank">Fast Full Rank</option>
-                                <option value="parallel_full_ranking">Parallel Full Ranking</option>
-                              </>
-                            )}
-                          </select>
-                        </div>
+                          }}
+                          className="ui-field ui-field-panel ui-field-select"
+                        />
                         <div className="space-y-2">
                           <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.18em] text-[var(--accent-3)]">
                             <span>Tie Break</span>
@@ -3895,81 +3877,98 @@ export function CreatePanels() {
                     </>
                     ) : (
                       <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-3">
-                        <p className="text-sm uppercase tracking-[0.14em] text-[var(--muted)]">
-                          {describeTournamentAudienceMode(tournament)} {" / "}
-                          {(tournament.playStyle || "fixed_bracket").replaceAll("_", " ")} {" / "}
-                          {(tournament.resultMode || "winner_only").replaceAll("_", " ")} {" / "}
-                          {tournament.entryCount} entries
-                        </p>
-                        {!isPublishedTournament ? (
-                          <button
-                            type="button"
-                            onClick={() => setExpandedDraftTournamentId(tournament.id)}
-                            className="ui-button ui-button-accent"
-                          >
-                            Edit Draft
-                          </button>
-                        ) : null}
-                        <button
-                          type="button"
-                          onClick={() => handleStartTournament(tournament.id)}
-                          disabled={!canStartBracket || isActionPending(`start-tournament:${tournament.id}`)}
-                          className="ui-button ui-button-primary"
-                        >
-                          {isActionPending(`start-tournament:${tournament.id}`) ? "Starting" : "Start Bracket"}
-                        </button>
+                        <TournamentMetaRow
+                          separator="slash"
+                          className="flex flex-wrap gap-2 text-sm uppercase tracking-[0.14em] text-[var(--muted)]"
+                          items={[
+                            describeTournamentAudienceMode(tournament),
+                            formatBracketRuleLabel(tournament.playStyle || "fixed_bracket"),
+                            formatBracketRuleLabel(tournament.resultMode || "winner_only"),
+                            `${tournament.entryCount} entries`
+                          ]}
+                        />
+                        <TournamentActionGroup
+                          layout="row"
+                          className="lg:justify-start"
+                          actions={[
+                            !isPublishedTournament
+                              ? {
+                                  key: `edit-draft:${tournament.id}`,
+                                  label: "Edit Draft",
+                                  onClick: () => setExpandedDraftTournamentId(tournament.id),
+                                  className: "ui-button ui-button-accent"
+                                }
+                              : null,
+                            {
+                              key: `start:${tournament.id}`,
+                              label: isActionPending(`start-tournament:${tournament.id}`) ? "Starting" : "Start Bracket",
+                              onClick: () => handleStartTournament(tournament.id),
+                              disabled:
+                                !canStartBracket || isActionPending(`start-tournament:${tournament.id}`),
+                              className: "ui-button ui-button-primary"
+                            }
+                          ]}
+                        />
                       </div>
                     )
                   ) : tournament.status === "active" ? (
                     isParallelParent ? (
                     <div className="mt-4 grid gap-4 xl:grid-cols-[14rem_minmax(0,1fr)] xl:items-start">
-                      <div className="flex flex-col gap-3">
-                        <Link
-                          href={primaryParallelActionHref}
-                          className="cta-link ui-button ui-button-primary w-full"
-                        >
-                          {primaryParallelActionLabel}
-                        </Link>
-                        <Link
-                          href={`/results/${tournament.id}`}
-                          className="ui-button ui-button-accent w-full"
-                        >
-                          Results
-                        </Link>
-                        {canCopyBracketLink(tournament) ? (
-                          <button
-                            type="button"
-                            onClick={() => handleCopyShareLink(tournament.id)}
-                            disabled={
-                              tournament.sharingMode === "with_friends" &&
-                              isActionPending(`share-link:${tournament.id}`)
-                            }
-                            className="ui-button ui-button-accent w-full"
-                          >
-                            {tournament.sharingMode === "with_friends"
-                              ? activeShareLink
-                                ? "Copy Link"
-                                : "Preparing"
-                              : "Copy Link"}
-                          </button>
-                        ) : null}
-                        <button
-                          type="button"
-                          onClick={() => updateTournamentInline(tournament.id, { status: "complete" }, { silent: false })}
-                          disabled={isActionPending(`update-tournament:${tournament.id}`)}
-                          className="ui-button ui-button-muted w-full"
-                        >
-                          {isActionPending(`update-tournament:${tournament.id}`) ? "Closing" : "Close Bracket"}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleArchiveTournament(tournament.id, tournament.title)}
-                          disabled={isActionPending(`archive-tournament:${tournament.id}`)}
-                          className="ui-button ui-button-muted w-full"
-                        >
-                          {isActionPending(`archive-tournament:${tournament.id}`) ? "Archiving" : "Archive"}
-                        </button>
-                      </div>
+                      <TournamentActionGroup
+                        actions={[
+                          {
+                            key: `parallel-primary:${tournament.id}`,
+                            href: primaryParallelActionHref,
+                            label: primaryParallelActionLabel,
+                            className: "cta-link ui-button ui-button-primary w-full"
+                          },
+                          {
+                            key: `parallel-results:${tournament.id}`,
+                            href: `/results/${tournament.id}`,
+                            label: "Results",
+                            className: "ui-button ui-button-accent w-full"
+                          },
+                          canCopyBracketLink(tournament)
+                            ? {
+                                key: `parallel-copy:${tournament.id}`,
+                                label:
+                                  tournament.sharingMode === "with_friends"
+                                    ? activeShareLink
+                                      ? "Copy Link"
+                                      : "Preparing"
+                                    : "Copy Link",
+                                onClick: () => handleCopyShareLink(tournament.id),
+                                disabled:
+                                  tournament.sharingMode === "with_friends" &&
+                                  isActionPending(`share-link:${tournament.id}`),
+                                className: "ui-button ui-button-accent w-full"
+                              }
+                            : null,
+                          {
+                            key: `parallel-close:${tournament.id}`,
+                            label: isActionPending(`update-tournament:${tournament.id}`)
+                              ? "Closing"
+                              : "Close Bracket",
+                            onClick: () =>
+                              updateTournamentInline(
+                                tournament.id,
+                                { status: "complete" },
+                                { silent: false }
+                              ),
+                            disabled: isActionPending(`update-tournament:${tournament.id}`),
+                            className: "ui-button ui-button-muted w-full"
+                          },
+                          {
+                            key: `parallel-archive:${tournament.id}`,
+                            label: isActionPending(`archive-tournament:${tournament.id}`)
+                              ? "Archiving"
+                              : "Archive",
+                            onClick: () => handleArchiveTournament(tournament.id, tournament.title),
+                            disabled: isActionPending(`archive-tournament:${tournament.id}`),
+                            className: "ui-button ui-button-muted w-full"
+                          }
+                        ]}
+                      />
                       <div>
                         <div className="border border-[var(--line)] bg-[var(--panel)] p-4">
                           <div className="flex flex-wrap items-start justify-between gap-4">
@@ -3991,17 +3990,16 @@ export function CreatePanels() {
                             </div>
                           </div>
                         </div>
-                        <div className="mt-3 flex flex-wrap gap-2 text-[11px] uppercase tracking-[0.18em] text-[var(--muted)]">
-                          <span>{describeTournamentAudienceMode(tournament)}</span>
-                          <span>•</span>
-                          <span>{formatBracketRuleLabel(tournament.resultMode)}</span>
-                          <span>•</span>
-                          <span>{formatBracketRuleLabel(tournament.tieBreakMode)}</span>
-                          <span>•</span>
-                          <span>{tournament.entryCount} entries</span>
-                          <span>•</span>
-                          <span>{tournament.participantCount ?? 0} participants</span>
-                        </div>
+                        <TournamentMetaRow
+                          className="mt-3 flex flex-wrap gap-2 text-[11px] uppercase tracking-[0.18em] text-[var(--muted)]"
+                          items={[
+                            describeTournamentAudienceMode(tournament),
+                            formatBracketRuleLabel(tournament.resultMode),
+                            formatBracketRuleLabel(tournament.tieBreakMode),
+                            `${tournament.entryCount} entries`,
+                            `${tournament.participantCount ?? 0} participants`
+                          ]}
+                        />
                         {invitees.length > 0 ? (
                           <div className="mt-4 space-y-2">
                             {invitees.map((invite) => (
@@ -4030,67 +4028,66 @@ export function CreatePanels() {
                     </div>
                     ) : (
                     <div className="mt-4 grid gap-4 xl:grid-cols-[14rem_minmax(0,1fr)] xl:items-start">
-                      <div className="flex flex-col gap-3">
-                        {hasOpenVotes ? (
-                          <Link
-                            href={`/vote?tournament=${tournament.id}&returnTo=create`}
-                            className="cta-link ui-button ui-button-primary w-full"
-                          >
-                            Vote Now
-                          </Link>
-                        ) : (
-                          <button
-                            type="button"
-                            disabled
-                            className="ui-button ui-button-primary w-full"
-                          >
-                            No Open Matches
-                          </button>
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => handleCloseCurrentRound(tournament.id)}
-                          disabled={isActionPending(`close-round:${tournament.id}`)}
-                          className="ui-button ui-button-muted w-full"
-                        >
-                          {isActionPending(`close-round:${tournament.id}`)
-                            ? "Closing Round"
-                            : "Close Current Round"}
-                        </button>
-                        {canCopyBracketLink(tournament) ? (
-                          <button
-                            type="button"
-                            onClick={() => handleCopyShareLink(tournament.id)}
-                            disabled={
-                              tournament.sharingMode === "with_friends" &&
-                              isActionPending(`share-link:${tournament.id}`)
-                            }
-                            className="ui-button ui-button-accent w-full"
-                          >
-                            {tournament.sharingMode === "with_friends"
-                              ? activeShareLink
-                                ? "Copy Link"
-                                : "Preparing"
-                              : "Copy Link"}
-                          </button>
-                        ) : null}
-                        <button
-                          type="button"
-                          onClick={() => handleRerunTournament(tournament.id)}
-                          disabled={isActionPending(`rerun-tournament:${tournament.id}`)}
-                          className="ui-button ui-button-accent w-full"
-                        >
-                          {isActionPending(`rerun-tournament:${tournament.id}`) ? "Creating" : "Rerun"}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleArchiveTournament(tournament.id, tournament.title)}
-                          disabled={isActionPending(`archive-tournament:${tournament.id}`)}
-                          className="ui-button ui-button-muted w-full"
-                        >
-                          {isActionPending(`archive-tournament:${tournament.id}`) ? "Archiving" : "Archive"}
-                        </button>
-                      </div>
+                      <TournamentActionGroup
+                        actions={[
+                          hasOpenVotes
+                            ? {
+                                key: `vote:${tournament.id}`,
+                                href: `/vote?tournament=${tournament.id}&returnTo=create`,
+                                label: "Vote Now",
+                                className: "cta-link ui-button ui-button-primary w-full"
+                              }
+                            : {
+                                key: `no-open:${tournament.id}`,
+                                label: "No Open Matches",
+                                disabled: true,
+                                className: "ui-button ui-button-primary w-full"
+                              },
+                          {
+                            key: `close-round:${tournament.id}`,
+                            label: isActionPending(`close-round:${tournament.id}`)
+                              ? "Closing Round"
+                              : "Close Current Round",
+                            onClick: () => handleCloseCurrentRound(tournament.id),
+                            disabled: isActionPending(`close-round:${tournament.id}`),
+                            className: "ui-button ui-button-muted w-full"
+                          },
+                          canCopyBracketLink(tournament)
+                            ? {
+                                key: `copy:${tournament.id}`,
+                                label:
+                                  tournament.sharingMode === "with_friends"
+                                    ? activeShareLink
+                                      ? "Copy Link"
+                                      : "Preparing"
+                                    : "Copy Link",
+                                onClick: () => handleCopyShareLink(tournament.id),
+                                disabled:
+                                  tournament.sharingMode === "with_friends" &&
+                                  isActionPending(`share-link:${tournament.id}`),
+                                className: "ui-button ui-button-accent w-full"
+                              }
+                            : null,
+                          {
+                            key: `rerun:${tournament.id}`,
+                            label: isActionPending(`rerun-tournament:${tournament.id}`)
+                              ? "Creating"
+                              : "Rerun",
+                            onClick: () => handleRerunTournament(tournament.id),
+                            disabled: isActionPending(`rerun-tournament:${tournament.id}`),
+                            className: "ui-button ui-button-accent w-full"
+                          },
+                          {
+                            key: `archive:${tournament.id}`,
+                            label: isActionPending(`archive-tournament:${tournament.id}`)
+                              ? "Archiving"
+                              : "Archive",
+                            onClick: () => handleArchiveTournament(tournament.id, tournament.title),
+                            disabled: isActionPending(`archive-tournament:${tournament.id}`),
+                            className: "ui-button ui-button-muted w-full"
+                          }
+                        ]}
+                      />
                       <div>
                         <div className="border border-[var(--line)] bg-[var(--panel)] p-4">
                           <div className="flex flex-wrap items-start justify-between gap-4">
@@ -4166,15 +4163,15 @@ export function CreatePanels() {
                             ) : null}
                           </div>
                         </div>
-                        <div className="mt-3 flex flex-wrap gap-2 text-[11px] uppercase tracking-[0.18em] text-[var(--muted)]">
-                          <span>{describeTournamentAudienceMode(tournament)}</span>
-                          <span>•</span>
-                          <span>{formatBracketRuleLabel(tournament.playStyle)}</span>
-                          <span>•</span>
-                          <span>{formatBracketRuleLabel(tournament.resultMode)}</span>
-                          <span>•</span>
-                          <span>{formatBracketRuleLabel(tournament.tieBreakMode)}</span>
-                        </div>
+                        <TournamentMetaRow
+                          className="mt-3 flex flex-wrap gap-2 text-[11px] uppercase tracking-[0.18em] text-[var(--muted)]"
+                          items={[
+                            describeTournamentAudienceMode(tournament),
+                            formatBracketRuleLabel(tournament.playStyle),
+                            formatBracketRuleLabel(tournament.resultMode),
+                            formatBracketRuleLabel(tournament.tieBreakMode)
+                          ]}
+                        />
                       </div>
                     </div>
                     )
@@ -4188,72 +4185,79 @@ export function CreatePanels() {
                           </p>
                         ) : null}
                         {hasSourcePool ? (
-                          <div className="flex flex-wrap gap-2 text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
-                            <span>{describeTournamentAudienceMode(tournament)}</span>
-                            <span>/</span>
-                            <span>{formatBracketRuleLabel(tournament.playStyle)}</span>
-                            <span>/</span>
-                            <span>{formatBracketRuleLabel(tournament.resultMode)}</span>
-                            <span>/</span>
-                            <span>{formatBracketRuleLabel(tournament.tieBreakMode)}</span>
-                            <span>/</span>
-                            <span>{tournament.entryCount} entries</span>
-                          </div>
+                          <TournamentMetaRow
+                            separator="slash"
+                            className="flex flex-wrap gap-2 text-xs uppercase tracking-[0.18em] text-[var(--muted)]"
+                            items={[
+                              describeTournamentAudienceMode(tournament),
+                              formatBracketRuleLabel(tournament.playStyle),
+                              formatBracketRuleLabel(tournament.resultMode),
+                              formatBracketRuleLabel(tournament.tieBreakMode),
+                              `${tournament.entryCount} entries`
+                            ]}
+                          />
                         ) : null}
                       </div>
-                      <div className="flex flex-wrap gap-3 lg:justify-end">
-                          {canCopyBracketLink(tournament) ? (
-                            <button
-                              type="button"
-                              onClick={() => handleCopyShareLink(tournament.id)}
-                              disabled={
-                                tournament.sharingMode === "with_friends" &&
-                                isActionPending(`share-link:${tournament.id}`)
+                      <TournamentActionGroup
+                        layout="row"
+                        actions={[
+                          canCopyBracketLink(tournament)
+                            ? {
+                                key: `complete-copy:${tournament.id}`,
+                                label:
+                                  tournament.sharingMode === "with_friends"
+                                    ? activeShareLink
+                                      ? "Copy Link"
+                                      : "Preparing"
+                                    : "Copy Link",
+                                onClick: () => handleCopyShareLink(tournament.id),
+                                disabled:
+                                  tournament.sharingMode === "with_friends" &&
+                                  isActionPending(`share-link:${tournament.id}`),
+                                className: "ui-button ui-button-accent"
                               }
-                              className="ui-button ui-button-accent"
-                            >
-                              {tournament.sharingMode === "with_friends"
-                                ? activeShareLink
-                                  ? "Copy Link"
-                                  : "Preparing"
-                                : "Copy Link"}
-                            </button>
-                          ) : null}
-                          <Link
-                            href={`/results/${tournament.id}`}
-                            className="ui-button ui-button-accent"
-                          >
-                            Results
-                          </Link>
-                          <button
-                            type="button"
-                            onClick={() => handleRerunTournament(tournament.id)}
-                            disabled={isActionPending(`rerun-tournament:${tournament.id}`)}
-                            className="ui-button ui-button-accent"
-                          >
-                            {isActionPending(`rerun-tournament:${tournament.id}`) ? "Creating" : "Rerun"}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleArchiveTournament(tournament.id, tournament.title)}
-                            disabled={isActionPending(`archive-tournament:${tournament.id}`)}
-                            className="ui-button ui-button-muted"
-                          >
-                            {isActionPending(`archive-tournament:${tournament.id}`) ? "Archiving" : "Archive"}
-                          </button>
-                      </div>
+                            : null,
+                          {
+                            key: `complete-results:${tournament.id}`,
+                            href: `/results/${tournament.id}`,
+                            label: "Results",
+                            className: "ui-button ui-button-accent"
+                          },
+                          {
+                            key: `complete-rerun:${tournament.id}`,
+                            label: isActionPending(`rerun-tournament:${tournament.id}`)
+                              ? "Creating"
+                              : "Rerun",
+                            onClick: () => handleRerunTournament(tournament.id),
+                            disabled: isActionPending(`rerun-tournament:${tournament.id}`),
+                            className: "ui-button ui-button-accent"
+                          },
+                          {
+                            key: `complete-archive:${tournament.id}`,
+                            label: isActionPending(`archive-tournament:${tournament.id}`)
+                              ? "Archiving"
+                              : "Archive",
+                            onClick: () => handleArchiveTournament(tournament.id, tournament.title),
+                            disabled: isActionPending(`archive-tournament:${tournament.id}`),
+                            className: "ui-button ui-button-muted"
+                          }
+                        ]}
+                      />
                     </div>
                   ) : null}
                   {tournament.status !== "complete" && hasSourcePool && !isDraftExpanded ? (
-                  <div className="mt-4 flex flex-wrap gap-2 text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
-                    <span>{describeTournamentAudienceMode(tournament)}</span>
-                    <span>/</span>
-                    <span>{formatBracketRuleLabel(tournament.playStyle)}</span>
-                    <span>/</span>
-                    <span>{formatBracketRuleLabel(tournament.resultMode)}</span>
-                    <span>/</span>
-                    <span>{tournament.entryCount} entries</span>
-                  </div>
+                        <div className="mt-4">
+                          <TournamentMetaRow
+                            separator="slash"
+                            className="flex flex-wrap gap-2 text-xs uppercase tracking-[0.18em] text-[var(--muted)]"
+                            items={[
+                              describeTournamentAudienceMode(tournament),
+                              formatBracketRuleLabel(tournament.playStyle),
+                              formatBracketRuleLabel(tournament.resultMode),
+                              `${tournament.entryCount} entries`
+                            ]}
+                          />
+                        </div>
                   ) : null}
                   </div>
                 );
@@ -4528,64 +4532,23 @@ export function CreatePanels() {
                   <div className="sm:col-span-2">
                     <TournamentPublishWarning visibility={tournamentForm.visibility} />
                   </div>
-                  {tournamentForm.resultMode !== "parallel_full_ranking" ? (
-                  <div className="block space-y-2">
-                    <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.18em] text-[var(--accent-3)]">
-                      <span className="pointer-events-none">Bracket Style</span>
-                      <button
-                        type="button"
-                        title="Fixed Bracket keeps the original tree. Reseed reorders survivors each round."
-                        className="cursor-help border border-[var(--line)] px-2 py-0.5 text-[10px] text-[var(--muted)]"
-                      >
-                        ?
-                      </button>
-                    </div>
-                    <select
-                      aria-label="Bracket Style"
-                      value={tournamentForm.playStyle}
-                      onChange={(event) =>
-                        setTournamentForm((current) => ({ ...current, playStyle: event.target.value }))
-                      }
-                      className="ui-field ui-field-modal ui-field-select"
-                    >
-                      <option value="fixed_bracket">Fixed Bracket</option>
-                      <option value="reseed">Reseed</option>
-                    </select>
-                  </div>
+                  {usesBracketStyleForResultMode(tournamentForm.resultMode) ? (
+                  <BracketStyleField
+                    value={tournamentForm.playStyle}
+                    onChange={(playStyle) =>
+                      setTournamentForm((current) => ({ ...current, playStyle }))
+                    }
+                    className="ui-field ui-field-modal ui-field-select"
+                  />
                   ) : null}
-                  <div className="block space-y-2">
-                    <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.18em] text-[var(--accent-3)]">
-                      <span className="pointer-events-none">Result Mode</span>
-                      <button
-                        type="button"
-                        title="Winner Only crowns a champion. Full Ranking keeps going until every place is set. Parallel Full Ranking gives each participant their own personal full-ranking bracket and averages the final ranks."
-                        className="cursor-help border border-[var(--line)] px-2 py-0.5 text-[10px] text-[var(--muted)]"
-                      >
-                        ?
-                      </button>
-                    </div>
-                    <select
-                      aria-label="Result Mode"
-                      value={tournamentForm.resultMode}
-                      onChange={(event) =>
-                        setTournamentForm((current) => ({ ...current, resultMode: event.target.value }))
-                      }
-                      className="ui-field ui-field-modal ui-field-select"
-                    >
-                      <option value="winner_only">Winner Only</option>
-                      <option value="full_ranking">Full Ranking</option>
-                      <option value="fast_full_rank">Fast Full Rank</option>
-                      <option value="parallel_full_ranking">Parallel Full Ranking</option>
-                    </select>
-                  </div>
-                  {tournamentForm.resultMode === "parallel_full_ranking" ? (
-                    <div className="sm:col-span-2">
-                      <p className="border border-[var(--line)] bg-[var(--panel-2)] px-4 py-3 text-xs leading-6 text-[var(--muted)]">
-                        Each participant completes a personal full-ranking bracket from this pool.
-                        Final results are aggregated from those completed rankings.
-                      </p>
-                    </div>
-                  ) : null}
+                  <ResultModeField
+                    value={tournamentForm.resultMode}
+                    onChange={(resultMode) =>
+                      setTournamentForm((current) => ({ ...current, resultMode }))
+                    }
+                    className="ui-field ui-field-modal ui-field-select"
+                  />
+                  <ParallelResultModeNotice resultMode={tournamentForm.resultMode} />
                   <div className="block space-y-2">
                     <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.18em] text-[var(--accent-3)]">
                       <span className="pointer-events-none">Tie Break</span>

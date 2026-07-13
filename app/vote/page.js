@@ -33,7 +33,7 @@ function normalizeParallelTournamentForVoteIndex(item) {
     visibility: item.visibility,
     votingAccess: item.votingAccess,
     playStyle: "fixed_bracket",
-    resultMode: "parallel_full_ranking",
+    resultMode: item.resultMode || "parallel_full_ranking",
     tieBreakMode: item.tieBreakMode,
     status: item.status,
     startedAt: item.startedAt,

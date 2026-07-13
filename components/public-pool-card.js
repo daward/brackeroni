@@ -273,14 +273,14 @@ export function PublicPoolCard({
                 disabled={isCreatingFavoriteBracket}
                 className="home-pool-card-action ui-button ui-button-highlight"
               >
-                {isCreatingFavoriteBracket ? "Creating" : "Choose Your Favorite"}
+                {isCreatingFavoriteBracket ? "Creating" : "Find Your Favorite"}
               </button>
             ) : (
               <Link
                 href={signInHref}
                 className="home-pool-card-action ui-button ui-button-highlight"
               >
-                Choose Your Favorite
+                Find Your Favorite
               </Link>
             )}
           </div>

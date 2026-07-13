@@ -261,7 +261,7 @@ Core fields:
 5. `sourcePoolId` nullable
 6. `sharingMode` enum: `private`, `with_friends`
 7. `playStyle` enum: `reseed`, `fixed_bracket`
-8. `resultMode` enum: `winner_only`, `full_ranking`, `fast_full_rank`
+8. `resultMode` enum: `winner_only`, `full_ranking`, `partial_ranking`, `fast_full_rank`, plus parallel parent values `parallel_full_ranking` and `parallel_partial_ranking`
 9. `tieBreakMode` enum: `higher_seed_wins`, `random`
 10. `status` enum: `draft`, `active`, `complete`
 11. `roundClosureMode` enum: `manual`, `all_votes_received`, `automatic_when_settled`

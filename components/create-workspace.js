@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { SectionCard } from "@/components/section-card";
+import { STANDARD_RESULT_MODES, formatResultModeLabel } from "@/lib/bracket-modes";
 
 const emptyCandidateForm = {
   name: "",
@@ -453,9 +454,11 @@ export function CreateWorkspace() {
                   }
                   className="w-full border border-[var(--line)] bg-[var(--panel-2)] px-4 py-3 text-sm text-[var(--ink)] outline-none focus:border-[var(--accent)]"
                 >
-                  <option value="winner_only">Winner Only</option>
-                  <option value="full_ranking">Full Ranking</option>
-                  <option value="fast_full_rank">Fast Full Rank</option>
+                  {STANDARD_RESULT_MODES.map((mode) => (
+                    <option key={mode} value={mode}>
+                      {formatResultModeLabel(mode)}
+                    </option>
+                  ))}
                 </select>
                 <select
                   value={tournamentForm.tieBreakMode}

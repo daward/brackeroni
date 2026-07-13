@@ -5,6 +5,10 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { BackdropRemoteImage } from "@/components/resilient-remote-image";
 import { TournamentResultsPage } from "@/components/tournament-results-page";
+import {
+  usesOpenEndedRankingMode,
+  usesSwissResultMode
+} from "@/lib/bracket-modes";
 
 const LAST_OPEN_VOTE_TOURNAMENT_KEY = "brackeroni-last-open-vote-tournament";
 
@@ -36,12 +40,12 @@ function getTournamentRoundCount(tournament) {
     return 0;
   }
 
-  if (tournament.resultMode === "fast_full_rank") {
+  if (usesSwissResultMode(tournament.resultMode)) {
     const hardCap = entryCount - 1 + (entryCount % 2 === 1 ? 1 : 0);
     return Math.min(hardCap, Math.ceil(Math.log2(entryCount)) + 1);
   }
 
-  if (tournament.resultMode === "full_ranking") {
+  if (usesOpenEndedRankingMode(tournament.resultMode)) {
     return null;
   }
 
@@ -49,13 +53,13 @@ function getTournamentRoundCount(tournament) {
 }
 
 function formatRoundLabel(match, tournament) {
-  if (tournament.resultMode === "full_ranking") {
+  if (usesOpenEndedRankingMode(tournament.resultMode)) {
     return `Ranking ${match.rankingTargetRank}: Round ${match.rankingRoundNumber}`;
   }
 
   const totalRounds = getTournamentRoundCount(tournament);
 
-  if (tournament.resultMode === "fast_full_rank") {
+  if (usesSwissResultMode(tournament.resultMode)) {
     return totalRounds
       ? `Swiss Round ${match.roundNumber} of ${totalRounds}`
       : `Swiss Round ${match.roundNumber}`;

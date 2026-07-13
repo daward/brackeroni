@@ -2,6 +2,10 @@
 
 import { useState } from "react";
 import { BackdropRemoteImage } from "@/components/resilient-remote-image";
+import {
+  formatResultModeLabel,
+  usesOpenEndedRankingMode
+} from "@/lib/bracket-modes";
 
 const AGGREGATE_SORT_OPTIONS = {
   aggregateRank: { key: "finalRank", direction: "asc" },
@@ -33,7 +37,7 @@ function formatSignedRankDiff(value) {
 }
 
 function formatRoundLabel(match, tournament) {
-  if (tournament.resultMode === "full_ranking" || tournament.resultMode === "parallel_full_ranking") {
+  if (usesOpenEndedRankingMode(tournament.resultMode)) {
     return `Ranking ${match.rankingTargetRank}: Round ${match.rankingRoundNumber}`;
   }
 
@@ -463,7 +467,8 @@ export function ParallelResultsPage({
               <p className="results-kicker">Bracket Results</p>
               <h1 className="results-title">{tournament.title}</h1>
               <p className="results-meta">
-                Parallel full ranking | {aggregateEntries.length} ranked entries | {progressLabel}
+                {formatResultModeLabel(tournament.resultMode)} | {aggregateEntries.length} ranked
+                entries | {progressLabel}
               </p>
               <p className="results-meta">
                 {hasOpenBallots
