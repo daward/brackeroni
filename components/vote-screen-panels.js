@@ -471,6 +471,11 @@ export function VoteScreenPanels({
 
   function handleSelectTournament(tournament) {
     if (tournament.kind === "parallel_parent") {
+      if (tournament.viewerParticipantStatus === "complete") {
+        router.push(buildResultsUrl(tournament));
+        return;
+      }
+
       const returnToParam = initialReturnTo ? `&returnTo=${initialReturnTo}` : "";
       router.push(`/vote?parallelTournament=${tournament.id}${returnToParam}`);
       return;
@@ -836,6 +841,9 @@ function TournamentListSection({
     <div className="space-y-0">
       {tournaments.map((tournament) => {
         const openMatches = openMatchesForTournament(tournament);
+        const viewerCompletedParallel =
+          tournament.kind === "parallel_parent" &&
+          tournament.viewerParticipantStatus === "complete";
 
         return (
           <div
@@ -857,10 +865,10 @@ function TournamentListSection({
               <button
                 type="button"
                 onClick={() => onSelectTournament(tournament)}
-                disabled={openMatches.length === 0}
+                disabled={!viewerCompletedParallel && openMatches.length === 0}
                 className="ui-button ui-button-primary"
               >
-                Vote
+                {viewerCompletedParallel ? "Results" : "Vote"}
               </button>
             </div>
           </div>

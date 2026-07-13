@@ -3,19 +3,48 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
-import { ResilientRemoteImage } from "@/components/resilient-remote-image";
 import { SectionCard } from "@/components/section-card";
+import { SeedingModal } from "@/components/seeding-modal";
 import {
   BracketStyleField,
   ParallelResultModeNotice,
   ResultModeField
 } from "@/components/bracket-config-fields";
 import {
-  TournamentActionGroup,
+  CandidateManagerPanel,
+  CandidatePreviewChips
+} from "@/components/candidate-manager-panel";
+import {
+  buildDirectBracketSharePath,
+  buildPoolImportPrompt,
+  canCopyBracketLink,
+  describePoolVisibility,
+  describeTournamentAudienceMode,
+  describeTournamentVisibility,
+  formatBracketDate,
+  formatBracketRuleLabel,
+  getTournamentAudienceMode,
+  getTournamentAudiencePatch,
+  InlineTitleField,
+  isPublicBracketVisibility,
+  isStrongSuggestedImageMatch,
+  normalizeParallelBracketItem,
+  PoolPublishWarning,
+  sortManagedBrackets,
+  sortManagedPools,
+  TournamentPublishWarning
+} from "@/components/create-panel-helpers";
+import {
   TournamentMetaRow
 } from "@/components/tournament-management";
+import { TournamentManagementCard } from "@/components/tournament-management-card";
 import {
-  formatResultModeLabel,
+  ActiveParallelTournamentSection,
+  ActiveStandardTournamentSection,
+  CollapsedDraftTournamentSection,
+  CompletedTournamentSection
+} from "@/components/tournament-status-sections";
+import {
   isParallelResultMode,
   usesBracketStyleForResultMode
 } from "@/lib/bracket-modes";
@@ -49,620 +78,6 @@ const emptyTournamentForm = {
   resultMode: "winner_only",
   tieBreakMode: "higher_seed_wins"
 };
-
-function describePoolVisibility(visibility) {
-  if (visibility === "public_listed") {
-    return "Published";
-  }
-
-  if (visibility === "public_unlisted") {
-    return "Published Unlisted";
-  }
-
-  return "Private Draft";
-}
-
-function PoolPublishWarning({ visibility }) {
-  if (visibility === "private") {
-    return null;
-  }
-
-  return (
-    <p className="border border-[var(--accent-2)] bg-[var(--panel-2)] px-4 py-3 text-xs leading-6 text-[var(--accent-2)]">
-      Publishing locks this pool. After it is published, only an admin can change its contents or
-      settings.
-    </p>
-  );
-}
-
-function describeTournamentVisibility(visibility) {
-  if (visibility === "public_listed") {
-    return "Public";
-  }
-
-  if (visibility === "public_unlisted") {
-    return "Public Unlisted";
-  }
-
-  return "Private Draft";
-}
-
-function getTournamentAudienceMode({ sharingMode, visibility }) {
-  if (visibility === "public_listed") {
-    return "public_listed";
-  }
-
-  if (visibility === "public_unlisted") {
-    return "public_unlisted";
-  }
-
-  if (sharingMode === "with_friends") {
-    return "with_friends";
-  }
-
-  return "private";
-}
-
-function describeTournamentAudienceMode({ sharingMode, visibility }) {
-  const audienceMode = getTournamentAudienceMode({ sharingMode, visibility });
-
-  if (audienceMode === "with_friends") {
-    return "Friends";
-  }
-
-  if (audienceMode === "public_listed") {
-    return "Public";
-  }
-
-  if (audienceMode === "public_unlisted") {
-    return "Public Unlisted";
-  }
-
-  return "Private";
-}
-
-function getTournamentAudiencePatch(audienceMode) {
-  if (audienceMode === "with_friends") {
-    return {
-      sharingMode: "with_friends",
-      visibility: "private"
-    };
-  }
-
-  if (audienceMode === "public_listed") {
-    return {
-      sharingMode: "private",
-      visibility: "public_listed"
-    };
-  }
-
-  if (audienceMode === "public_unlisted") {
-    return {
-      sharingMode: "private",
-      visibility: "public_unlisted"
-    };
-  }
-
-  return {
-    sharingMode: "private",
-    visibility: "private"
-  };
-}
-
-function TournamentPublishWarning({ visibility }) {
-  if (visibility === "private") {
-    return null;
-  }
-
-  return (
-    <p className="border border-[var(--accent-2)] bg-[var(--panel-2)] px-4 py-3 text-xs leading-6 text-[var(--accent-2)]">
-      Public brackets stay editable until you start them. Starting the bracket publishes it and
-      locks further create changes.
-    </p>
-  );
-}
-
-function buildPoolImportPrompt(poolName) {
-  const trimmedName = poolName.trim();
-  const subject = trimmedName ? `"${trimmedName}"` : "the target pool";
-
-  return [
-    `Extract a candidate pool for ${subject}.`,
-    "Be exhaustive rather than selective.",
-    "If the source is a bulleted or numbered list, treat each distinct bullet or list item as a candidate unless it is clearly not one.",
-    "Return distinct candidate names only when they are directly supported by the source text.",
-    "Prefer canonical names over aliases.",
-    "Do not invent candidates or fill gaps with guesses.",
-    "If the same candidate appears more than once, include it once.",
-    "Keep rationale and excerpt very short so the full list can fit in the response."
-  ].join(" ");
-}
-
-function normalizeImageMatchText(value) {
-  return String(value || "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, " ")
-    .trim();
-}
-
-function isStrongSuggestedImageMatch(candidateName, suggestion) {
-  const normalizedCandidateName = normalizeImageMatchText(candidateName);
-  const normalizedTitle = normalizeImageMatchText(suggestion?.title);
-
-  if (!normalizedCandidateName || !normalizedTitle) {
-    return false;
-  }
-
-  if (
-    normalizedTitle === normalizedCandidateName ||
-    normalizedTitle.includes(normalizedCandidateName)
-  ) {
-    return true;
-  }
-
-  const nameTokens = normalizedCandidateName.split(/\s+/).filter(Boolean);
-
-  if (nameTokens.length === 0) {
-    return false;
-  }
-
-  const matchedTokenCount = nameTokens.filter((token) => normalizedTitle.includes(token)).length;
-  const isTrustedSource =
-    suggestion?.source === "Wikipedia" || suggestion?.source === "Wikimedia Commons";
-
-  return isTrustedSource && matchedTokenCount === nameTokens.length;
-}
-
-function formatBracketDate(value) {
-  if (!value) {
-    return null;
-  }
-
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric"
-  }).format(new Date(value));
-}
-
-function formatBracketRuleLabel(value) {
-  const staticLabels = {
-    fixed_bracket: "Fixed Bracket",
-    reseed: "Reseed",
-    higher_seed_wins: "Higher Seed Wins",
-    signed_in_only: "Signed In Only",
-    with_friends: "Friends"
-  };
-
-  return staticLabels[value] || formatResultModeLabel(value);
-}
-
-function isPublicBracketVisibility(visibility) {
-  return visibility === "public_listed" || visibility === "public_unlisted";
-}
-
-function canCopyBracketLink(tournament) {
-  return tournament?.sharingMode === "with_friends" || isPublicBracketVisibility(tournament?.visibility);
-}
-
-function buildDirectBracketSharePath(tournament) {
-  if (!tournament) {
-    return "/";
-  }
-
-  if (tournament.status === "complete") {
-    return `/results/${tournament.id}`;
-  }
-
-  if (tournament.kind === "parallel_parent") {
-    return `/vote?parallelTournament=${tournament.id}`;
-  }
-
-  return `/vote?tournament=${tournament.id}`;
-}
-
-function normalizeParallelBracketItem(item) {
-  return {
-    ...item,
-    kind: "parallel_parent",
-    playStyle: "fixed_bracket",
-    resultMode: item.resultMode || "parallel_full_ranking",
-    entryCount: item.candidateCount ?? 0,
-    activeRoundNumber: null,
-    activeRoundOpenMatchCount: 0,
-    openVoteCount: 0,
-    winnerEntryId: null,
-    winnerName: null,
-    winnerSeed: null
-  };
-}
-
-function sortManagedBrackets(items) {
-  return [...items].sort((left, right) => {
-    const statusRank = {
-      active: 0,
-      draft: 1,
-      complete: 2
-    };
-
-    const leftRank = statusRank[left.status] ?? 99;
-    const rightRank = statusRank[right.status] ?? 99;
-
-    if (leftRank !== rightRank) {
-      return leftRank - rightRank;
-    }
-
-    return new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime();
-  });
-}
-
-function sortManagedPools(items) {
-  return [...items].sort((left, right) => {
-    const leftOwnedRank = left.isOwned ? 0 : 1;
-    const rightOwnedRank = right.isOwned ? 0 : 1;
-
-    if (leftOwnedRank !== rightOwnedRank) {
-      return leftOwnedRank - rightOwnedRank;
-    }
-
-    const leftUpdatedAt = new Date(left.updatedAt || left.createdAt || 0).getTime();
-    const rightUpdatedAt = new Date(right.updatedAt || right.createdAt || 0).getTime();
-
-    if (leftUpdatedAt !== rightUpdatedAt) {
-      return rightUpdatedAt - leftUpdatedAt;
-    }
-
-    return left.name.localeCompare(right.name);
-  });
-}
-
-function InlineTitleField({ autoFocus = false, value, onChange, onBlur, onKeyDown }) {
-  return (
-    <input
-      autoFocus={autoFocus}
-      value={value}
-      onChange={onChange}
-      onBlur={onBlur}
-      onKeyDown={onKeyDown}
-      className="-mx-3 block w-[calc(100%+1.5rem)] border border-[var(--line)] bg-transparent px-3 py-2 text-[var(--ink)] outline-none focus:border-[var(--accent-3)]"
-      style={{
-        fontFamily: '"Arial Narrow", Arial, Helvetica, sans-serif',
-        fontSize: "24px",
-        fontWeight: 900,
-        lineHeight: 1
-      }}
-    />
-  );
-}
-
-function CandidatePreviewChips({ candidates, limit = 4 }) {
-  const previewCandidates = candidates.slice(0, limit);
-  const remainingCount = Math.max(candidates.length - previewCandidates.length, 0);
-
-  return (
-    <div className="flex flex-wrap gap-2">
-      {previewCandidates.map((candidate) => (
-        <span
-          key={candidate.id}
-          className="flex items-center gap-2 border border-[var(--line)] bg-[var(--panel)] px-3 py-2"
-        >
-          {candidate.imageUrl ? (
-            <ResilientRemoteImage
-              src={candidate.imageUrl}
-              alt={candidate.name}
-              className="h-7 w-7 rounded-sm object-cover"
-            />
-          ) : null}
-          <span className="text-xs tracking-[0.08em] text-[var(--ink)]">{candidate.name}</span>
-        </span>
-      ))}
-      {remainingCount > 0 ? (
-        <span className="border border-[var(--line)] bg-[var(--panel)] px-3 py-2 text-xs tracking-[0.08em] text-[var(--muted)]">
-          +{remainingCount} more
-        </span>
-      ) : null}
-    </div>
-  );
-}
-
-function CandidateManagerPanel({
-  poolId,
-  candidateDraft,
-  isCandidateEditorOpen,
-  isEditingCandidate,
-  readOnly = false,
-  candidates,
-  imageSuggestions,
-  imageSuggestionLoading,
-  onDraftChange,
-  onCreateCandidate,
-  onImportCandidates,
-  onSubmit,
-  onCloseEditor,
-  onSuggestImages,
-  onClearImage,
-  onSelectSuggestedImage,
-  onEditCandidate,
-  onRemoveCandidate,
-  isCreatePending,
-  isSavePending,
-  removingCandidateId = null,
-  listHeading = "In This Pool",
-  listEmptyMessage = "No candidates in this pool yet."
-}) {
-  return (
-    <>
-      <div className="mt-6 border-t border-[var(--line)] pt-5">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className="display-face text-lg font-black uppercase tracking-[0.12em] text-[var(--accent-3)]">
-            {listHeading}
-          </p>
-          {!readOnly ? (
-            <div className="flex flex-wrap gap-3">
-              <button
-                type="button"
-                onClick={onCreateCandidate}
-                className="ui-button ui-button-accent"
-              >
-                Add Candidate
-              </button>
-              {onImportCandidates ? (
-                <button
-                  type="button"
-                  onClick={onImportCandidates}
-                  className="ui-button ui-button-muted"
-                >
-                  Import Candidates
-                </button>
-              ) : null}
-            </div>
-          ) : null}
-        </div>
-        <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          {candidates.length === 0 ? (
-            <span className="text-sm text-[var(--muted)]">{listEmptyMessage}</span>
-          ) : (
-            candidates.map((candidate) => (
-              <div
-                key={candidate.id}
-                className={`group relative flex flex-col overflow-hidden border border-[var(--line)] bg-[var(--panel)] ${
-                  candidate.imageUrl ? "min-h-[16rem]" : ""
-                }`}
-              >
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (!readOnly) {
-                      onEditCandidate(candidate);
-                    }
-                  }}
-                  className="flex h-full w-full flex-1 flex-col text-left transition hover:border-[var(--accent-2)]"
-                >
-                  {candidate.imageUrl ? (
-                    <div className="h-40 w-full bg-[var(--panel-3)]">
-                      <ResilientRemoteImage
-                        src={candidate.imageUrl}
-                        alt={candidate.name}
-                        className="h-full w-full object-cover"
-                      />
-                    </div>
-                  ) : null}
-                  <div className="flex flex-1 flex-col px-3 py-3">
-                    <p className="display-face text-sm font-black">{candidate.name}</p>
-                    {candidate.description ? (
-                      <p className="mt-2 text-xs leading-5 text-[var(--muted)]">
-                        {candidate.description}
-                      </p>
-                    ) : null}
-                  </div>
-                </button>
-                {!readOnly ? (
-                  <button
-                    type="button"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      onRemoveCandidate(candidate);
-                    }}
-                    aria-label={`Remove ${candidate.name}`}
-                    title={`Remove ${candidate.name}`}
-                    disabled={readOnly || removingCandidateId === candidate.id}
-                    className={`absolute right-3 z-10 flex h-9 w-9 items-center justify-center rounded-full border border-[var(--line)] bg-[rgba(10,10,10,0.86)] text-[var(--muted)] opacity-0 transition hover:border-[var(--accent)] hover:text-[var(--accent)] group-hover:opacity-100 group-focus-within:opacity-100 disabled:opacity-60 ${
-                      candidate.imageUrl ? "bottom-3" : "top-3"
-                    }`}
-                  >
-                    {removingCandidateId === candidate.id ? (
-                      <span className="text-[10px] uppercase tracking-[0.12em]">...</span>
-                    ) : (
-                      <svg viewBox="0 0 24 24" className="h-4 w-4 fill-none stroke-current stroke-2">
-                        <path d="M4 7h16" />
-                        <path d="M9 7V4h6v3" />
-                        <path d="M7 7l1 13h8l1-13" />
-                        <path d="M10 11v5" />
-                        <path d="M14 11v5" />
-                      </svg>
-                    )}
-                  </button>
-                ) : null}
-              </div>
-            ))
-          )}
-        </div>
-      </div>
-
-      {isCandidateEditorOpen && !readOnly ? (
-        <div className="fixed inset-0 z-40 bg-black/70">
-          <button
-            type="button"
-            aria-label="Close candidate editor"
-            onClick={onCloseEditor}
-            className="absolute inset-0 cursor-default"
-          />
-          <div className="absolute inset-y-0 right-0 flex w-full max-w-[42rem] flex-col border-l border-[var(--line)] bg-[var(--panel)] shadow-[0_0_40px_rgba(0,0,0,0.45)]">
-            <div className="flex items-start justify-between gap-4 border-b border-[var(--line)] bg-[var(--panel-3)] px-5 py-4">
-              <div>
-                <p className="display-face text-xs font-black uppercase tracking-[0.18em] text-[var(--accent-2)]">
-                  {isEditingCandidate ? "Edit Candidate" : "Create Candidate"}
-                </p>
-                <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-                  Update the candidate and keep the full list in place behind the drawer.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={onCloseEditor}
-                className="display-face text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--muted)]"
-              >
-                Close
-              </button>
-            </div>
-
-            <div className="ui-scroll-subtle flex-1 overflow-y-auto px-5 py-5">
-              <div className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
-                <div className="space-y-3 border border-[var(--line)] bg-[var(--panel-3)] p-4">
-                  <input
-                    value={candidateDraft.name}
-                    disabled={readOnly}
-                    onChange={(event) => onDraftChange("name", event.target.value)}
-                    placeholder="Candidate name"
-                    className="ui-field ui-field-panel"
-                  />
-                  <textarea
-                    value={candidateDraft.description}
-                    disabled={readOnly}
-                    onChange={(event) => onDraftChange("description", event.target.value)}
-                    placeholder="Description"
-                    rows={5}
-                    className="ui-field ui-field-panel"
-                  />
-                  <input
-                    value={candidateDraft.imageUrl}
-                    disabled={readOnly}
-                    onChange={(event) => onDraftChange("imageUrl", event.target.value)}
-                    placeholder="Image URL"
-                    className="ui-field ui-field-panel"
-                  />
-                  <div className="flex flex-wrap gap-3">
-                    <button
-                      type="button"
-                      onClick={onSubmit}
-                      disabled={readOnly || (isEditingCandidate ? isSavePending : isCreatePending)}
-                      className="ui-button ui-button-primary"
-                    >
-                      {isEditingCandidate
-                        ? isSavePending
-                          ? "Saving"
-                          : "Save Candidate"
-                        : isCreatePending
-                          ? "Creating"
-                          : "Create Candidate"}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={onCloseEditor}
-                      className="ui-button ui-button-muted"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                  {candidateDraft.imageUrl ? (
-                    <div className="overflow-hidden border border-[var(--line)] bg-[var(--panel)]">
-                      <div className="h-56 w-full bg-[var(--panel-2)]">
-                        <ResilientRemoteImage
-                          src={candidateDraft.imageUrl}
-                          alt={candidateDraft.name || "Selected image"}
-                          className="h-full w-full object-cover"
-                        />
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex min-h-56 items-center justify-center border border-dashed border-[var(--line)] bg-[var(--panel)] px-4 py-6">
-                      <p className="text-center text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
-                        Select an image to preview it here.
-                      </p>
-                    </div>
-                  )}
-                </div>
-
-                <div
-                  className={`space-y-3 border border-[var(--line)] bg-[var(--panel-3)] p-4 transition-opacity ${
-                    imageSuggestionLoading ? "opacity-55" : "opacity-100"
-                  }`}
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="display-face text-xs font-black uppercase tracking-[0.18em] text-[var(--accent-3)]">
-                      Image Picks
-                    </p>
-                    <div className="flex items-center gap-3">
-                      <button
-                        type="button"
-                        onClick={onSuggestImages}
-                        disabled={readOnly || imageSuggestionLoading}
-                        className="display-face border border-[var(--accent-2)] px-3 py-2 text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--accent-2)] transition hover:bg-[var(--accent-2)] hover:text-black disabled:opacity-60"
-                      >
-                        {imageSuggestionLoading ? "Searching" : "Suggest"}
-                      </button>
-                      {candidateDraft.imageUrl ? (
-                        <button
-                          type="button"
-                          onClick={onClearImage}
-                          className="display-face text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--muted)]"
-                        >
-                          Clear
-                        </button>
-                      ) : null}
-                    </div>
-                  </div>
-
-                  {imageSuggestions.length > 0 ? (
-                    <div className="space-y-2">
-                      <p className="display-face text-xs font-black uppercase tracking-[0.18em] text-[var(--accent-2)]">
-                        Suggested Images
-                      </p>
-                      <div className="grid gap-3 sm:grid-cols-2">
-                        {imageSuggestions.map((image) => {
-                          const selectedImageUrl = candidateDraft.imageUrl;
-
-                          return (
-                            <button
-                              key={image.id}
-                              type="button"
-                              disabled={readOnly}
-                              onClick={() => onSelectSuggestedImage(image.imageUrl)}
-                              aria-label={image.title || "Suggested image"}
-                              title={image.title || "Suggested image"}
-                              className={`overflow-hidden border transition ${
-                                selectedImageUrl === image.imageUrl
-                                  ? "border-[var(--accent-3)] bg-[var(--panel)]"
-                                  : "border-[var(--line)] bg-[var(--panel)] hover:border-[var(--accent-2)]"
-                              }`}
-                            >
-                              <div className="relative h-40 w-full bg-[var(--panel-2)]">
-                                <ResilientRemoteImage
-                                  src={image.thumbnailUrl || image.imageUrl}
-                                  alt={image.title || "Suggested image"}
-                                  className="h-full w-full object-cover"
-                                />
-                                {selectedImageUrl === image.imageUrl ? (
-                                  <div className="absolute inset-x-0 bottom-0 bg-[rgba(0,0,0,0.72)] px-3 py-2 text-[11px] uppercase tracking-[0.18em] text-[var(--accent-3)]">
-                                    Selected
-                                  </div>
-                                ) : null}
-                              </div>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ) : null}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      ) : null}
-    </>
-  );
-}
 
 export function CreatePanels() {
   const router = useRouter();
@@ -3246,126 +2661,105 @@ export function CreatePanels() {
                 const primaryParallelActionLabel = viewerParallelBracketComplete ? "Results" : "Vote";
 
                 return (
-                <div
+                <TournamentManagementCard
                   key={tournament.id}
-                  ref={(node) => {
+                  tournament={tournament}
+                  cardRef={(node) => {
                     if (node) {
                       tournamentCardRefs.current[tournament.id] = node;
                     } else {
                       delete tournamentCardRefs.current[tournament.id];
                     }
                   }}
-                  className={`border-b border-[var(--line)] bg-[var(--panel-2)] p-5 transition-opacity duration-150 last:border-b-0 ${
-                    isMutedTournament ? "opacity-45" : "opacity-100"
-                  }`}
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      {tournament.status === "draft" && isDraftExpanded && isEditingTournamentTitle ? (
-                        <InlineTitleField
-                          autoFocus
-                          value={bracketDraft.title}
-                          onChange={(event) =>
+                  isMuted={isMutedTournament}
+                  statusLabel={recentlySavedBrackets[tournament.id] ? "Saved" : tournament.status}
+                  audienceLabel={describeTournamentAudienceMode(tournament)}
+                  completedLabel={
+                    tournament.status === "complete" && tournament.completedAt
+                      ? formatBracketDate(tournament.completedAt)
+                      : null
+                  }
+                  title={
+                    tournament.status === "draft" && isDraftExpanded && isEditingTournamentTitle ? (
+                      <InlineTitleField
+                        autoFocus
+                        value={bracketDraft.title}
+                        onChange={(event) =>
+                          setTournamentInlineDrafts((current) => ({
+                            ...current,
+                            [tournament.id]: {
+                              ...bracketDraft,
+                              title: event.target.value
+                            }
+                          }))
+                        }
+                        onBlur={() => {
+                          const nextTitle = bracketDraft.title.trim();
+
+                          if (!nextTitle) {
                             setTournamentInlineDrafts((current) => ({
                               ...current,
                               [tournament.id]: {
                                 ...bracketDraft,
-                                title: event.target.value
+                                title: tournament.title
                               }
-                            }))
-                          }
-                          onBlur={() => {
-                            const nextTitle = bracketDraft.title.trim();
-
-                            if (!nextTitle) {
-                              setTournamentInlineDrafts((current) => ({
-                                ...current,
-                                [tournament.id]: {
-                                  ...bracketDraft,
-                                  title: tournament.title
-                                }
-                              }));
-                              setEditingTournamentTitleId(null);
-                              return;
-                            }
-
-                            if (nextTitle !== tournament.title) {
-                              updateTournamentInline(tournament.id, { title: nextTitle }, { silent: false });
-                            }
-
+                            }));
                             setEditingTournamentTitleId(null);
-                          }}
-                          onKeyDown={(event) => {
-                            if (event.key === "Enter") {
-                              event.currentTarget.blur();
-                            }
+                            return;
+                          }
 
-                            if (event.key === "Escape") {
-                              setTournamentInlineDrafts((current) => ({
-                                ...current,
-                                [tournament.id]: {
-                                  ...bracketDraft,
-                                  title: tournament.title
-                                }
-                              }));
-                              setEditingTournamentTitleId(null);
-                            }
-                          }}
-                        />
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (tournament.status === "draft" && !isPublishedTournament) {
-                              setExpandedDraftTournamentId(tournament.id);
-                              setEditingTournamentTitleId(tournament.id);
-                            }
-                          }}
-                          className={`-mx-3 block w-[calc(100%+1.5rem)] border border-transparent bg-transparent px-3 py-2 text-left ${
-                            tournament.status === "draft"
-                              ? "transition hover:border-[var(--line)] hover:bg-[var(--panel)]"
-                              : ""
-                          }`}
-                        >
-                          <span
-                            style={{
-                              fontFamily: '"Arial Narrow", Arial, Helvetica, sans-serif',
-                              fontSize: "24px",
-                              fontWeight: 900,
-                              lineHeight: 1
-                            }}
-                          >
-                            {tournament.title}
-                          </span>
-                        </button>
-                      )}
-                    </div>
-                    <div className="text-right">
-                      <span className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.22em] text-[var(--muted)]">
+                          if (nextTitle !== tournament.title) {
+                            updateTournamentInline(tournament.id, { title: nextTitle }, { silent: false });
+                          }
+
+                          setEditingTournamentTitleId(null);
+                        }}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter") {
+                            event.currentTarget.blur();
+                          }
+
+                          if (event.key === "Escape") {
+                            setTournamentInlineDrafts((current) => ({
+                              ...current,
+                              [tournament.id]: {
+                                ...bracketDraft,
+                                title: tournament.title
+                              }
+                            }));
+                            setEditingTournamentTitleId(null);
+                          }
+                        }}
+                      />
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (tournament.status === "draft" && !isPublishedTournament) {
+                            setExpandedDraftTournamentId(tournament.id);
+                            setEditingTournamentTitleId(tournament.id);
+                          }
+                        }}
+                        className={`-mx-3 block w-[calc(100%+1.5rem)] border border-transparent bg-transparent px-3 py-2 text-left ${
+                          tournament.status === "draft"
+                            ? "transition hover:border-[var(--line)] hover:bg-[var(--panel)]"
+                            : ""
+                        }`}
+                      >
                         <span
-                          className={`h-2 w-2 rounded-full ${
-                            recentlySavedBrackets[tournament.id]
-                              ? "bg-[var(--accent-3)]"
-                              : tournament.status === "active"
-                                ? "bg-[var(--accent-3)]"
-                                : tournament.status === "complete"
-                                  ? "bg-[var(--accent-2)]"
-                                  : "bg-[var(--muted)]"
-                          }`}
-                          aria-hidden="true"
-                        />
-                        <span>{recentlySavedBrackets[tournament.id] ? "Saved" : tournament.status}</span>
-                      </span>
-                      <p className="mt-2 text-[11px] uppercase tracking-[0.18em] text-[var(--accent-3)]">
-                        {describeTournamentAudienceMode(tournament)}
-                      </p>
-                      {tournament.status === "complete" && tournament.completedAt ? (
-                        <p className="mt-2 text-[11px] uppercase tracking-[0.18em] text-[var(--muted)]">
-                          {formatBracketDate(tournament.completedAt)}
-                        </p>
-                      ) : null}
-                    </div>
-                  </div>
+                          style={{
+                            fontFamily: '"Arial Narrow", Arial, Helvetica, sans-serif',
+                            fontSize: "24px",
+                            fontWeight: 900,
+                            lineHeight: 1
+                          }}
+                        >
+                          {tournament.title}
+                        </span>
+                      </button>
+                    )
+                  }
+                >
                   {tournament.status === "draft" ? (
                     isDraftExpanded ? (
                     <>
@@ -3876,374 +3270,67 @@ export function CreatePanels() {
                     </div>
                     </>
                     ) : (
-                      <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-3">
-                        <TournamentMetaRow
-                          separator="slash"
-                          className="flex flex-wrap gap-2 text-sm uppercase tracking-[0.14em] text-[var(--muted)]"
-                          items={[
-                            describeTournamentAudienceMode(tournament),
-                            formatBracketRuleLabel(tournament.playStyle || "fixed_bracket"),
-                            formatBracketRuleLabel(tournament.resultMode || "winner_only"),
-                            `${tournament.entryCount} entries`
-                          ]}
-                        />
-                        <TournamentActionGroup
-                          layout="row"
-                          className="lg:justify-start"
-                          actions={[
-                            !isPublishedTournament
-                              ? {
-                                  key: `edit-draft:${tournament.id}`,
-                                  label: "Edit Draft",
-                                  onClick: () => setExpandedDraftTournamentId(tournament.id),
-                                  className: "ui-button ui-button-accent"
-                                }
-                              : null,
-                            {
-                              key: `start:${tournament.id}`,
-                              label: isActionPending(`start-tournament:${tournament.id}`) ? "Starting" : "Start Bracket",
-                              onClick: () => handleStartTournament(tournament.id),
-                              disabled:
-                                !canStartBracket || isActionPending(`start-tournament:${tournament.id}`),
-                              className: "ui-button ui-button-primary"
-                            }
-                          ]}
-                        />
-                      </div>
+                      <CollapsedDraftTournamentSection
+                        tournament={tournament}
+                        isPublishedTournament={isPublishedTournament}
+                        canStartBracket={canStartBracket}
+                        describeTournamentAudienceMode={describeTournamentAudienceMode}
+                        formatBracketRuleLabel={formatBracketRuleLabel}
+                        isActionPending={isActionPending}
+                        onEditDraft={setExpandedDraftTournamentId}
+                        onStartTournament={handleStartTournament}
+                      />
                     )
                   ) : tournament.status === "active" ? (
                     isParallelParent ? (
-                    <div className="mt-4 grid gap-4 xl:grid-cols-[14rem_minmax(0,1fr)] xl:items-start">
-                      <TournamentActionGroup
-                        actions={[
-                          {
-                            key: `parallel-primary:${tournament.id}`,
-                            href: primaryParallelActionHref,
-                            label: primaryParallelActionLabel,
-                            className: "cta-link ui-button ui-button-primary w-full"
-                          },
-                          {
-                            key: `parallel-results:${tournament.id}`,
-                            href: `/results/${tournament.id}`,
-                            label: "Results",
-                            className: "ui-button ui-button-accent w-full"
-                          },
-                          canCopyBracketLink(tournament)
-                            ? {
-                                key: `parallel-copy:${tournament.id}`,
-                                label:
-                                  tournament.sharingMode === "with_friends"
-                                    ? activeShareLink
-                                      ? "Copy Link"
-                                      : "Preparing"
-                                    : "Copy Link",
-                                onClick: () => handleCopyShareLink(tournament.id),
-                                disabled:
-                                  tournament.sharingMode === "with_friends" &&
-                                  isActionPending(`share-link:${tournament.id}`),
-                                className: "ui-button ui-button-accent w-full"
-                              }
-                            : null,
-                          {
-                            key: `parallel-close:${tournament.id}`,
-                            label: isActionPending(`update-tournament:${tournament.id}`)
-                              ? "Closing"
-                              : "Close Bracket",
-                            onClick: () =>
-                              updateTournamentInline(
-                                tournament.id,
-                                { status: "complete" },
-                                { silent: false }
-                              ),
-                            disabled: isActionPending(`update-tournament:${tournament.id}`),
-                            className: "ui-button ui-button-muted w-full"
-                          },
-                          {
-                            key: `parallel-archive:${tournament.id}`,
-                            label: isActionPending(`archive-tournament:${tournament.id}`)
-                              ? "Archiving"
-                              : "Archive",
-                            onClick: () => handleArchiveTournament(tournament.id, tournament.title),
-                            disabled: isActionPending(`archive-tournament:${tournament.id}`),
-                            className: "ui-button ui-button-muted w-full"
-                          }
-                        ]}
-                      />
-                      <div>
-                        <div className="border border-[var(--line)] bg-[var(--panel)] p-4">
-                          <div className="flex flex-wrap items-start justify-between gap-4">
-                            <div className="min-w-0 flex-1">
-                              <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--accent-3)]">
-                                Participant Progress
-                              </p>
-                              <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-                                Each participant votes through a personal full-ranking bracket. The parent bracket aggregates those final rankings.
-                              </p>
-                            </div>
-                            <div className="text-right">
-                              <p className="display-face text-lg font-black text-[var(--accent-2)]">
-                                {tournament.completedParticipantCount ?? 0}/{tournament.participantCount ?? 0}
-                              </p>
-                              <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--muted)]">
-                                complete
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                        <TournamentMetaRow
-                          className="mt-3 flex flex-wrap gap-2 text-[11px] uppercase tracking-[0.18em] text-[var(--muted)]"
-                          items={[
-                            describeTournamentAudienceMode(tournament),
-                            formatBracketRuleLabel(tournament.resultMode),
-                            formatBracketRuleLabel(tournament.tieBreakMode),
-                            `${tournament.entryCount} entries`,
-                            `${tournament.participantCount ?? 0} participants`
-                          ]}
-                        />
-                        {invitees.length > 0 ? (
-                          <div className="mt-4 space-y-2">
-                            {invitees.map((invite) => (
-                              <div
-                                key={invite.id}
-                                className="flex items-center justify-between gap-3 border border-[var(--line)] bg-[var(--panel-2)] px-4 py-4"
-                              >
-                                <div className="min-w-0">
-                                  <p className="display-face truncate text-sm font-black">
-                                    {invite.name || invite.email || "Anonymous voter"}
-                                  </p>
-                                  {invite.email ? (
-                                    <p className="mt-1 truncate text-xs tracking-[0.08em] text-[var(--muted)]">
-                                      {invite.email}
-                                    </p>
-                                  ) : null}
-                                </div>
-                                <span className="display-face text-xs font-bold uppercase tracking-[0.18em] text-[var(--accent-2)]">
-                                  {invite.status}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        ) : null}
-                      </div>
-                    </div>
+                    <ActiveParallelTournamentSection
+                      tournament={tournament}
+                      primaryActionHref={primaryParallelActionHref}
+                      primaryActionLabel={primaryParallelActionLabel}
+                      activeShareLink={activeShareLink}
+                      invitees={invitees}
+                      canCopyBracketLink={canCopyBracketLink}
+                      describeTournamentAudienceMode={describeTournamentAudienceMode}
+                      formatBracketRuleLabel={formatBracketRuleLabel}
+                      isActionPending={isActionPending}
+                      onCopyShareLink={handleCopyShareLink}
+                      onCloseBracket={(tournamentId) =>
+                        updateTournamentInline(tournamentId, { status: "complete" }, { silent: false })
+                      }
+                      onArchiveTournament={handleArchiveTournament}
+                    />
                     ) : (
-                    <div className="mt-4 grid gap-4 xl:grid-cols-[14rem_minmax(0,1fr)] xl:items-start">
-                      <TournamentActionGroup
-                        actions={[
-                          hasOpenVotes
-                            ? {
-                                key: `vote:${tournament.id}`,
-                                href: `/vote?tournament=${tournament.id}&returnTo=create`,
-                                label: "Vote Now",
-                                className: "cta-link ui-button ui-button-primary w-full"
-                              }
-                            : {
-                                key: `no-open:${tournament.id}`,
-                                label: "No Open Matches",
-                                disabled: true,
-                                className: "ui-button ui-button-primary w-full"
-                              },
-                          {
-                            key: `close-round:${tournament.id}`,
-                            label: isActionPending(`close-round:${tournament.id}`)
-                              ? "Closing Round"
-                              : "Close Current Round",
-                            onClick: () => handleCloseCurrentRound(tournament.id),
-                            disabled: isActionPending(`close-round:${tournament.id}`),
-                            className: "ui-button ui-button-muted w-full"
-                          },
-                          canCopyBracketLink(tournament)
-                            ? {
-                                key: `copy:${tournament.id}`,
-                                label:
-                                  tournament.sharingMode === "with_friends"
-                                    ? activeShareLink
-                                      ? "Copy Link"
-                                      : "Preparing"
-                                    : "Copy Link",
-                                onClick: () => handleCopyShareLink(tournament.id),
-                                disabled:
-                                  tournament.sharingMode === "with_friends" &&
-                                  isActionPending(`share-link:${tournament.id}`),
-                                className: "ui-button ui-button-accent w-full"
-                              }
-                            : null,
-                          {
-                            key: `rerun:${tournament.id}`,
-                            label: isActionPending(`rerun-tournament:${tournament.id}`)
-                              ? "Creating"
-                              : "Rerun",
-                            onClick: () => handleRerunTournament(tournament.id),
-                            disabled: isActionPending(`rerun-tournament:${tournament.id}`),
-                            className: "ui-button ui-button-accent w-full"
-                          },
-                          {
-                            key: `archive:${tournament.id}`,
-                            label: isActionPending(`archive-tournament:${tournament.id}`)
-                              ? "Archiving"
-                              : "Archive",
-                            onClick: () => handleArchiveTournament(tournament.id, tournament.title),
-                            disabled: isActionPending(`archive-tournament:${tournament.id}`),
-                            className: "ui-button ui-button-muted w-full"
-                          }
-                        ]}
-                      />
-                      <div>
-                        <div className="border border-[var(--line)] bg-[var(--panel)] p-4">
-                          <div className="flex flex-wrap items-start justify-between gap-4">
-                            <div className="min-w-0 flex-1">
-                              <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--accent-3)]">
-                                Current Round
-                              </p>
-                              <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-                                {tournament.activeRoundNumber
-                                  ? `Round ${tournament.activeRoundNumber}`
-                                  : "Waiting for the next round to open."}
-                              </p>
-                            </div>
-                            <div className="text-right">
-                              <p className="display-face text-lg font-black text-[var(--accent-2)]">
-                                {activeRoundVoteGoal}
-                              </p>
-                              <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--muted)]">
-                                {activeRoundVoteGoal === 1 ? "Open match" : "Open matches"}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="mt-3 space-y-2">
-                            <div className="flex items-center justify-between gap-3 border border-[var(--line)] bg-[var(--panel-2)] px-4 py-4">
-                              <div className="min-w-0">
-                                <p className="display-face truncate text-sm font-black">You</p>
-                                <p className="mt-1 truncate text-xs tracking-[0.08em] text-[var(--muted)]">
-                                  Creator
-                                </p>
-                              </div>
-                              <div className="text-right">
-                                <p className="display-face text-xs font-bold uppercase tracking-[0.18em] text-[var(--accent-2)]">
-                                  {creatorVotesCast}/{activeRoundVoteGoal} votes
-                                </p>
-                                <p className="mt-1 text-[11px] uppercase tracking-[0.18em] text-[var(--muted)]">
-                                  {creatorIsDone ? "Ready" : "Waiting"}
-                                </p>
-                              </div>
-                            </div>
-                            {tournament.sharingMode === "with_friends" ? (
-                              invitees.length > 0 ? (
-                                invitees.map((invite) => {
-                                  const isDone =
-                                    invite.openMatchCount > 0 && invite.votesCast >= invite.openMatchCount;
-
-                                  return (
-                                    <div
-                                      key={invite.id}
-                                      className="flex items-center justify-between gap-3 border border-[var(--line)] bg-[var(--panel-2)] px-4 py-4"
-                                    >
-                                      <div className="min-w-0">
-                                        <p className="display-face truncate text-sm font-black">
-                                          {invite.name || invite.email}
-                                        </p>
-                                        <p className="mt-1 truncate text-xs tracking-[0.08em] text-[var(--muted)]">
-                                          {invite.email}
-                                        </p>
-                                      </div>
-                                      <div className="text-right">
-                                        <p className="display-face text-xs font-bold uppercase tracking-[0.18em] text-[var(--accent-2)]">
-                                          {invite.votesCast}/{invite.openMatchCount} votes
-                                        </p>
-                                        <p className="mt-1 text-[11px] uppercase tracking-[0.18em] text-[var(--muted)]">
-                                          {isDone ? "Ready" : "Waiting"}
-                                        </p>
-                                      </div>
-                                    </div>
-                                  );
-                                })
-                              ) : (
-                                <p className="text-sm text-[var(--muted)]">No invited voters have joined yet.</p>
-                              )
-                            ) : null}
-                          </div>
-                        </div>
-                        <TournamentMetaRow
-                          className="mt-3 flex flex-wrap gap-2 text-[11px] uppercase tracking-[0.18em] text-[var(--muted)]"
-                          items={[
-                            describeTournamentAudienceMode(tournament),
-                            formatBracketRuleLabel(tournament.playStyle),
-                            formatBracketRuleLabel(tournament.resultMode),
-                            formatBracketRuleLabel(tournament.tieBreakMode)
-                          ]}
-                        />
-                      </div>
-                    </div>
+                    <ActiveStandardTournamentSection
+                      tournament={tournament}
+                      hasOpenVotes={hasOpenVotes}
+                      activeRoundVoteGoal={activeRoundVoteGoal}
+                      creatorVotesCast={creatorVotesCast}
+                      creatorIsDone={creatorIsDone}
+                      activeShareLink={activeShareLink}
+                      invitees={invitees}
+                      canCopyBracketLink={canCopyBracketLink}
+                      describeTournamentAudienceMode={describeTournamentAudienceMode}
+                      formatBracketRuleLabel={formatBracketRuleLabel}
+                      isActionPending={isActionPending}
+                      onCloseCurrentRound={handleCloseCurrentRound}
+                      onCopyShareLink={handleCopyShareLink}
+                      onRerunTournament={handleRerunTournament}
+                      onArchiveTournament={handleArchiveTournament}
+                    />
                     )
                   ) : tournament.status === "complete" ? (
-                    <div className="mt-4 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-                      <div className="min-w-0 space-y-3">
-                        {tournament.winnerName ? (
-                          <p className="display-face text-lg font-black text-[var(--accent-3)]">
-                            Winner: {tournament.winnerName}
-                            {tournament.winnerSeed ? ` (Seed ${tournament.winnerSeed})` : ""}
-                          </p>
-                        ) : null}
-                        {hasSourcePool ? (
-                          <TournamentMetaRow
-                            separator="slash"
-                            className="flex flex-wrap gap-2 text-xs uppercase tracking-[0.18em] text-[var(--muted)]"
-                            items={[
-                              describeTournamentAudienceMode(tournament),
-                              formatBracketRuleLabel(tournament.playStyle),
-                              formatBracketRuleLabel(tournament.resultMode),
-                              formatBracketRuleLabel(tournament.tieBreakMode),
-                              `${tournament.entryCount} entries`
-                            ]}
-                          />
-                        ) : null}
-                      </div>
-                      <TournamentActionGroup
-                        layout="row"
-                        actions={[
-                          canCopyBracketLink(tournament)
-                            ? {
-                                key: `complete-copy:${tournament.id}`,
-                                label:
-                                  tournament.sharingMode === "with_friends"
-                                    ? activeShareLink
-                                      ? "Copy Link"
-                                      : "Preparing"
-                                    : "Copy Link",
-                                onClick: () => handleCopyShareLink(tournament.id),
-                                disabled:
-                                  tournament.sharingMode === "with_friends" &&
-                                  isActionPending(`share-link:${tournament.id}`),
-                                className: "ui-button ui-button-accent"
-                              }
-                            : null,
-                          {
-                            key: `complete-results:${tournament.id}`,
-                            href: `/results/${tournament.id}`,
-                            label: "Results",
-                            className: "ui-button ui-button-accent"
-                          },
-                          {
-                            key: `complete-rerun:${tournament.id}`,
-                            label: isActionPending(`rerun-tournament:${tournament.id}`)
-                              ? "Creating"
-                              : "Rerun",
-                            onClick: () => handleRerunTournament(tournament.id),
-                            disabled: isActionPending(`rerun-tournament:${tournament.id}`),
-                            className: "ui-button ui-button-accent"
-                          },
-                          {
-                            key: `complete-archive:${tournament.id}`,
-                            label: isActionPending(`archive-tournament:${tournament.id}`)
-                              ? "Archiving"
-                              : "Archive",
-                            onClick: () => handleArchiveTournament(tournament.id, tournament.title),
-                            disabled: isActionPending(`archive-tournament:${tournament.id}`),
-                            className: "ui-button ui-button-muted"
-                          }
-                        ]}
-                      />
-                    </div>
+                    <CompletedTournamentSection
+                      tournament={tournament}
+                      activeShareLink={activeShareLink}
+                      hasSourcePool={hasSourcePool}
+                      canCopyBracketLink={canCopyBracketLink}
+                      describeTournamentAudienceMode={describeTournamentAudienceMode}
+                      formatBracketRuleLabel={formatBracketRuleLabel}
+                      isActionPending={isActionPending}
+                      onCopyShareLink={handleCopyShareLink}
+                      onRerunTournament={handleRerunTournament}
+                      onArchiveTournament={handleArchiveTournament}
+                    />
                   ) : null}
                   {tournament.status !== "complete" && hasSourcePool && !isDraftExpanded ? (
                         <div className="mt-4">
@@ -4259,7 +3346,7 @@ export function CreatePanels() {
                           />
                         </div>
                   ) : null}
-                  </div>
+                  </TournamentManagementCard>
                 );
                 })}
                   </>
@@ -4684,102 +3771,22 @@ export function CreatePanels() {
         </div>
       ) : null}
 
-      {seedingTournament ? (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/70 px-4 py-6">
-          <div className="mx-auto flex max-h-[calc(100vh-3rem)] w-full max-w-2xl flex-col border border-[var(--line)] bg-[var(--panel)]">
-            <div className="flex items-center justify-between gap-4 border-b border-[var(--line)] bg-[var(--panel-3)] px-5 py-4">
-              <div>
-                <h2 className="display-face text-2xl font-black uppercase tracking-[0.1em]">
-                  Set Seeding
-                </h2>
-                <p className="mt-1 text-xs uppercase tracking-[0.18em] text-[var(--accent-3)]">
-                  {seedingTournament.title}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setSeedingTournament(null);
-                  setSeedingEntries([]);
-                  setDraggingEntryId(null);
-                }}
-                className="display-face text-xs font-black uppercase tracking-[0.18em] text-[var(--accent-2)]"
-              >
-                Close
-              </button>
-            </div>
-            <div className="overflow-y-auto px-5 py-5">
-              {seedingLoading ? (
-                <p className="text-sm text-[var(--muted)]">Loading entriesâ€¦</p>
-              ) : (
-                <form className="space-y-4" onSubmit={handleSeedingSubmit}>
-                  <p className="text-sm leading-6 text-[var(--muted)]">
-                    Drag entries into seed order. The top item becomes seed 1.
-                  </p>
-                  <div className="space-y-2">
-                    {seedingEntries.map((entry, index) => (
-                      <div
-                        key={entry.id}
-                        draggable
-                        onDragStart={() => setDraggingEntryId(entry.id)}
-                        onDragEnd={() => setDraggingEntryId(null)}
-                        onDragOver={(event) => event.preventDefault()}
-                        onDrop={() => handleSeedDrop(index)}
-                        className={`flex cursor-move items-center gap-3 border px-3 py-3 transition ${
-                          draggingEntryId === entry.id
-                            ? "border-[var(--accent-3)] bg-[var(--panel-3)]"
-                            : "border-[var(--line)] bg-[var(--panel-2)] hover:border-[var(--accent-2)]"
-                        }`}
-                      >
-                        <span className="display-face w-12 text-lg font-black uppercase text-[var(--accent-2)]">
-                          {index + 1}
-                        </span>
-                        {entry.candidateImageUrl ? (
-                          <ResilientRemoteImage
-                            src={entry.candidateImageUrl}
-                            alt={entry.candidateName}
-                            className="h-12 w-12 rounded-sm object-cover"
-                          />
-                        ) : null}
-                        <div className="min-w-0 flex-1">
-                          <p className="display-face truncate text-sm font-black uppercase">
-                            {entry.candidateName}
-                          </p>
-                          {entry.candidateDescription ? (
-                            <p className="mt-1 line-clamp-2 text-xs leading-5 text-[var(--muted)]">
-                              {entry.candidateDescription}
-                            </p>
-                          ) : null}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="flex flex-wrap gap-3">
-                    <button
-                      type="submit"
-                      disabled={savingSeeding || seedingEntries.length < 2}
-                      className="ui-button ui-button-accent-fill"
-                    >
-                      {savingSeeding ? "Saving" : "Save Seeding"}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSeedingTournament(null);
-                        setSeedingEntries([]);
-                        setDraggingEntryId(null);
-                      }}
-                      className="ui-button ui-button-muted"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </form>
-              )}
-            </div>
-          </div>
-        </div>
-      ) : null}
+      <SeedingModal
+        tournament={seedingTournament}
+        entries={seedingEntries}
+        loading={seedingLoading}
+        saving={savingSeeding}
+        draggingEntryId={draggingEntryId}
+        onClose={() => {
+          setSeedingTournament(null);
+          setSeedingEntries([]);
+          setDraggingEntryId(null);
+        }}
+        onSubmit={handleSeedingSubmit}
+        onDragStart={setDraggingEntryId}
+        onDragEnd={() => setDraggingEntryId(null)}
+        onDrop={handleSeedDrop}
+      />
 
     </div>
   );
