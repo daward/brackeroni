@@ -3,6 +3,17 @@
 import { useEffect, useState, useTransition } from "react";
 import { SectionCard } from "@/components/section-card";
 import { STANDARD_RESULT_MODES, formatResultModeLabel } from "@/lib/bracket-modes";
+import {
+  archiveTournament,
+  closeCurrentTournamentRound,
+  createCandidateInPool,
+  createPool,
+  createTournament,
+  getPool,
+  listPools,
+  listTournaments,
+  startTournament
+} from "@/lib/client-api/create-workspace";
 
 const emptyCandidateForm = {
   name: "",
@@ -38,29 +49,17 @@ export function CreateWorkspace() {
   const [isPending, startTransition] = useTransition();
 
   async function loadWorkspace() {
-    const [poolResponse, tournamentResponse] = await Promise.all([
-      fetch("/api/pools", { cache: "no-store" }),
-      fetch("/api/tournaments", { cache: "no-store" })
+    const [poolData, tournamentData] = await Promise.all([
+      listPools(),
+      listTournaments()
     ]);
-
-    if (!poolResponse.ok || !tournamentResponse.ok) {
-      throw new Error("Failed to load create workspace.");
-    }
-
-    const poolData = await poolResponse.json();
-    const tournamentData = await tournamentResponse.json();
 
     setPools(poolData.items ?? []);
     setTournaments(tournamentData.items ?? []);
 
     const detailEntries = await Promise.all(
       (poolData.items ?? []).map(async (pool) => {
-        const response = await fetch(`/api/pools/${pool.id}`, { cache: "no-store" });
-        if (!response.ok) {
-          throw new Error(`Failed to load pool ${pool.name}.`);
-        }
-
-        const data = await response.json();
+        const data = await getPool(pool.id);
         return [pool.id, data.item];
       })
     );
@@ -84,21 +83,14 @@ export function CreateWorkspace() {
 
     const draft = candidateDrafts[poolId] || emptyCandidateForm;
 
-    const candidateResponse = await fetch(`/api/pools/${poolId}/candidates`, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json"
-      },
-      body: JSON.stringify({
+    try {
+      await createCandidateInPool(poolId, {
         name: draft.name,
         description: draft.description || null,
         imageUrl: draft.imageUrl || null
-      })
-    });
-
-    const candidateData = await candidateResponse.json();
-    if (!candidateResponse.ok) {
-      setErrorMessage(candidateData.error?.message || "Failed to create candidate.");
+      });
+    } catch (error) {
+      setErrorMessage(error.message || "Failed to create candidate.");
       return;
     }
 
@@ -115,20 +107,13 @@ export function CreateWorkspace() {
     setErrorMessage("");
     setSuccessMessage("");
 
-    const response = await fetch("/api/pools", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json"
-      },
-      body: JSON.stringify({
+    try {
+      await createPool({
         name: poolForm.name,
         description: poolForm.description || null
-      })
-    });
-
-    const data = await response.json();
-    if (!response.ok) {
-      setErrorMessage(data.error?.message || "Failed to create pool.");
+      });
+    } catch (error) {
+      setErrorMessage(error.message || "Failed to create pool.");
       return;
     }
 
@@ -142,20 +127,13 @@ export function CreateWorkspace() {
     setErrorMessage("");
     setSuccessMessage("");
 
-    const response = await fetch("/api/tournaments", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json"
-      },
-      body: JSON.stringify({
+    try {
+      await createTournament({
         ...tournamentForm,
         description: null
-      })
-    });
-
-    const data = await response.json();
-    if (!response.ok) {
-      setErrorMessage(data.error?.message || "Failed to create tournament.");
+      });
+    } catch (error) {
+      setErrorMessage(error.message || "Failed to create tournament.");
       return;
     }
 
@@ -168,19 +146,10 @@ export function CreateWorkspace() {
     setErrorMessage("");
     setSuccessMessage("");
 
-    const response = await fetch(`/api/tournaments/${tournamentId}`, {
-      method: "PATCH",
-      headers: {
-        "content-type": "application/json"
-      },
-      body: JSON.stringify({
-        status: "active"
-      })
-    });
-
-    const data = await response.json();
-    if (!response.ok) {
-      setErrorMessage(data.error?.message || "Failed to start tournament.");
+    try {
+      await startTournament(tournamentId);
+    } catch (error) {
+      setErrorMessage(error.message || "Failed to start tournament.");
       return;
     }
 
@@ -200,13 +169,10 @@ export function CreateWorkspace() {
     setErrorMessage("");
     setSuccessMessage("");
 
-    const response = await fetch(`/api/tournaments/${tournamentId}`, {
-      method: "DELETE"
-    });
-
-    const data = await response.json();
-    if (!response.ok) {
-      setErrorMessage(data.error?.message || "Failed to archive tournament.");
+    try {
+      await archiveTournament(tournamentId);
+    } catch (error) {
+      setErrorMessage(error.message || "Failed to archive tournament.");
       return;
     }
 
@@ -218,19 +184,10 @@ export function CreateWorkspace() {
     setErrorMessage("");
     setSuccessMessage("");
 
-    const response = await fetch(`/api/tournaments/${tournamentId}`, {
-      method: "PATCH",
-      headers: {
-        "content-type": "application/json"
-      },
-      body: JSON.stringify({
-        closeCurrentRound: true
-      })
-    });
-
-    const data = await response.json();
-    if (!response.ok) {
-      setErrorMessage(data.error?.message || "Failed to close the current round.");
+    try {
+      await closeCurrentTournamentRound(tournamentId);
+    } catch (error) {
+      setErrorMessage(error.message || "Failed to close the current round.");
       return;
     }
 

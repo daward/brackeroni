@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { StatusPill } from "@/components/status-pill";
 import { formatResultModeLabel } from "@/lib/bracket-modes";
+import { getTournamentWithMatches, submitMatchVote } from "@/lib/client-api/voting";
 
 export function VoteWorkspace({ activeTournaments, completedTournaments }) {
   const [active, setActive] = useState(activeTournaments);
@@ -14,42 +15,17 @@ export function VoteWorkspace({ activeTournaments, completedTournaments }) {
     setError("");
     setMessage("");
 
-    const response = await fetch(`/api/matches/${matchId}/votes`, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json"
-      },
-      body: JSON.stringify({ selectedEntryId })
-    });
-    const data = await response.json();
-
-    if (!response.ok) {
-      if (response.status === 400 && data.error?.code === "MATCH_NOT_OPEN") {
+    try {
+      await submitMatchVote(matchId, selectedEntryId);
+    } catch (error) {
+      if (error.status === 400 && error.code === "MATCH_NOT_OPEN") {
         setMessage("That round already closed. Refreshing bracket state.");
 
-        const matchResponse = await fetch(`/api/tournaments/${tournamentId}/matches`, {
-          cache: "no-store"
-        });
-        const matchData = await matchResponse.json();
+        const { matches, tournament: refreshedTournament } = await getTournamentWithMatches(tournamentId);
 
-        if (!matchResponse.ok) {
-          setError(matchData.error?.message || "Failed to refresh matches.");
-          return;
-        }
-
-        const tournamentResponse = await fetch(`/api/tournaments/${tournamentId}`, {
-          cache: "no-store"
-        });
-        const tournamentData = await tournamentResponse.json();
-
-        if (!tournamentResponse.ok) {
-          setError(tournamentData.error?.message || "Failed to refresh tournament.");
-          return;
-        }
-
-        if (tournamentData.item.status === "complete") {
+        if (refreshedTournament.status === "complete") {
           setActive((current) => current.filter((tournament) => tournament.id !== tournamentId));
-          setCompleted((current) => [tournamentData.item, ...current]);
+          setCompleted((current) => [refreshedTournament, ...current]);
           return;
         }
 
@@ -58,8 +34,8 @@ export function VoteWorkspace({ activeTournaments, completedTournaments }) {
             tournament.id === tournamentId
               ? {
                   ...tournament,
-                  ...tournamentData.item,
-                  matches: matchData.items
+                  ...refreshedTournament,
+                  matches
                 }
               : tournament
           )
@@ -67,34 +43,16 @@ export function VoteWorkspace({ activeTournaments, completedTournaments }) {
         return;
       }
 
-      setError(data.error?.message || "Failed to record vote.");
+      setError(error.message || "Failed to record vote.");
       return;
     }
 
     setMessage("Vote recorded.");
-    const matchResponse = await fetch(`/api/tournaments/${tournamentId}/matches`, {
-      cache: "no-store"
-    });
-    const matchData = await matchResponse.json();
+    const { matches, tournament: refreshedTournament } = await getTournamentWithMatches(tournamentId);
 
-    if (!matchResponse.ok) {
-      setError(matchData.error?.message || "Failed to refresh matches.");
-      return;
-    }
-
-    const tournamentResponse = await fetch(`/api/tournaments/${tournamentId}`, {
-      cache: "no-store"
-    });
-    const tournamentData = await tournamentResponse.json();
-
-    if (!tournamentResponse.ok) {
-      setError(tournamentData.error?.message || "Failed to refresh tournament.");
-      return;
-    }
-
-    if (tournamentData.item.status === "complete") {
+    if (refreshedTournament.status === "complete") {
       setActive((current) => current.filter((tournament) => tournament.id !== tournamentId));
-      setCompleted((current) => [tournamentData.item, ...current]);
+      setCompleted((current) => [refreshedTournament, ...current]);
       setMessage("Vote recorded. Tournament complete.");
       return;
     }
@@ -104,8 +62,8 @@ export function VoteWorkspace({ activeTournaments, completedTournaments }) {
         tournament.id === tournamentId
           ? {
               ...tournament,
-              ...tournamentData.item,
-              matches: matchData.items
+              ...refreshedTournament,
+              matches
             }
           : tournament
       )

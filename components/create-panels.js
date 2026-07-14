@@ -3,48 +3,32 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
-import { SectionCard } from "@/components/section-card";
 import { SeedingModal } from "@/components/seeding-modal";
 import {
   BracketStyleField,
   ParallelResultModeNotice,
   ResultModeField
 } from "@/components/bracket-config-fields";
-import { ExpandedDraftTournamentSection } from "@/components/expanded-draft-tournament-section";
 import { PoolWorkspaceSection } from "@/components/pool-workspace-section";
 import {
-  buildDirectBracketSharePath,
-  buildPoolImportPrompt,
-  canCopyBracketLink,
-  describeTournamentAudienceMode,
-  describeTournamentVisibility,
-  formatBracketDate,
-  formatBracketRuleLabel,
   getTournamentAudienceMode,
   getTournamentAudiencePatch,
-  InlineTitleField,
-  isPublicBracketVisibility,
-  normalizeParallelBracketItem,
   PoolPublishWarning,
-  sortManagedBrackets,
-  sortManagedPools,
   TournamentPublishWarning
 } from "@/components/create-panel-helpers";
-import {
-  TournamentMetaRow
-} from "@/components/tournament-management";
-import { TournamentManagementCard } from "@/components/tournament-management-card";
-import {
-  ActiveParallelTournamentSection,
-  ActiveStandardTournamentSection,
-  CollapsedDraftTournamentSection,
-  CompletedTournamentSection
-} from "@/components/tournament-status-sections";
+import { TournamentWorkspaceSection } from "@/components/tournament-workspace-section";
 import { useCandidateActions } from "@/components/use-candidate-actions";
+import { useCreateWorkspaceData } from "@/components/use-create-workspace-data";
+import { usePoolActions } from "@/components/use-pool-actions";
+import { useSeedingActions } from "@/components/use-seeding-actions";
+import { useTournamentActions } from "@/components/use-tournament-actions";
+import { useTournamentSharingActions } from "@/components/use-tournament-sharing-actions";
 import {
-  isParallelResultMode,
   usesBracketStyleForResultMode
 } from "@/lib/bracket-modes";
+import {
+  favoritePool,
+} from "@/lib/client-api/create-workspace";
 
 const emptyCandidateForm = {
   name: "",
@@ -79,20 +63,12 @@ const emptyTournamentForm = {
 export function CreatePanels() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [pools, setPools] = useState([]);
-  const [tournaments, setTournaments] = useState([]);
-  const [poolDetails, setPoolDetails] = useState({});
   const [expandedPoolId, setExpandedPoolId] = useState(null);
   const [isPoolModalOpen, setIsPoolModalOpen] = useState(false);
   const [isPoolImportModalOpen, setIsPoolImportModalOpen] = useState(false);
   const [isTournamentModalOpen, setIsTournamentModalOpen] = useState(false);
   const [editingPool, setEditingPool] = useState(null);
   const [poolEditForm, setPoolEditForm] = useState(emptyPoolForm);
-  const [seedingTournament, setSeedingTournament] = useState(null);
-  const [seedingEntries, setSeedingEntries] = useState([]);
-  const [seedingLoading, setSeedingLoading] = useState(false);
-  const [savingSeeding, setSavingSeeding] = useState(false);
-  const [draggingEntryId, setDraggingEntryId] = useState(null);
   const [candidateEditor, setCandidateEditor] = useState(null);
   const [candidateDrafts, setCandidateDrafts] = useState({});
   const [imageSuggestions, setImageSuggestions] = useState({});
@@ -113,12 +89,10 @@ export function CreatePanels() {
   const [editingTournamentTitleId, setEditingTournamentTitleId] = useState(null);
   const [expandedBracketRules, setExpandedBracketRules] = useState({});
   const [recentlySavedBrackets, setRecentlySavedBrackets] = useState({});
-  const [tournamentInvites, setTournamentInvites] = useState({});
-  const [tournamentShareLinks, setTournamentShareLinks] = useState({});
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [pendingActions, setPendingActions] = useState({});
-  const [isPending, startTransition] = useTransition();
+  const [isTransitionPending, startTransition] = useTransition();
   const tournamentCardRefs = useRef({});
   const poolCardRefs = useRef({});
   const actionSearchParamsHandledRef = useRef({
@@ -126,6 +100,24 @@ export function CreatePanels() {
     makeBracketFromPoolId: null
   });
   const poolSearchScrollHandledRef = useRef(null);
+
+  const {
+    isWorkspacePending,
+    loadFriendsTournamentMeta,
+    loadWorkspace,
+    poolDetails,
+    pools,
+    removeCandidateFromWorkspace,
+    replaceTournamentInWorkspace,
+    setTournamentShareLink,
+    tournamentInvites,
+    tournaments,
+    tournamentShareLinks
+  } = useCreateWorkspaceData({
+    setErrorMessage,
+    setExpandedPoolId
+  });
+  const isPending = isTransitionPending || isWorkspacePending;
 
   function beginAction(actionKey) {
     setPendingActions((current) => ({
@@ -168,8 +160,7 @@ export function CreatePanels() {
     imageSuggestionQuery,
     setImageSuggestionQuery,
     poolDetails,
-    setPoolDetails,
-    setPools,
+    removeCandidateFromWorkspace,
     setExpandedPoolId,
     tournaments,
     emptyCandidateForm,
@@ -183,138 +174,112 @@ export function CreatePanels() {
     setOpenPoolMergeMenuId
   });
 
-  async function loadFriendsTournamentMeta(nextTournaments) {
-    const withFriendsTournaments = (nextTournaments ?? []).filter(
-      (tournament) =>
-        tournament.sharingMode === "with_friends" &&
-        (tournament.status === "draft" || tournament.status === "active")
-    );
+  const {
+    closePoolImportModal,
+    createPoolRecord,
+    handleArchivePool,
+    handleCopyPoolLink,
+    handleImportCandidatesIntoPool,
+    handleMergePool,
+    handlePoolEditSubmit,
+    handlePoolImportSubmit,
+    handlePoolSubmit,
+    openPoolEditor,
+    savePoolInline
+  } = usePoolActions({
+    router,
+    poolForm,
+    setPoolForm,
+    poolImportForm,
+    setPoolImportForm,
+    setIsPoolModalOpen,
+    setIsPoolImportModalOpen,
+    emptyPoolForm,
+    emptyPoolImportForm,
+    editingPool,
+    setEditingPool,
+    poolEditForm,
+    setPoolEditForm,
+    expandedPoolId,
+    setExpandedPoolId,
+    pools,
+    poolInlineDrafts,
+    setPoolInlineDrafts,
+    setWorkspaceView,
+    setOpenPoolActionsMenuId,
+    setOpenPoolMergeMenuId,
+    isActionPending,
+    beginAction,
+    endAction,
+    setErrorMessage,
+    setSuccessMessage,
+    loadWorkspace
+  });
 
-    const inviteEntries = await Promise.all(
-      withFriendsTournaments
-        .filter((tournament) => tournament.kind !== "parallel_parent")
-        .map(async (tournament) => {
-        const response = await fetch(`/api/tournaments/${tournament.id}/invites`, {
-          cache: "no-store"
-        });
+  const {
+    closeSeedingEditor,
+    draggingEntryId,
+    handleSeedDrop,
+    handleSeedingSubmit,
+    openSeedingEditor,
+    savingSeeding,
+    seedingEntries,
+    seedingLoading,
+    seedingTournament,
+    setDraggingEntryId
+  } = useSeedingActions({
+    setErrorMessage,
+    setSuccessMessage,
+    loadWorkspace
+  });
 
-        if (!response.ok) {
-          throw new Error(`Failed to load invitees for ${tournament.title}.`);
-        }
+  const {
+    handleCopyShareLink,
+    handleEnsureShareLink
+  } = useTournamentSharingActions({
+    tournaments,
+    tournamentShareLinks,
+    setTournamentShareLink,
+    isActionPending,
+    beginAction,
+    endAction,
+    setErrorMessage,
+    setSuccessMessage
+  });
 
-        const data = await response.json();
-        return [tournament.id, data.items ?? []];
-      })
-    );
-
-    const parallelEntries = await Promise.all(
-      withFriendsTournaments
-        .filter((tournament) => tournament.kind === "parallel_parent")
-        .map(async (tournament) => {
-          const response = await fetch(`/api/parallel-tournaments/${tournament.id}`, {
-            cache: "no-store"
-          });
-
-          if (!response.ok) {
-            throw new Error(`Failed to load participants for ${tournament.title}.`);
-          }
-
-          const data = await response.json();
-          return [tournament.id, data.item?.participants ?? []];
-        })
-    );
-
-    const linkEntries = await Promise.all(
-      withFriendsTournaments
-        .filter(
-          (tournament) => tournament.status === "draft" || tournament.status === "active"
-        )
-        .map(async (tournament) => {
-          const response = await fetch(
-            tournament.kind === "parallel_parent"
-              ? `/api/parallel-tournaments/${tournament.id}/links`
-              : `/api/tournaments/${tournament.id}/links`,
-            {
-              cache: "no-store"
-            }
-          );
-
-          if (!response.ok) {
-            throw new Error(`Failed to load share links for ${tournament.title}.`);
-          }
-
-          const data = await response.json();
-          return [tournament.id, data.items ?? []];
-        })
-    );
-
-    setTournamentInvites(Object.fromEntries([...inviteEntries, ...parallelEntries]));
-    setTournamentShareLinks(Object.fromEntries(linkEntries));
-  }
-
-  async function loadWorkspace() {
-    const [poolResponse, tournamentResponse, parallelTournamentResponse] = await Promise.all([
-      fetch("/api/pools", { cache: "no-store" }),
-      fetch("/api/tournaments", { cache: "no-store" }),
-      fetch("/api/parallel-tournaments", { cache: "no-store" }).catch(() => null)
-    ]);
-
-    if (!poolResponse.ok || !tournamentResponse.ok) {
-      throw new Error("Failed to load create workspace.");
-    }
-
-    const poolData = await poolResponse.json();
-    const tournamentData = await tournamentResponse.json();
-    const parallelTournamentData =
-      parallelTournamentResponse && parallelTournamentResponse.ok
-        ? await parallelTournamentResponse.json()
-        : { items: [] };
-    const normalizedTournaments = sortManagedBrackets([
-      ...(tournamentData.items ?? []).map((item) => ({ ...item, kind: "standard" })),
-      ...(parallelTournamentData.items ?? []).map(normalizeParallelBracketItem)
-    ]);
-
-    setPools(sortManagedPools(poolData.items ?? []));
-    setTournaments(normalizedTournaments);
-    setExpandedPoolId((current) => {
-      const sortedPools = sortManagedPools(poolData.items ?? []);
-
-      if (!sortedPools.length) {
-        return null;
-      }
-
-      if (current && sortedPools.some((pool) => pool.id === current)) {
-        return current;
-      }
-
-      return null;
-    });
-
-    const detailEntries = await Promise.all(
-      sortManagedPools(poolData.items ?? []).map(async (pool) => {
-        const response = await fetch(`/api/pools/${pool.id}`, { cache: "no-store" });
-        if (!response.ok) {
-          throw new Error(`Failed to load pool ${pool.name}.`);
-        }
-
-        const data = await response.json();
-        return [pool.id, data.item];
-      })
-    );
-
-    setPoolDetails(Object.fromEntries(detailEntries));
-    await loadFriendsTournamentMeta(normalizedTournaments);
-  }
-
-  useEffect(() => {
-    startTransition(async () => {
-      try {
-        await loadWorkspace();
-      } catch (error) {
-        setErrorMessage(error.message);
-      }
-    });
-  }, []);
+  const {
+    createDraftBracket,
+    createDraftBracketFromPool,
+    handleArchiveTournament,
+    handleCloseCurrentRound,
+    handleRerunTournament,
+    handleStartTournament,
+    handleSyncTournamentWithPool,
+    handleTournamentSubmit,
+    updateTournamentInline
+  } = useTournamentActions({
+    router,
+    tournamentForm,
+    setTournamentForm,
+    emptyTournamentForm,
+    setIsTournamentModalOpen,
+    tournaments,
+    tournamentInlineDrafts,
+    setTournamentInlineDrafts,
+    setWorkspaceView,
+    setTournamentStageView,
+    setExpandedDraftTournamentId,
+    setEditingTournamentTitleId,
+    setRecentlySavedBrackets,
+    replaceTournamentInWorkspace,
+    tournamentCardRefs,
+    isActionPending,
+    beginAction,
+    endAction,
+    setErrorMessage,
+    setSuccessMessage,
+    loadWorkspace
+  });
 
   useEffect(() => {
     if (expandedPoolId && !pools.some((pool) => pool.id === expandedPoolId)) {
@@ -525,16 +490,7 @@ export function CreatePanels() {
 
     startTransition(async () => {
       try {
-        const response = await fetch(`/api/pools/${requestedFavoritePoolId}/favorites`, {
-          method: "POST"
-        });
-        const data = await response.json();
-
-        if (!response.ok) {
-          actionSearchParamsHandledRef.current.favoritePoolId = null;
-          setErrorMessage(data.error?.message || "Failed to add pool to favorites.");
-          return;
-        }
+        const data = await favoritePool(requestedFavoritePoolId);
 
         await loadWorkspace();
         setWorkspaceView("pools");
@@ -579,1160 +535,6 @@ export function CreatePanels() {
       router.replace(`/create?view=tournaments&stage=draft&tournament=${createdBracket.id}`);
     });
   }, [pools, router, searchParams, startTransition]);
-
-  async function handlePoolSubmit(event) {
-    event.preventDefault();
-    if (isActionPending("create-pool")) {
-      return;
-    }
-
-    beginAction("create-pool");
-    setErrorMessage("");
-    setSuccessMessage("");
-
-    try {
-      const response = await fetch("/api/pools", {
-        method: "POST",
-        headers: {
-          "content-type": "application/json"
-        },
-        body: JSON.stringify({
-          name: poolForm.name,
-          description: poolForm.description || null,
-          visibility: poolForm.visibility
-        })
-      });
-
-      const data = await response.json();
-      if (!response.ok) {
-        setErrorMessage(data.error?.message || "Failed to create pool.");
-        return;
-      }
-
-      setPoolForm(emptyPoolForm);
-      setExpandedPoolId(data.item?.id ?? null);
-      setIsPoolModalOpen(false);
-      setSuccessMessage("Pool created.");
-      await loadWorkspace();
-    } finally {
-      endAction("create-pool");
-    }
-  }
-
-  function closePoolImportModal() {
-    setIsPoolImportModalOpen(false);
-    setPoolImportForm(emptyPoolImportForm);
-  }
-
-  async function handlePoolImportSubmit(event) {
-    event.preventDefault();
-    const actionKey = "import-pool";
-
-    if (isActionPending(actionKey)) {
-      return;
-    }
-
-    beginAction(actionKey);
-    setErrorMessage("");
-    setSuccessMessage("");
-
-    try {
-      const response = await fetch("/api/pools", {
-        method: "POST",
-        headers: {
-          "content-type": "application/json"
-        },
-        body: JSON.stringify({
-          name: poolImportForm.name,
-          description: poolImportForm.description || null,
-          visibility: poolImportForm.visibility,
-          source: {
-            type: "extract",
-            prompt: buildPoolImportPrompt(poolImportForm.name),
-            text: poolImportForm.text
-          }
-        })
-      });
-
-      const data = await response.json();
-      if (!response.ok) {
-        setErrorMessage(data.error?.message || "Failed to import pool.");
-        return;
-      }
-
-      setExpandedPoolId(data.item?.id ?? null);
-      closePoolImportModal();
-      setSuccessMessage("Pool imported.");
-      await loadWorkspace();
-    } finally {
-      endAction(actionKey);
-    }
-  }
-
-  async function createPoolRecord({
-    name = "Untitled Pool",
-    description = null,
-    attachedTournamentId = null,
-    switchToPools = false
-  } = {}) {
-    const actionKey = attachedTournamentId
-      ? `create-pool-for-tournament:${attachedTournamentId}`
-      : "create-pool";
-
-    if (isActionPending(actionKey)) {
-      return null;
-    }
-
-    beginAction(actionKey);
-    setErrorMessage("");
-    setSuccessMessage("");
-
-    try {
-      const response = await fetch("/api/pools", {
-        method: "POST",
-        headers: {
-          "content-type": "application/json"
-        },
-        body: JSON.stringify({
-          name,
-          description,
-          visibility: "private"
-        })
-      });
-
-      const data = await response.json();
-      if (!response.ok) {
-        setErrorMessage(data.error?.message || "Failed to create pool.");
-        return null;
-      }
-
-      const createdPool = data.item;
-
-      if (attachedTournamentId) {
-        const attachResponse = await fetch(`/api/tournaments/${attachedTournamentId}`, {
-          method: "PATCH",
-          headers: {
-            "content-type": "application/json"
-          },
-          body: JSON.stringify({
-            sourcePoolId: createdPool.id
-          })
-        });
-        const attachData = await attachResponse.json();
-
-        if (!attachResponse.ok) {
-          setErrorMessage(attachData.error?.message || "Failed to attach pool to bracket.");
-          return null;
-        }
-      }
-
-      setPoolInlineDrafts((current) => ({
-        ...current,
-        [createdPool.id]: {
-          name: createdPool.name,
-          description: createdPool.description || ""
-        }
-      }));
-      setExpandedPoolId(createdPool.id);
-
-      if (switchToPools) {
-        setWorkspaceView("pools");
-      }
-
-      setSuccessMessage(attachedTournamentId ? "New pool created and linked to bracket." : "Pool created.");
-      await loadWorkspace();
-      return createdPool;
-    } finally {
-      endAction(actionKey);
-    }
-  }
-
-  async function createDraftBracket() {
-    if (isActionPending("create-tournament")) {
-      return;
-    }
-
-    beginAction("create-tournament");
-    setErrorMessage("");
-    setSuccessMessage("");
-
-    try {
-      const response = await fetch("/api/tournaments", {
-        method: "POST",
-        headers: {
-          "content-type": "application/json"
-        },
-        body: JSON.stringify({
-          title: "Untitled Bracket",
-          description: null,
-          sourcePoolId: null,
-          sharingMode: "private",
-          playStyle: "fixed_bracket",
-          resultMode: "winner_only",
-          tieBreakMode: "higher_seed_wins"
-        })
-      });
-
-      const data = await response.json();
-      if (!response.ok) {
-        setErrorMessage(data.error?.message || "Failed to create bracket.");
-        return;
-      }
-
-      setTournamentInlineDrafts((current) => ({
-        ...current,
-        [data.item.id]: {
-          title: data.item.title,
-          sourcePoolId: data.item.sourcePoolId || "",
-          sharingMode: data.item.sharingMode,
-          playStyle: data.item.playStyle,
-          resultMode: data.item.resultMode,
-          tieBreakMode: data.item.tieBreakMode
-        }
-      }));
-      setExpandedDraftTournamentId(data.item.id);
-      setWorkspaceView("tournaments");
-      setSuccessMessage("Draft bracket created.");
-      await loadWorkspace();
-    } finally {
-      endAction("create-tournament");
-    }
-  }
-
-  async function createDraftBracketFromPool(pool) {
-    if (isActionPending("create-tournament")) {
-      return null;
-    }
-
-    beginAction("create-tournament");
-    setErrorMessage("");
-    setSuccessMessage("");
-
-    try {
-      const response = await fetch("/api/tournaments", {
-        method: "POST",
-        headers: {
-          "content-type": "application/json"
-        },
-        body: JSON.stringify({
-          title: `${pool.name} Bracket`,
-          description: null,
-          sourcePoolId: pool.id,
-          sharingMode: "private",
-          playStyle: "fixed_bracket",
-          resultMode: "winner_only",
-          tieBreakMode: "higher_seed_wins"
-        })
-      });
-
-      const data = await response.json();
-      if (!response.ok) {
-        setErrorMessage(data.error?.message || "Failed to create bracket from pool.");
-        return null;
-      }
-
-      setTournamentInlineDrafts((current) => ({
-        ...current,
-        [data.item.id]: {
-          title: data.item.title,
-          sourcePoolId: data.item.sourcePoolId || "",
-          sharingMode: data.item.sharingMode,
-          playStyle: data.item.playStyle,
-          resultMode: data.item.resultMode,
-          tieBreakMode: data.item.tieBreakMode
-        }
-      }));
-      setExpandedDraftTournamentId(data.item.id);
-      setWorkspaceView("tournaments");
-      setSuccessMessage(`Draft bracket created from ${pool.name}.`);
-      await loadWorkspace();
-      return data.item;
-    } finally {
-      endAction("create-tournament");
-    }
-  }
-
-  async function handleTournamentSubmit(event) {
-    event.preventDefault();
-    const isParallelMode = isParallelResultMode(tournamentForm.resultMode);
-    const actionKey = isParallelMode ? "create-parallel-tournament" : "create-tournament";
-
-    if (isActionPending(actionKey)) {
-      return;
-    }
-
-    beginAction(actionKey);
-    setErrorMessage("");
-    setSuccessMessage("");
-
-    try {
-      const response = await fetch(isParallelMode ? "/api/parallel-tournaments" : "/api/tournaments", {
-        method: "POST",
-        headers: {
-          "content-type": "application/json"
-        },
-        body: JSON.stringify({
-          ...tournamentForm,
-          ...(isParallelMode
-            ? {
-                resultMode: tournamentForm.resultMode,
-                tieBreakMode: tournamentForm.tieBreakMode
-              }
-            : {
-                playStyle: tournamentForm.playStyle,
-                resultMode: tournamentForm.resultMode
-              }),
-          description: null
-        })
-      });
-
-      const data = await response.json();
-      if (!response.ok) {
-        setErrorMessage(
-          data.error?.message ||
-            (isParallelMode ? "Failed to create parallel bracket." : "Failed to create bracket.")
-        );
-        return;
-      }
-
-      setTournamentForm(emptyTournamentForm);
-      setIsTournamentModalOpen(false);
-      if (isParallelMode) {
-        setWorkspaceView("tournaments");
-        setTournamentStageView("draft");
-        setExpandedDraftTournamentId(data.item.id);
-        setEditingTournamentTitleId(null);
-        setSuccessMessage("Draft bracket created.");
-        await loadWorkspace();
-        return;
-      }
-
-      setSuccessMessage("Draft bracket created.");
-      await loadWorkspace();
-    } finally {
-      endAction(actionKey);
-    }
-  }
-
-  async function handleMergePool(poolId, sourcePoolId) {
-    if (!sourcePoolId) {
-      setErrorMessage("Choose a source pool to merge.");
-      return;
-    }
-
-    const actionKey = `merge-pool:${poolId}`;
-    if (isActionPending(actionKey)) {
-      return;
-    }
-
-    beginAction(actionKey);
-    setErrorMessage("");
-    setSuccessMessage("");
-
-    try {
-      const response = await fetch(`/api/pools/${poolId}/imports`, {
-        method: "POST",
-        headers: {
-          "content-type": "application/json"
-        },
-        body: JSON.stringify({ sourcePoolId })
-      });
-      const data = await response.json();
-
-      if (!response.ok) {
-        setErrorMessage(data.error?.message || "Failed to merge pools.");
-        return;
-      }
-
-      setOpenPoolMergeMenuId(null);
-      setOpenPoolActionsMenuId(null);
-      setSuccessMessage("Pool merged.");
-      await loadWorkspace();
-    } finally {
-      endAction(actionKey);
-    }
-  }
-
-  function openPoolEditor(pool) {
-    setEditingPool(pool);
-    setPoolEditForm({
-      name: pool.name || "",
-      description: pool.description || "",
-      visibility: pool.visibility || "private"
-    });
-  }
-
-  async function updateTournamentInline(tournamentId, patch, { silent = true } = {}) {
-    const actionKey = `update-tournament:${tournamentId}`;
-    if (isActionPending(actionKey)) {
-      return;
-    }
-
-    const tournament = tournaments.find((entry) => entry.id === tournamentId);
-    const isParallelParent = tournament?.kind === "parallel_parent";
-
-    beginAction(actionKey);
-    setErrorMessage("");
-
-    try {
-      const response = await fetch(
-        isParallelParent
-          ? `/api/parallel-tournaments/${tournamentId}`
-          : `/api/tournaments/${tournamentId}`,
-        {
-        method: "PATCH",
-        headers: {
-          "content-type": "application/json"
-        },
-        body: JSON.stringify(patch)
-        }
-      );
-      const data = await response.json();
-
-      if (!response.ok) {
-        setErrorMessage(data.error?.message || "Failed to update bracket.");
-        return;
-      }
-
-      setRecentlySavedBrackets((current) => ({
-        ...current,
-        [tournamentId]: true
-      }));
-      setTimeout(() => {
-        setRecentlySavedBrackets((current) => {
-          const next = { ...current };
-          delete next[tournamentId];
-          return next;
-        });
-      }, 1800);
-
-      await loadWorkspace();
-    } finally {
-      endAction(actionKey);
-    }
-  }
-
-  async function convertTournamentDraftToParallel(
-    tournament,
-    { actionKey = null, startAfterCreate = false } = {}
-  ) {
-    const draft = tournamentInlineDrafts[tournament.id] ?? tournament;
-    const title = draft.title?.trim() || tournament.title?.trim() || "";
-    const sourcePoolId = draft.sourcePoolId || tournament.sourcePoolId || "";
-
-    if (!title) {
-      setErrorMessage("Parallel brackets need a title.");
-      return false;
-    }
-
-    if (!sourcePoolId) {
-      setErrorMessage("Pick a pool before creating this parallel bracket.");
-      return false;
-    }
-
-    const effectiveActionKey = actionKey || `convert-tournament:${tournament.id}`;
-    if (isActionPending(effectiveActionKey)) {
-      return false;
-    }
-
-    if (!actionKey) {
-      beginAction(effectiveActionKey);
-    }
-    setErrorMessage("");
-
-    try {
-      const createResponse = await fetch("/api/parallel-tournaments", {
-        method: "POST",
-        headers: {
-          "content-type": "application/json"
-        },
-        body: JSON.stringify({
-          title,
-          description: draft.description ?? tournament.description ?? "",
-          sourcePoolId,
-          sharingMode: draft.sharingMode || tournament.sharingMode || "private",
-          visibility: draft.visibility || tournament.visibility || "private",
-          votingAccess: draft.votingAccess || tournament.votingAccess || "signed_in_only",
-          resultMode: draft.resultMode || tournament.resultMode || "parallel_full_ranking",
-          tieBreakMode: draft.tieBreakMode || tournament.tieBreakMode || "higher_seed_wins"
-        })
-      });
-      const createData = await createResponse.json();
-
-      if (!createResponse.ok) {
-        setErrorMessage(createData.error?.message || "Failed to create parallel bracket.");
-        return false;
-      }
-
-      const createdParallelId = createData.item?.id;
-
-      if (startAfterCreate && createdParallelId) {
-        const startResponse = await fetch(`/api/parallel-tournaments/${createdParallelId}`, {
-          method: "PATCH",
-          headers: {
-            "content-type": "application/json"
-          },
-          body: JSON.stringify({
-            status: "active"
-          })
-        });
-        const startData = await startResponse.json();
-
-        if (!startResponse.ok) {
-          setErrorMessage(startData.error?.message || "Failed to start parallel bracket.");
-          return false;
-        }
-      }
-
-      await fetch(`/api/tournaments/${tournament.id}`, {
-        method: "DELETE"
-      });
-
-      setSuccessMessage(startAfterCreate ? "Parallel bracket started." : "Parallel bracket created.");
-      setWorkspaceView("tournaments");
-      setTournamentStageView(startAfterCreate ? "active" : "draft");
-      setExpandedDraftTournamentId(createData.item.id);
-      setEditingTournamentTitleId(null);
-      await loadWorkspace();
-      return true;
-    } finally {
-      if (!actionKey) {
-        endAction(effectiveActionKey);
-      }
-    }
-  }
-
-  async function savePoolInline(poolId) {
-    const draft = poolInlineDrafts[poolId];
-    const pool = pools.find((entry) => entry.id === poolId);
-
-    if (!draft || !pool) {
-      return;
-    }
-
-    const nextName = draft.name?.trim();
-    const nextDescription = draft.description?.trim() || "";
-    const nextVisibility = draft.visibility || pool.visibility || "private";
-
-    if (!nextName) {
-      setPoolInlineDrafts((current) => ({
-        ...current,
-        [poolId]: {
-          ...draft,
-          name: pool.name
-        }
-      }));
-      return;
-    }
-
-    if (
-      nextName === pool.name &&
-      nextDescription === (pool.description || "") &&
-      nextVisibility === (pool.visibility || "private")
-    ) {
-      return;
-    }
-
-    const actionKey = `update-pool:${poolId}`;
-    if (isActionPending(actionKey)) {
-      return;
-    }
-
-    beginAction(actionKey);
-    setErrorMessage("");
-    setSuccessMessage("");
-
-    try {
-      const response = await fetch(`/api/pools/${poolId}`, {
-        method: "PATCH",
-        headers: {
-          "content-type": "application/json"
-        },
-        body: JSON.stringify({
-          name: nextName,
-          description: nextDescription || null,
-          visibility: nextVisibility
-        })
-      });
-      const data = await response.json();
-
-      if (!response.ok) {
-        setErrorMessage(data.error?.message || "Failed to update pool.");
-        return;
-      }
-
-      setPoolInlineDrafts((current) => ({
-        ...current,
-        [poolId]: {
-          name: data.item?.name ?? nextName,
-          description: data.item?.description ?? nextDescription,
-          visibility: data.item?.visibility ?? nextVisibility
-        }
-      }));
-      setSuccessMessage("Pool updated.");
-      setOpenPoolActionsMenuId(null);
-      setOpenPoolMergeMenuId(null);
-      await loadWorkspace();
-    } finally {
-      endAction(actionKey);
-    }
-  }
-
-  async function handleStartTournament(tournamentId) {
-    const actionKey = `start-tournament:${tournamentId}`;
-    if (isActionPending(actionKey)) {
-      return;
-    }
-
-    const tournament = tournaments.find((entry) => entry.id === tournamentId);
-    const bracketDraft = tournament
-      ? (tournamentInlineDrafts[tournamentId] ?? {
-          title: tournament.title,
-          sourcePoolId: tournament.sourcePoolId || "",
-          sharingMode: tournament.sharingMode,
-          playStyle: tournament.playStyle,
-          resultMode: tournament.resultMode,
-          tieBreakMode: tournament.tieBreakMode
-        })
-      : null;
-
-    if (tournament && isParallelResultMode(bracketDraft?.resultMode) && tournament.kind !== "parallel_parent") {
-      beginAction(actionKey);
-      setErrorMessage("");
-      setSuccessMessage("");
-      try {
-        const converted = await convertTournamentDraftToParallel(tournament, {
-          actionKey,
-          startAfterCreate: true
-        });
-      if (converted) {
-        setExpandedDraftTournamentId(null);
-      }
-      } finally {
-        endAction(actionKey);
-      }
-      return;
-    }
-
-    beginAction(actionKey);
-    setErrorMessage("");
-    setSuccessMessage("");
-
-    try {
-      const response = await fetch(
-        tournament?.kind === "parallel_parent"
-          ? `/api/parallel-tournaments/${tournamentId}`
-          : `/api/tournaments/${tournamentId}`,
-        {
-        method: "PATCH",
-        headers: {
-          "content-type": "application/json"
-        },
-        body: JSON.stringify({
-          status: "active"
-        })
-        }
-      );
-
-      const data = await response.json();
-      if (!response.ok) {
-        setErrorMessage(data.error?.message || "Failed to start bracket.");
-        return;
-      }
-
-      setTournamentStageView("active");
-      setExpandedDraftTournamentId(null);
-      if (data.item) {
-        const nextTournament =
-          tournament?.kind === "parallel_parent"
-            ? normalizeParallelBracketItem(data.item)
-            : { ...data.item, kind: "standard" };
-        setTournaments((current) =>
-          current.map((tournament) => (tournament.id === tournamentId ? nextTournament : tournament))
-        );
-      }
-      setSuccessMessage("Bracket started.");
-      await loadWorkspace();
-      setTimeout(() => {
-        tournamentCardRefs.current[tournamentId]?.scrollIntoView({
-          behavior: "smooth",
-          block: "start"
-        });
-      }, 50);
-    } finally {
-      endAction(actionKey);
-    }
-  }
-
-  async function handleEnsureShareLink(tournamentId, { rotate = false, silent = false } = {}) {
-    const actionKey = rotate ? `rotate-link:${tournamentId}` : `share-link:${tournamentId}`;
-    if (isActionPending(actionKey)) {
-      return null;
-    }
-
-    const tournament = tournaments.find((entry) => entry.id === tournamentId);
-    const isParallelParent = tournament?.kind === "parallel_parent";
-
-    beginAction(actionKey);
-    if (!silent) {
-      setErrorMessage("");
-      setSuccessMessage("");
-    }
-
-    try {
-      const response = await fetch(
-        isParallelParent
-          ? `/api/parallel-tournaments/${tournamentId}/links`
-          : `/api/tournaments/${tournamentId}/links`,
-        {
-        method: "POST",
-        headers: {
-          "content-type": "application/json"
-        },
-        body: JSON.stringify(rotate ? { rotate: true } : {})
-        }
-      );
-      const data = await response.json();
-
-      if (!response.ok) {
-        setErrorMessage(data.error?.message || "Failed to prepare share link.");
-        return null;
-      }
-
-      setTournamentShareLinks((current) => ({
-        ...current,
-        [tournamentId]: [data.item]
-      }));
-      if (!silent) {
-        setSuccessMessage(rotate ? "Share link refreshed." : "Share link ready.");
-      }
-      return data.item;
-    } finally {
-      endAction(actionKey);
-    }
-  }
-
-  async function handleCopyShareLink(tournamentId) {
-    setErrorMessage("");
-    setSuccessMessage("");
-
-    const tournament = tournaments.find((entry) => entry.id === tournamentId);
-
-    if (tournament && isPublicBracketVisibility(tournament.visibility)) {
-      const shareUrl = `${window.location.origin}${buildDirectBracketSharePath(tournament)}`;
-
-      try {
-        await navigator.clipboard.writeText(shareUrl);
-        setSuccessMessage("Bracket link copied.");
-      } catch {
-        setErrorMessage("Could not copy the bracket link.");
-      }
-
-      return;
-    }
-
-    let link = tournamentShareLinks[tournamentId]?.find((item) => item.active);
-    if (!link) {
-      link = await handleEnsureShareLink(tournamentId);
-    }
-
-    if (!link) {
-      return;
-    }
-
-    const shareUrl = `${window.location.origin}/join/${link.token}`;
-
-    try {
-      await navigator.clipboard.writeText(shareUrl);
-      setSuccessMessage("Share link copied.");
-    } catch {
-      setErrorMessage("Could not copy the share link.");
-    }
-  }
-
-  async function handleCopyPoolLink(poolId) {
-    setErrorMessage("");
-    setSuccessMessage("");
-
-    const shareUrl = `${window.location.origin}/pools/${poolId}`;
-
-    try {
-      await navigator.clipboard.writeText(shareUrl);
-      setOpenPoolActionsMenuId(null);
-      setOpenPoolMergeMenuId(null);
-      setSuccessMessage("Pool link copied.");
-    } catch {
-      setErrorMessage("Could not copy the pool link.");
-    }
-  }
-
-  function handleImportCandidatesIntoPool(pool) {
-    setOpenPoolActionsMenuId(null);
-    setOpenPoolMergeMenuId(null);
-    if (pool.importSourceUrl) {
-      try {
-        const url = new URL(pool.importSourceUrl);
-        const hashParams = new URLSearchParams(
-          url.hash.startsWith("#") ? url.hash.slice(1) : url.hash
-        );
-        hashParams.set("brackeroni-continue-pool", pool.id);
-        hashParams.set("brackeroni-continue-name", pool.name);
-        url.hash = hashParams.toString();
-        window.open(url.toString(), "_blank");
-        return;
-      } catch {}
-    }
-
-    router.push(
-      `/tools/import?poolId=${encodeURIComponent(pool.id)}&poolName=${encodeURIComponent(pool.name)}`
-    );
-  }
-
-  async function handleSyncTournamentWithPool(tournamentId) {
-    const tournament = tournaments.find((entry) => entry.id === tournamentId);
-    if (tournament?.kind === "parallel_parent") {
-      setSuccessMessage("Parallel brackets read directly from their pool. No sync needed.");
-      return;
-    }
-
-    const actionKey = `sync-tournament:${tournamentId}`;
-    if (isActionPending(actionKey)) {
-      return;
-    }
-
-    beginAction(actionKey);
-    setErrorMessage("");
-    setSuccessMessage("");
-
-    try {
-      const response = await fetch(`/api/tournaments/${tournamentId}`, {
-        method: "PATCH",
-        headers: {
-          "content-type": "application/json"
-        },
-        body: JSON.stringify({
-          syncWithPool: true
-        })
-      });
-
-      const data = await response.json();
-      if (!response.ok) {
-        setErrorMessage(data.error?.message || "Failed to sync bracket with pool.");
-        return;
-      }
-
-      const addedEntryCount = data.meta?.addedEntryCount ?? 0;
-      setSuccessMessage(
-        addedEntryCount > 0
-          ? `Bracket synced with pool. Added ${addedEntryCount} candidate${
-              addedEntryCount === 1 ? "" : "s"
-            }.`
-          : "Bracket synced with pool. No new candidates were added."
-      );
-      await loadWorkspace();
-    } finally {
-      endAction(actionKey);
-    }
-  }
-
-  async function handleRerunTournament(tournamentId) {
-    const actionKey = `rerun-tournament:${tournamentId}`;
-    if (isActionPending(actionKey)) {
-      return;
-    }
-
-    beginAction(actionKey);
-    setErrorMessage("");
-    setSuccessMessage("");
-
-    try {
-      const response = await fetch(`/api/tournaments/${tournamentId}/rerun-drafts`, {
-        method: "POST"
-      });
-
-      const data = await response.json();
-      if (!response.ok) {
-        setErrorMessage(data.error?.message || "Failed to create rerun.");
-        return;
-      }
-
-      const rerunId = data.item?.id || null;
-      setWorkspaceView("tournaments");
-      setTournamentStageView("draft");
-      if (rerunId) {
-        setExpandedDraftTournamentId(rerunId);
-        setEditingTournamentTitleId(null);
-      }
-      setSuccessMessage("Rerun draft created.");
-      await loadWorkspace();
-    } finally {
-      endAction(actionKey);
-    }
-  }
-
-  async function openSeedingEditor(tournament) {
-    setErrorMessage("");
-    setSuccessMessage("");
-    setSeedingLoading(true);
-    setSeedingTournament(tournament);
-    setSeedingEntries([]);
-
-    try {
-      const response = await fetch(`/api/tournaments/${tournament.id}/entries`, {
-        cache: "no-store"
-      });
-      const data = await response.json();
-
-      if (!response.ok) {
-        setErrorMessage(data.error?.message || "Failed to load bracket seeding.");
-        setSeedingTournament(null);
-        return;
-      }
-
-      setSeedingEntries(data.items ?? []);
-    } catch {
-      setErrorMessage("Failed to load bracket seeding.");
-      setSeedingTournament(null);
-    } finally {
-      setSeedingLoading(false);
-    }
-  }
-
-  function moveSeedEntry(fromIndex, toIndex) {
-    if (fromIndex === toIndex || fromIndex < 0 || toIndex < 0) {
-      return;
-    }
-
-    setSeedingEntries((current) => {
-      if (fromIndex >= current.length || toIndex >= current.length) {
-        return current;
-      }
-
-      const next = [...current];
-      const [moved] = next.splice(fromIndex, 1);
-      next.splice(toIndex, 0, moved);
-      return next;
-    });
-  }
-
-  function handleSeedDrop(targetIndex) {
-    if (!draggingEntryId) {
-      return;
-    }
-
-    const fromIndex = seedingEntries.findIndex((entry) => entry.id === draggingEntryId);
-    moveSeedEntry(fromIndex, targetIndex);
-    setDraggingEntryId(null);
-  }
-
-  async function handleSeedingSubmit(event) {
-    event.preventDefault();
-
-    if (!seedingTournament) {
-      return;
-    }
-
-    setErrorMessage("");
-    setSuccessMessage("");
-    setSavingSeeding(true);
-
-    try {
-      const response = await fetch(`/api/tournaments/${seedingTournament.id}/entries`, {
-        method: "PATCH",
-        headers: {
-          "content-type": "application/json"
-        },
-        body: JSON.stringify({
-          entryIds: seedingEntries.map((entry) => entry.id)
-        })
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        setErrorMessage(data.error?.message || "Failed to save bracket seeding.");
-        return;
-      }
-
-      setSeedingEntries(data.items ?? []);
-      setSeedingTournament(null);
-      setSuccessMessage("Seeding updated.");
-      await loadWorkspace();
-    } catch {
-      setErrorMessage("Failed to save bracket seeding.");
-    } finally {
-      setSavingSeeding(false);
-      setDraggingEntryId(null);
-    }
-  }
-
-  async function handlePoolEditSubmit(event) {
-    event.preventDefault();
-
-    if (!editingPool) {
-      return;
-    }
-
-    if (isActionPending("save-pool")) {
-      return;
-    }
-
-    beginAction("save-pool");
-    setErrorMessage("");
-    setSuccessMessage("");
-
-    try {
-      const response = await fetch(`/api/pools/${editingPool.id}`, {
-        method: "PATCH",
-        headers: {
-          "content-type": "application/json"
-        },
-        body: JSON.stringify({
-          name: poolEditForm.name,
-          description: poolEditForm.description || null,
-          visibility: poolEditForm.visibility
-        })
-      });
-
-      const data = await response.json();
-      if (!response.ok) {
-        setErrorMessage(data.error?.message || "Failed to update pool.");
-        return;
-      }
-
-      setEditingPool(null);
-      setPoolEditForm(emptyPoolForm);
-      setSuccessMessage("Pool updated.");
-      await loadWorkspace();
-    } finally {
-      endAction("save-pool");
-    }
-  }
-
-  async function handleArchiveTournament(tournamentId, title) {
-    const confirmed = window.confirm(
-      `Archive "${title}"?\n\nThis will hide it from the main views, but keep its data and history.`
-    );
-
-    if (!confirmed) {
-      return;
-    }
-
-    const actionKey = `archive-tournament:${tournamentId}`;
-    if (isActionPending(actionKey)) {
-      return;
-    }
-
-    const tournament = tournaments.find((entry) => entry.id === tournamentId);
-    const isParallelParent = tournament?.kind === "parallel_parent";
-
-    beginAction(actionKey);
-    setErrorMessage("");
-    setSuccessMessage("");
-
-    try {
-      const response = await fetch(
-        isParallelParent
-          ? `/api/parallel-tournaments/${tournamentId}`
-          : `/api/tournaments/${tournamentId}`,
-        {
-          method: "DELETE"
-        }
-      );
-
-      const data = await response.json();
-      if (!response.ok) {
-        setErrorMessage(data.error?.message || "Failed to archive bracket.");
-        return;
-      }
-
-      setSuccessMessage("Bracket archived.");
-      await loadWorkspace();
-    } finally {
-      endAction(actionKey);
-    }
-  }
-
-  async function handleArchivePool(poolId, name) {
-    const confirmed = window.confirm(
-      `Archive "${name}"?\n\nThis will hide it from the main views, but keep its data and history.`
-    );
-
-    if (!confirmed) {
-      return;
-    }
-
-    const actionKey = `archive-pool:${poolId}`;
-    if (isActionPending(actionKey)) {
-      return;
-    }
-
-    beginAction(actionKey);
-    setErrorMessage("");
-    setSuccessMessage("");
-
-    try {
-      const response = await fetch(`/api/pools/${poolId}`, {
-        method: "DELETE"
-      });
-
-      const data = await response.json();
-      if (!response.ok) {
-        setErrorMessage(data.error?.message || "Failed to archive pool.");
-        return;
-      }
-
-      if (expandedPoolId === poolId) {
-        setExpandedPoolId(null);
-      }
-
-      setOpenPoolActionsMenuId(null);
-      setOpenPoolMergeMenuId(null);
-      setSuccessMessage("Pool archived.");
-      await loadWorkspace();
-    } finally {
-      endAction(actionKey);
-    }
-  }
-
-  async function handleCloseCurrentRound(tournamentId) {
-    const actionKey = `close-round:${tournamentId}`;
-    if (isActionPending(actionKey)) {
-      return;
-    }
-
-    beginAction(actionKey);
-    setErrorMessage("");
-    setSuccessMessage("");
-
-    try {
-      const response = await fetch(`/api/tournaments/${tournamentId}`, {
-        method: "PATCH",
-        headers: {
-          "content-type": "application/json"
-        },
-        body: JSON.stringify({
-          closeCurrentRound: true
-        })
-      });
-
-      const data = await response.json();
-      if (!response.ok) {
-        setErrorMessage(data.error?.message || "Failed to close the current round.");
-        return;
-      }
-
-      if (data.item?.status === "complete") {
-        router.replace(`/results/${tournamentId}`);
-        return;
-      }
-
-      setSuccessMessage("Round closed and bracket advanced.");
-      await loadWorkspace();
-    } finally {
-      endAction(actionKey);
-    }
-  }
 
   return (
     <div className="space-y-6">
@@ -1821,422 +623,55 @@ export function CreatePanels() {
       ) : null}
 
       {workspaceView === "tournaments" ? (
-        <div className="space-y-3">
-          <div className="flex flex-wrap gap-2">
-            {[
-              {
-                key: "draft",
-                label: "Drafts",
-                count: tournaments.filter((tournament) => tournament.status === "draft").length
-              },
-              {
-                key: "active",
-                label: "Live",
-                count: tournaments.filter((tournament) => tournament.status === "active").length
-              },
-              {
-                key: "complete",
-                label: "Completed",
-                count: tournaments.filter((tournament) => tournament.status === "complete").length
-              }
-            ].map((view) => {
-              const isActiveView = tournamentStageView === view.key;
-
-              return (
-                <button
-                  key={view.key}
-                  type="button"
-                  onClick={() => setTournamentStageView(view.key)}
-                  className={`ui-button ${isActiveView ? "ui-button-primary" : "ui-button-muted"}`}
-                >
-                  {view.label} ({view.count})
-                </button>
-              );
-            })}
-          </div>
-          <SectionCard>
-            <div className="space-y-0">
-              {(() => {
-                const firstDraftTournamentId =
-                  tournaments.find((entry) => entry.status === "draft")?.id ?? null;
-                const visibleTournaments = tournaments.filter((tournament) => {
-                  if (tournamentStageView === "draft") {
-                    return tournament.status === "draft";
-                  }
-
-                  if (tournamentStageView === "active") {
-                    return tournament.status === "active";
-                  }
-
-                  return tournament.status === "complete";
-                });
-                const activeTournamentFocusId =
-                  editingTournamentTitleId ??
-                  (expandedDraftTournamentId !== "all" ? expandedDraftTournamentId : null);
-                const shouldDimOtherTournaments = Boolean(activeTournamentFocusId);
-
-                if (visibleTournaments.length === 0) {
-                  return (
-                    <div className="p-5">
-                      {tournamentStageView === "draft" ? (
-                        <div className="flex flex-wrap items-center justify-between gap-3">
-                          <p className="text-sm text-[var(--muted)]">No draft brackets yet.</p>
-                          <button
-                            type="button"
-                            onClick={() => createDraftBracket()}
-                            disabled={isActionPending("create-tournament")}
-                            className="ui-button ui-button-compact ui-button-primary"
-                          >
-                            Add Bracket
-                          </button>
-                        </div>
-                      ) : (
-                        <p className="text-sm text-[var(--muted)]">
-                          {tournamentStageView === "active"
-                            ? "No live brackets."
-                            : "No completed brackets."}
-                        </p>
-                      )}
-                    </div>
-                  );
-                }
-
-                return (
-                  <>
-                    {tournamentStageView === "draft" ? (
-                      <div className="flex justify-end border-b border-[var(--line)] bg-[var(--panel)] px-5 py-4">
-                        <button
-                          type="button"
-                          onClick={() => createDraftBracket()}
-                          disabled={isActionPending("create-tournament")}
-                          className="ui-button ui-button-compact ui-button-primary"
-                        >
-                          Add Bracket
-                        </button>
-                      </div>
-                    ) : null}
-                    {visibleTournaments.map((tournament) => {
-                const bracketDraft = tournamentInlineDrafts[tournament.id] || {
-                  title: tournament.title,
-                  sourcePoolId: tournament.sourcePoolId || "",
-                  sharingMode: tournament.sharingMode,
-                  playStyle: tournament.playStyle,
-                  resultMode: tournament.resultMode,
-                  tieBreakMode: tournament.tieBreakMode
-                };
-                const trimmedBracketTitle = (bracketDraft.title || "").trim();
-                const hasBracketName =
-                  trimmedBracketTitle.length > 0 && trimmedBracketTitle !== "Untitled Bracket";
-                const hasSourcePool = Boolean(bracketDraft.sourcePoolId);
-                const linkedPool = hasSourcePool
-                  ? pools.find((pool) => pool.id === bracketDraft.sourcePoolId)
-                  : null;
-                const linkedPoolCandidates = hasSourcePool
-                  ? (poolDetails[bracketDraft.sourcePoolId]?.candidates || [])
-                  : [];
-                const selectedPoolCandidateCount = hasSourcePool
-                  ? (poolDetails[bracketDraft.sourcePoolId]?.candidates || []).length
-                  : 0;
-                const isParallelParent = tournament.kind === "parallel_parent";
-                const activeShareLink =
-                  tournamentShareLinks[tournament.id]?.find((item) => item.active) || null;
-                const invitees = tournamentInvites[tournament.id] || [];
-                const activeRoundVoteGoal = tournament.activeRoundOpenMatchCount ?? invitees[0]?.openMatchCount ?? 0;
-                const completedInviteCount = invitees.filter(
-                  (invite) => activeRoundVoteGoal > 0 && invite.votesCast >= activeRoundVoteGoal
-                ).length;
-                const creatorVotesCast = Math.max(activeRoundVoteGoal - (tournament.openVoteCount ?? 0), 0);
-                const creatorIsDone = activeRoundVoteGoal > 0 && creatorVotesCast >= activeRoundVoteGoal;
-                const rulesExpanded = Boolean(expandedBracketRules[tournament.id]);
-                const isEditingTournamentTitle = editingTournamentTitleId === tournament.id;
-                const isDraftExpanded =
-                  tournament.status !== "draft"
-                    ? true
-                    : expandedDraftTournamentId === "all"
-                      ? tournament.id === firstDraftTournamentId
-                      : expandedDraftTournamentId === tournament.id;
-                const isMutedTournament =
-                  shouldDimOtherTournaments && activeTournamentFocusId !== tournament.id;
-                const isManagingEntrants = managedEntrantsTournamentId === tournament.id;
-                const isPoolMenuOpen = poolMenuTournamentId === tournament.id;
-                const isPublishedTournament =
-                  tournament.status !== "draft" && tournament.visibility !== "private";
-                const canStartBracket =
-                  hasBracketName &&
-                  hasSourcePool &&
-                  Math.max(tournament.entryCount ?? 0, selectedPoolCandidateCount) > 0;
-                const hasOpenVotes = (tournament.openVoteCount ?? 0) > 0;
-                const viewerParallelBracketComplete =
-                  isParallelParent && tournament.viewerParticipantStatus === "complete";
-                const primaryParallelActionHref = viewerParallelBracketComplete
-                  ? `/results/${tournament.id}`
-                  : `/vote?parallelTournament=${tournament.id}&returnTo=create`;
-                const primaryParallelActionLabel = viewerParallelBracketComplete ? "Results" : "Vote";
-
-                return (
-                <TournamentManagementCard
-                  key={tournament.id}
-                  tournament={tournament}
-                  cardRef={(node) => {
-                    if (node) {
-                      tournamentCardRefs.current[tournament.id] = node;
-                    } else {
-                      delete tournamentCardRefs.current[tournament.id];
-                    }
-                  }}
-                  isMuted={isMutedTournament}
-                  statusLabel={recentlySavedBrackets[tournament.id] ? "Saved" : tournament.status}
-                  audienceLabel={describeTournamentAudienceMode(tournament)}
-                  completedLabel={
-                    tournament.status === "complete" && tournament.completedAt
-                      ? formatBracketDate(tournament.completedAt)
-                      : null
-                  }
-                  title={
-                    tournament.status === "draft" && isDraftExpanded && isEditingTournamentTitle ? (
-                      <InlineTitleField
-                        autoFocus
-                        value={bracketDraft.title}
-                        onChange={(event) =>
-                          setTournamentInlineDrafts((current) => ({
-                            ...current,
-                            [tournament.id]: {
-                              ...bracketDraft,
-                              title: event.target.value
-                            }
-                          }))
-                        }
-                        onBlur={() => {
-                          const nextTitle = bracketDraft.title.trim();
-
-                          if (!nextTitle) {
-                            setTournamentInlineDrafts((current) => ({
-                              ...current,
-                              [tournament.id]: {
-                                ...bracketDraft,
-                                title: tournament.title
-                              }
-                            }));
-                            setEditingTournamentTitleId(null);
-                            return;
-                          }
-
-                          if (nextTitle !== tournament.title) {
-                            updateTournamentInline(tournament.id, { title: nextTitle }, { silent: false });
-                          }
-
-                          setEditingTournamentTitleId(null);
-                        }}
-                        onKeyDown={(event) => {
-                          if (event.key === "Enter") {
-                            event.currentTarget.blur();
-                          }
-
-                          if (event.key === "Escape") {
-                            setTournamentInlineDrafts((current) => ({
-                              ...current,
-                              [tournament.id]: {
-                                ...bracketDraft,
-                                title: tournament.title
-                              }
-                            }));
-                            setEditingTournamentTitleId(null);
-                          }
-                        }}
-                      />
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (tournament.status === "draft" && !isPublishedTournament) {
-                            setExpandedDraftTournamentId(tournament.id);
-                            setEditingTournamentTitleId(tournament.id);
-                          }
-                        }}
-                        className={`-mx-3 block w-[calc(100%+1.5rem)] border border-transparent bg-transparent px-3 py-2 text-left ${
-                          tournament.status === "draft"
-                            ? "transition hover:border-[var(--line)] hover:bg-[var(--panel)]"
-                            : ""
-                        }`}
-                      >
-                        <span
-                          style={{
-                            fontFamily: '"Arial Narrow", Arial, Helvetica, sans-serif',
-                            fontSize: "24px",
-                            fontWeight: 900,
-                            lineHeight: 1
-                          }}
-                        >
-                          {tournament.title}
-                        </span>
-                      </button>
-                    )
-                  }
-                >
-                  {tournament.status === "draft" ? (
-                    isDraftExpanded ? (
-                      <ExpandedDraftTournamentSection
-                        tournament={tournament}
-                        bracketDraft={bracketDraft}
-                        pools={pools}
-                        linkedPool={linkedPool}
-                        linkedPoolCandidates={linkedPoolCandidates}
-                        trimmedBracketTitle={trimmedBracketTitle}
-                        hasSourcePool={hasSourcePool}
-                        isPublishedTournament={isPublishedTournament}
-                        isParallelParent={isParallelParent}
-                        rulesExpanded={rulesExpanded}
-                        isManagingEntrants={isManagingEntrants}
-                        isPoolMenuOpen={isPoolMenuOpen}
-                        activeShareLink={activeShareLink}
-                        invitees={invitees}
-                        canStartBracket={canStartBracket}
-                        candidateDraft={candidateDrafts[bracketDraft.sourcePoolId] || emptyCandidateForm}
-                        isCandidateEditorOpen={candidateEditor?.poolId === bracketDraft.sourcePoolId}
-                        isEditingCandidate={
-                          candidateEditor?.poolId === bracketDraft.sourcePoolId &&
-                          Boolean(candidateEditor?.candidateId)
-                        }
-                        imageSuggestions={imageSuggestions[bracketDraft.sourcePoolId] || []}
-                        imageSuggestionLoading={Boolean(imageSuggestionLoading[bracketDraft.sourcePoolId])}
-                        removingCandidateId={
-                          linkedPoolCandidates.find((candidate) =>
-                            isActionPending(`remove-candidate:${bracketDraft.sourcePoolId}:${candidate.id}`)
-                          )?.id || null
-                        }
-                        isActionPending={isActionPending}
-                        onPatchDraft={(patch) =>
-                          setTournamentInlineDrafts((current) => ({
-                            ...current,
-                            [tournament.id]: {
-                              ...bracketDraft,
-                              ...patch
-                            }
-                          }))
-                        }
-                        onPersistTournamentPatch={(patch) =>
-                          updateTournamentInline(tournament.id, patch, { silent: false })
-                        }
-                        onToggleRules={() =>
-                          setExpandedBracketRules((current) => ({
-                            ...current,
-                            [tournament.id]: !rulesExpanded
-                          }))
-                        }
-                        onToggleManageEntrants={(forceOpen) =>
-                          setManagedEntrantsTournamentId((current) =>
-                            forceOpen ? tournament.id : current === tournament.id ? null : tournament.id
-                          )
-                        }
-                        onTogglePoolMenu={() =>
-                          setPoolMenuTournamentId((current) =>
-                            current === tournament.id ? null : tournament.id
-                          )
-                        }
-                        onClosePoolMenu={() => setPoolMenuTournamentId(null)}
-                        onCreatePool={createPoolRecord}
-                        onSyncWithPool={() => handleSyncTournamentWithPool(tournament.id)}
-                        onOpenSeedingEditor={() => openSeedingEditor(tournament)}
-                        updateCandidateDraft={updateCandidateDraft}
-                        openCandidateCreator={openCandidateCreator}
-                        handleImportCandidatesIntoPool={handleImportCandidatesIntoPool}
-                        handleCandidateEditSubmit={handleCandidateEditSubmit}
-                        handleCreateCandidateInPool={handleCreateCandidateInPool}
-                        closeCandidateEditor={closeCandidateEditor}
-                        handleSuggestImages={handleSuggestImages}
-                        selectSuggestedImage={selectSuggestedImage}
-                        openCandidateEditor={openCandidateEditor}
-                        handleRemoveCandidateFromPool={handleRemoveCandidateFromPool}
-                        onCopyShareLink={() => handleCopyShareLink(tournament.id)}
-                        onStartTournament={() => handleStartTournament(tournament.id)}
-                        onArchiveTournament={() => handleArchiveTournament(tournament.id, tournament.title)}
-                      />
-                    ) : (
-                      <CollapsedDraftTournamentSection
-                        tournament={tournament}
-                        isPublishedTournament={isPublishedTournament}
-                        canStartBracket={canStartBracket}
-                        describeTournamentAudienceMode={describeTournamentAudienceMode}
-                        formatBracketRuleLabel={formatBracketRuleLabel}
-                        isActionPending={isActionPending}
-                        onEditDraft={setExpandedDraftTournamentId}
-                        onStartTournament={handleStartTournament}
-                      />
-                    )
-                  ) : tournament.status === "active" ? (
-                    isParallelParent ? (
-                    <ActiveParallelTournamentSection
-                      tournament={tournament}
-                      primaryActionHref={primaryParallelActionHref}
-                      primaryActionLabel={primaryParallelActionLabel}
-                      activeShareLink={activeShareLink}
-                      invitees={invitees}
-                      canCopyBracketLink={canCopyBracketLink}
-                      describeTournamentAudienceMode={describeTournamentAudienceMode}
-                      formatBracketRuleLabel={formatBracketRuleLabel}
-                      isActionPending={isActionPending}
-                      onCopyShareLink={handleCopyShareLink}
-                      onCloseBracket={(tournamentId) =>
-                        updateTournamentInline(tournamentId, { status: "complete" }, { silent: false })
-                      }
-                      onArchiveTournament={handleArchiveTournament}
-                    />
-                    ) : (
-                    <ActiveStandardTournamentSection
-                      tournament={tournament}
-                      hasOpenVotes={hasOpenVotes}
-                      activeRoundVoteGoal={activeRoundVoteGoal}
-                      creatorVotesCast={creatorVotesCast}
-                      creatorIsDone={creatorIsDone}
-                      activeShareLink={activeShareLink}
-                      invitees={invitees}
-                      canCopyBracketLink={canCopyBracketLink}
-                      describeTournamentAudienceMode={describeTournamentAudienceMode}
-                      formatBracketRuleLabel={formatBracketRuleLabel}
-                      isActionPending={isActionPending}
-                      onCloseCurrentRound={handleCloseCurrentRound}
-                      onCopyShareLink={handleCopyShareLink}
-                      onRerunTournament={handleRerunTournament}
-                      onArchiveTournament={handleArchiveTournament}
-                    />
-                    )
-                  ) : tournament.status === "complete" ? (
-                    <CompletedTournamentSection
-                      tournament={tournament}
-                      activeShareLink={activeShareLink}
-                      hasSourcePool={hasSourcePool}
-                      canCopyBracketLink={canCopyBracketLink}
-                      describeTournamentAudienceMode={describeTournamentAudienceMode}
-                      formatBracketRuleLabel={formatBracketRuleLabel}
-                      isActionPending={isActionPending}
-                      onCopyShareLink={handleCopyShareLink}
-                      onRerunTournament={handleRerunTournament}
-                      onArchiveTournament={handleArchiveTournament}
-                    />
-                  ) : null}
-                  {tournament.status !== "complete" && hasSourcePool && !isDraftExpanded ? (
-                        <div className="mt-4">
-                          <TournamentMetaRow
-                            separator="slash"
-                            className="flex flex-wrap gap-2 text-xs uppercase tracking-[0.18em] text-[var(--muted)]"
-                            items={[
-                              describeTournamentAudienceMode(tournament),
-                              formatBracketRuleLabel(tournament.playStyle),
-                              formatBracketRuleLabel(tournament.resultMode),
-                              `${tournament.entryCount} entries`
-                            ]}
-                          />
-                        </div>
-                  ) : null}
-                  </TournamentManagementCard>
-                );
-                })}
-                  </>
-                );
-              })()}
-            </div>
-          </SectionCard>
-        </div>
+        <TournamentWorkspaceSection
+          tournaments={tournaments}
+          tournamentStageView={tournamentStageView}
+          setTournamentStageView={setTournamentStageView}
+          tournamentInlineDrafts={tournamentInlineDrafts}
+          setTournamentInlineDrafts={setTournamentInlineDrafts}
+          expandedDraftTournamentId={expandedDraftTournamentId}
+          setExpandedDraftTournamentId={setExpandedDraftTournamentId}
+          managedEntrantsTournamentId={managedEntrantsTournamentId}
+          setManagedEntrantsTournamentId={setManagedEntrantsTournamentId}
+          poolMenuTournamentId={poolMenuTournamentId}
+          setPoolMenuTournamentId={setPoolMenuTournamentId}
+          editingTournamentTitleId={editingTournamentTitleId}
+          setEditingTournamentTitleId={setEditingTournamentTitleId}
+          expandedBracketRules={expandedBracketRules}
+          setExpandedBracketRules={setExpandedBracketRules}
+          recentlySavedBrackets={recentlySavedBrackets}
+          tournamentInvites={tournamentInvites}
+          tournamentShareLinks={tournamentShareLinks}
+          tournamentCardRefs={tournamentCardRefs}
+          pools={pools}
+          poolDetails={poolDetails}
+          candidateDrafts={candidateDrafts}
+          candidateEditor={candidateEditor}
+          imageSuggestions={imageSuggestions}
+          imageSuggestionLoading={imageSuggestionLoading}
+          emptyCandidateForm={emptyCandidateForm}
+          isActionPending={isActionPending}
+          createDraftBracket={createDraftBracket}
+          createPoolRecord={createPoolRecord}
+          handleSyncTournamentWithPool={handleSyncTournamentWithPool}
+          openSeedingEditor={openSeedingEditor}
+          updateCandidateDraft={updateCandidateDraft}
+          openCandidateCreator={openCandidateCreator}
+          handleImportCandidatesIntoPool={handleImportCandidatesIntoPool}
+          handleCandidateEditSubmit={handleCandidateEditSubmit}
+          handleCreateCandidateInPool={handleCreateCandidateInPool}
+          closeCandidateEditor={closeCandidateEditor}
+          handleSuggestImages={handleSuggestImages}
+          selectSuggestedImage={selectSuggestedImage}
+          openCandidateEditor={openCandidateEditor}
+          handleRemoveCandidateFromPool={handleRemoveCandidateFromPool}
+          handleCopyShareLink={handleCopyShareLink}
+          handleStartTournament={handleStartTournament}
+          handleArchiveTournament={handleArchiveTournament}
+          updateTournamentInline={updateTournamentInline}
+          handleCloseCurrentRound={handleCloseCurrentRound}
+          handleRerunTournament={handleRerunTournament}
+        />
       ) : null}
 
       {isPoolModalOpen ? (
@@ -2659,11 +1094,7 @@ export function CreatePanels() {
         loading={seedingLoading}
         saving={savingSeeding}
         draggingEntryId={draggingEntryId}
-        onClose={() => {
-          setSeedingTournament(null);
-          setSeedingEntries([]);
-          setDraggingEntryId(null);
-        }}
+        onClose={closeSeedingEditor}
         onSubmit={handleSeedingSubmit}
         onDragStart={setDraggingEntryId}
         onDragEnd={() => setDraggingEntryId(null)}

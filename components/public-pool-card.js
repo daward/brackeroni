@@ -4,6 +4,10 @@ import Link from "next/link";
 import { useEffect, useState, useTransition } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { ResilientRemoteImage } from "@/components/resilient-remote-image";
+import {
+  addPoolToFavorites,
+  createAndStartFavoriteBracket
+} from "@/lib/client-api/public-pools";
 
 function FavoriteStar({ isFavorited }) {
   return (
@@ -139,11 +143,9 @@ export function PublicPoolCard({
     }
 
     startFavoriting(async () => {
-      const response = await fetch(`/api/pools/${pool.id}/favorites`, {
-        method: "POST"
-      });
-
-      if (!response.ok) {
+      try {
+        await addPoolToFavorites(pool.id);
+      } catch {
         return;
       }
 
@@ -160,46 +162,14 @@ export function PublicPoolCard({
     }
 
     startCreatingFavoriteBracket(async () => {
-      const createResponse = await fetch("/api/tournaments", {
-        method: "POST",
-        headers: {
-          "content-type": "application/json"
-        },
-        body: JSON.stringify({
-          title: `${pool.name} Favorites`,
-          description: pool.description || null,
-          sourcePoolId: pool.id,
-          sharingMode: "private",
-          visibility: "private",
-          votingAccess: "signed_in_only",
-          playStyle: "fixed_bracket",
-          resultMode: "winner_only",
-          tieBreakMode: "higher_seed_wins"
-        })
-      });
-
-      const createData = await createResponse.json();
-
-      if (!createResponse.ok || !createData.item?.id) {
+      let tournament;
+      try {
+        tournament = await createAndStartFavoriteBracket(pool);
+      } catch {
         return;
       }
 
-      const tournamentId = createData.item.id;
-      const startResponse = await fetch(`/api/tournaments/${tournamentId}`, {
-        method: "PATCH",
-        headers: {
-          "content-type": "application/json"
-        },
-        body: JSON.stringify({
-          status: "active"
-        })
-      });
-
-      if (!startResponse.ok) {
-        return;
-      }
-
-      window.location.assign(`/vote?tournament=${tournamentId}`);
+      window.location.assign(`/vote?tournament=${tournament.id}`);
     });
   }
 

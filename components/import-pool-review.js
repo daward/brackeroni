@@ -3,6 +3,10 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { buildGenericPageImportPrompt } from "@/lib/bookmarklets/prompt";
+import {
+  createImportedPool,
+  importCandidatesIntoPool
+} from "@/lib/client-api/imports";
 
 const IMPORT_PAYLOAD_STORAGE_KEY = "brackeroni-import-payload";
 const IMPORT_PAYLOAD_MESSAGE_TYPE = "BRACKERONI_IMPORT_PAYLOAD";
@@ -334,9 +338,6 @@ export function ImportPoolReview() {
         html: importedHtml,
         urls: usePageUrlAssist && payload.pageUrl ? [payload.pageUrl] : []
       };
-      const requestUrl = payload.continuePoolId
-        ? `/api/pools/${payload.continuePoolId}/imports`
-        : "/api/pools";
       const requestBody = payload.continuePoolId
         ? { source }
         : {
@@ -344,19 +345,9 @@ export function ImportPoolReview() {
             description: description || null,
             source
           };
-      const actualResponse = await fetch(requestUrl, {
-        method: "POST",
-        headers: {
-          "content-type": "application/json"
-        },
-        body: JSON.stringify(requestBody)
-      });
-
-      const data = await actualResponse.json();
-
-      if (!actualResponse.ok) {
-        throw new Error(data?.error?.message || "Import failed.");
-      }
+      const data = payload.continuePoolId
+        ? await importCandidatesIntoPool(payload.continuePoolId, requestBody)
+        : await createImportedPool(requestBody);
 
       if (payload.continuePoolId) {
         setSuccessMessage(

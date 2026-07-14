@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { openMyParallelBracket } from "@/lib/client-api/parallel-participants";
 
 export function ParallelTournamentPage({ parallelTournament }) {
   const router = useRouter();
@@ -17,18 +18,7 @@ export function ParallelTournamentPage({ parallelTournament }) {
     setError("");
 
     try {
-      const response = await fetch(
-        `/api/parallel-tournaments/${parallelTournament.id}/participants/me`,
-        {
-          method: "POST"
-        }
-      );
-      const data = await response.json();
-
-      if (!response.ok) {
-        setError(data.error?.message || "Failed to open your bracket.");
-        return;
-      }
+      const data = await openMyParallelBracket(parallelTournament.id);
 
       router.push(`/vote?tournament=${data.item.tournamentId}`);
     } catch (nextError) {

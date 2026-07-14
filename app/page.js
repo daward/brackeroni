@@ -64,13 +64,15 @@ export default async function HomePage() {
           </div>
           <div className="home-hero-card home-import-panel">
             <Link href="/tools/import" className="home-import-link">
-              <p className="ui-section-kicker">Bookmarklet Importer</p>
-              <p className="home-import-title display-face">Don&apos;t start from scratch!</p>
-              <p className="home-import-copy">
-                Found a great list, article, or ranking already? Install the bookmarklet and pull
-                any web page straight into Brackeroni&apos;s import flow.
+              <p className="ui-section-kicker">Import a Pool</p>
+              <p className="home-import-title display-face">
+                Turn any guide, ranking, or events page into a pool.
               </p>
-              <p className="home-import-action">Set Up Import</p>
+              <p className="home-import-copy">
+                Found a travel guide, best-of list, weekend calendar, or activity page? Pull it
+                into Brackeroni, then vote it down to a winner, shortlist, or group favorite.
+              </p>
+              <p className="home-import-action">Start Importing</p>
             </Link>
           </div>
         </div>

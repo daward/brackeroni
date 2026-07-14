@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "test": "node --loader ./test-alias-loader.mjs --test test/extract-pools-v2.guard.test.js test/bracket-voting-engine.test.mjs test/parallel-results-policy.test.mjs test/openapi-parallel-contract.test.mjs",
+    "test": "node --loader ./test-alias-loader.mjs --test test/extract-pools-v2.guard.test.js test/import-fixtures.test.mjs test/bracket-voting-engine.test.mjs test/parallel-results-policy.test.mjs test/openapi-parallel-contract.test.mjs",
     "db:migrate": "node scripts/run-migrations.mjs",
     "db:check": "node scripts/check-db.mjs"
   },

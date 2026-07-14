@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { getShareLinkAccess } from "@/lib/client-api/share-links";
 
 function getHeadline(item) {
   if (item.accessState === "complete") {
@@ -75,12 +76,8 @@ export function ShareLinkWaitingRoom({ token, initialItem }) {
 
     const timer = setTimeout(async () => {
       try {
-        const response = await fetch(`/api/share-links/${token}`, {
-          cache: "no-store"
-        });
-        const data = await response.json();
-
-        if (response.ok && data.item) {
+        const data = await getShareLinkAccess(token);
+        if (data.item) {
           setItem(data.item);
         }
       } finally {

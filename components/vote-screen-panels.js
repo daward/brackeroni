@@ -9,6 +9,10 @@ import {
   usesOpenEndedRankingMode,
   usesSwissResultMode
 } from "@/lib/bracket-modes";
+import {
+  getTournamentWithMatches,
+  submitMatchVote
+} from "@/lib/client-api/voting";
 
 const LAST_OPEN_VOTE_TOURNAMENT_KEY = "brackeroni-last-open-vote-tournament";
 
@@ -334,17 +338,10 @@ export function VoteScreenPanels({
     setTransitionMessage("");
     setPendingVoteMatchId(matchId);
 
-    const response = await fetch(`/api/matches/${matchId}/votes`, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json"
-      },
-      body: JSON.stringify({ selectedEntryId })
-    });
-    const data = await response.json();
-
-    if (!response.ok) {
-      if (response.status === 400 && data.error?.code === "MATCH_NOT_OPEN") {
+    try {
+      await submitMatchVote(matchId, selectedEntryId);
+    } catch (error) {
+      if (error.status === 400 && error.code === "MATCH_NOT_OPEN") {
         setTransitionMessage("That round closed before your vote was submitted, so it did not count.");
         await refreshTournamentState(tournamentId);
         setMessage("That round already closed. Moving you to the latest bracket state.");
@@ -352,7 +349,7 @@ export function VoteScreenPanels({
         return;
       }
 
-      if (response.status === 409 && data.error?.code === "ALREADY_VOTED") {
+      if (error.status === 409 && error.code === "ALREADY_VOTED") {
         setTransitionMessage("");
         await refreshTournamentState(tournamentId);
         setMessage("That vote was already recorded. Moving to the next available matchup.");
@@ -360,48 +357,26 @@ export function VoteScreenPanels({
         return;
       }
 
-      setError(data.error?.message || "Failed to record vote.");
+      setError(error.message || "Failed to record vote.");
       setPendingVoteMatchId(null);
       return;
     }
 
-    const [matchResponse, tournamentResponse] = await Promise.all([
-      fetch(`/api/tournaments/${tournamentId}/matches`, {
-        cache: "no-store"
-      }),
-      fetch(`/api/tournaments/${tournamentId}`, {
-        cache: "no-store"
-      })
-    ]);
+    const { matches, tournament: refreshedTournamentData } = await getTournamentWithMatches(tournamentId);
 
-    const matchData = await matchResponse.json();
-    const tournamentData = await tournamentResponse.json();
-
-    if (!matchResponse.ok) {
-      setError(matchData.error?.message || "Failed to refresh matches.");
-      setPendingVoteMatchId(null);
-      return;
-    }
-
-    if (!tournamentResponse.ok) {
-      setError(tournamentData.error?.message || "Failed to refresh bracket.");
-      setPendingVoteMatchId(null);
-      return;
-    }
-
-    if (tournamentData.item.status === "complete") {
+    if (refreshedTournamentData.status === "complete") {
       setTransitionMessage("");
       setActive((current) => current.filter((tournament) => tournament.id !== tournamentId));
-      setCompleted((current) => [tournamentData.item, ...current]);
+      setCompleted((current) => [refreshedTournamentData, ...current]);
       setFocusedTournamentId(null);
       writeStoredFocusedTournamentId(null);
-      router.replace(buildResultsUrl(tournamentData.item));
+      router.replace(buildResultsUrl(refreshedTournamentData));
       return;
     }
 
     const refreshedTournament = {
-      ...tournamentData.item,
-      matches: matchData.items
+      ...refreshedTournamentData,
+      matches
     };
     const remainingOpenMatches = openMatchesForTournament(refreshedTournament).length;
 
@@ -420,40 +395,27 @@ export function VoteScreenPanels({
   }
 
   async function refreshTournamentState(tournamentId) {
-    const [matchResponse, tournamentResponse] = await Promise.all([
-      fetch(`/api/tournaments/${tournamentId}/matches`, {
-        cache: "no-store"
-      }),
-      fetch(`/api/tournaments/${tournamentId}`, {
-        cache: "no-store"
-      })
-    ]);
-
-    const matchData = await matchResponse.json();
-    const tournamentData = await tournamentResponse.json();
-
-    if (!matchResponse.ok) {
-      setError(matchData.error?.message || "Failed to refresh matches.");
+    let refreshData;
+    try {
+      refreshData = await getTournamentWithMatches(tournamentId);
+    } catch (error) {
+      setError(error.message || "Failed to refresh bracket.");
       return;
     }
+    const { matches, tournament: refreshedTournamentData } = refreshData;
 
-    if (!tournamentResponse.ok) {
-      setError(tournamentData.error?.message || "Failed to refresh bracket.");
-      return;
-    }
-
-    if (tournamentData.item.status === "complete") {
+    if (refreshedTournamentData.status === "complete") {
       setActive((current) => current.filter((tournament) => tournament.id !== tournamentId));
-      setCompleted((current) => [tournamentData.item, ...current]);
+      setCompleted((current) => [refreshedTournamentData, ...current]);
       setFocusedTournamentId(null);
       writeStoredFocusedTournamentId(null);
-      router.replace(buildResultsUrl(tournamentData.item));
+      router.replace(buildResultsUrl(refreshedTournamentData));
       return;
     }
 
     const refreshedTournament = {
-      ...tournamentData.item,
-      matches: matchData.items
+      ...refreshedTournamentData,
+      matches
     };
     const remainingOpenMatches = openMatchesForTournament(refreshedTournament).length;
 
@@ -498,33 +460,11 @@ export function VoteScreenPanels({
     setResultsLoading(true);
 
     try {
-      const [tournamentResponse, matchesResponse] = await Promise.all([
-        fetch(`/api/tournaments/${tournament.id}`, {
-          cache: "no-store"
-        }),
-        fetch(`/api/tournaments/${tournament.id}/matches`, {
-          cache: "no-store"
-        })
-      ]);
-      const data = await tournamentResponse.json();
-      const matchData = await matchesResponse.json();
-
-      if (!tournamentResponse.ok) {
-        setError(data.error?.message || "Failed to load bracket results.");
-        setResultsTournament(null);
-        return;
-      }
-
-      if (!matchesResponse.ok) {
-        setError(matchData.error?.message || "Failed to load bracket history.");
-        setResultsTournament(null);
-        return;
-      }
-
-      setResultsTournament(data.item);
-      setResultsMatches(matchData.items ?? []);
-    } catch {
-      setError("Failed to load bracket results.");
+      const { matches, tournament: refreshedTournament } = await getTournamentWithMatches(tournament.id);
+      setResultsTournament(refreshedTournament);
+      setResultsMatches(matches);
+    } catch (error) {
+      setError(error.message || "Failed to load bracket results.");
       setResultsTournament(null);
     } finally {
       setResultsLoading(false);

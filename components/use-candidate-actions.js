@@ -1,10 +1,14 @@
 "use client";
 
 import { useEffect } from "react";
+import { isStrongSuggestedImageMatch } from "@/components/create-panel-helpers";
 import {
-  isStrongSuggestedImageMatch,
-  sortManagedPools
-} from "@/components/create-panel-helpers";
+  createCandidateInPool,
+  removeCandidateFromPool,
+  suggestImages,
+  updateCandidateInPool,
+  updateTournament
+} from "@/lib/client-api/create-workspace";
 
 export function useCandidateActions({
   candidateDrafts,
@@ -18,8 +22,7 @@ export function useCandidateActions({
   imageSuggestionQuery,
   setImageSuggestionQuery,
   poolDetails,
-  setPoolDetails,
-  setPools,
+  removeCandidateFromWorkspace,
   setExpandedPoolId,
   tournaments,
   emptyCandidateForm,
@@ -47,15 +50,7 @@ export function useCandidateActions({
     }));
 
     try {
-      const response = await fetch(`/api/image-suggestions?q=${encodeURIComponent(candidateName)}`, {
-        cache: "no-store"
-      });
-      const data = await response.json();
-
-      if (!response.ok) {
-        setErrorMessage(data.error?.message || "Failed to fetch image suggestions.");
-        return;
-      }
+      const data = await suggestImages(candidateName);
 
       setImageSuggestions((current) => ({
         ...current,
@@ -176,13 +171,7 @@ export function useCandidateActions({
 
     await Promise.all(
       linkedDraftBrackets.map(async (tournament) => {
-        await fetch(`/api/tournaments/${tournament.id}`, {
-          method: "PATCH",
-          headers: {
-            "content-type": "application/json"
-          },
-          body: JSON.stringify(patch)
-        });
+        await updateTournament(tournament.id, patch);
       })
     );
   }
@@ -200,23 +189,11 @@ export function useCandidateActions({
     try {
       const draft = candidateDrafts[poolId] || emptyCandidateForm;
 
-      const candidateResponse = await fetch(`/api/pools/${poolId}/candidates`, {
-        method: "POST",
-        headers: {
-          "content-type": "application/json"
-        },
-        body: JSON.stringify({
-          name: draft.name,
-          description: draft.description || null,
-          imageUrl: draft.imageUrl || null
-        })
+      await createCandidateInPool(poolId, {
+        name: draft.name,
+        description: draft.description || null,
+        imageUrl: draft.imageUrl || null
       });
-
-      const candidateData = await candidateResponse.json();
-      if (!candidateResponse.ok) {
-        setErrorMessage(candidateData.error?.message || "Failed to create candidate.");
-        return;
-      }
 
       await syncLinkedDraftBrackets(poolId, { syncWithPool: true });
 
@@ -238,6 +215,8 @@ export function useCandidateActions({
       setExpandedPoolId(poolId);
       setSuccessMessage("Candidate created inside pool.");
       await loadWorkspace();
+    } catch (error) {
+      setErrorMessage(error.message || "Failed to create candidate.");
     } finally {
       endAction(actionKey);
     }
@@ -258,15 +237,7 @@ export function useCandidateActions({
         : 0;
 
     try {
-      const response = await fetch(`/api/pools/${poolId}/candidates/${candidate.id}`, {
-        method: "DELETE"
-      });
-      const data = await response.json();
-
-      if (!response.ok) {
-        setErrorMessage(data.error?.message || "Failed to remove candidate from pool.");
-        return;
-      }
+      await removeCandidateFromPool(poolId, candidate.id);
 
       await syncLinkedDraftBrackets(poolId, { sourcePoolId: poolId });
 
@@ -274,34 +245,7 @@ export function useCandidateActions({
         closeCandidateEditor(poolId);
       }
 
-      setPools((current) =>
-        sortManagedPools(
-          current.map((pool) =>
-            pool.id === poolId
-              ? {
-                  ...pool,
-                  candidateCount: Math.max((pool.candidateCount || 0) - 1, 0)
-                }
-              : pool
-          )
-        )
-      );
-      setPoolDetails((current) => {
-        const pool = current[poolId];
-
-        if (!pool) {
-          return current;
-        }
-
-        return {
-          ...current,
-          [poolId]: {
-            ...pool,
-            candidateCount: Math.max((pool.candidateCount || 0) - 1, 0),
-            candidates: (pool.candidates || []).filter((entry) => entry.id !== candidate.id)
-          }
-        };
-      });
+      removeCandidateFromWorkspace(poolId, candidate.id);
 
       setSuccessMessage("Candidate removed from pool.");
       if (typeof window !== "undefined") {
@@ -312,6 +256,8 @@ export function useCandidateActions({
           });
         });
       }
+    } catch (error) {
+      setErrorMessage(error.message || "Failed to remove candidate from pool.");
     } finally {
       endAction(actionKey);
     }
@@ -334,27 +280,17 @@ export function useCandidateActions({
     try {
       const draft = candidateDrafts[poolId] || emptyCandidateForm;
 
-      const response = await fetch(`/api/pools/${poolId}/candidates/${candidateEditor.candidateId}`, {
-        method: "PATCH",
-        headers: {
-          "content-type": "application/json"
-        },
-        body: JSON.stringify({
-          name: draft.name,
-          description: draft.description || null,
-          imageUrl: draft.imageUrl || null
-        })
+      await updateCandidateInPool(poolId, candidateEditor.candidateId, {
+        name: draft.name,
+        description: draft.description || null,
+        imageUrl: draft.imageUrl || null
       });
-
-      const data = await response.json();
-      if (!response.ok) {
-        setErrorMessage(data.error?.message || "Failed to update candidate.");
-        return;
-      }
 
       closeCandidateEditor(poolId);
       setSuccessMessage("Candidate updated.");
       await loadWorkspace();
+    } catch (error) {
+      setErrorMessage(error.message || "Failed to update candidate.");
     } finally {
       endAction(actionKey);
     }
@@ -385,18 +321,7 @@ export function useCandidateActions({
     try {
       for (const candidate of missingImageCandidates) {
         try {
-          const response = await fetch(
-            `/api/image-suggestions?q=${encodeURIComponent(candidate.name)}`,
-            {
-              cache: "no-store"
-            }
-          );
-          const data = await response.json();
-
-          if (!response.ok) {
-            failedCount += 1;
-            continue;
-          }
+          const data = await suggestImages(candidate.name);
 
           const bestSuggestion = (data.items || []).find((item) =>
             isStrongSuggestedImageMatch(candidate.name, item)
@@ -407,20 +332,9 @@ export function useCandidateActions({
             continue;
           }
 
-          const saveResponse = await fetch(`/api/pools/${pool.id}/candidates/${candidate.id}`, {
-            method: "PATCH",
-            headers: {
-              "content-type": "application/json"
-            },
-            body: JSON.stringify({
-              imageUrl: bestSuggestion.imageUrl
-            })
+          await updateCandidateInPool(pool.id, candidate.id, {
+            imageUrl: bestSuggestion.imageUrl
           });
-
-          if (!saveResponse.ok) {
-            failedCount += 1;
-            continue;
-          }
 
           appliedCount += 1;
         } catch {

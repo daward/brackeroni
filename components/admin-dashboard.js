@@ -3,6 +3,13 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { SectionCard } from "@/components/section-card";
+import {
+  deleteArchivedAdminPool,
+  deleteArchivedAdminTournament,
+  purgeArchivedMaterial,
+  updateAdminPool,
+  updateAdminTournament
+} from "@/lib/client-api/admin";
 
 function formatDate(value) {
   if (!value) {
@@ -41,7 +48,7 @@ export function AdminDashboard({ pools, tournaments }) {
     pools.filter((pool) => pool.archivedAt).length +
     tournaments.filter((tournament) => tournament.archivedAt).length;
 
-  async function runAction(actionKey, url, init) {
+  async function runAction(actionKey, action) {
     if (pendingAction) {
       return;
     }
@@ -50,15 +57,10 @@ export function AdminDashboard({ pools, tournaments }) {
     setErrorMessage("");
 
     try {
-      const response = await fetch(url, init);
-      const data = await response.json();
-
-      if (!response.ok) {
-        setErrorMessage(data.error?.message || "Admin action failed.");
-        return;
-      }
-
+      await action();
       router.refresh();
+    } catch (error) {
+      setErrorMessage(error.message || "Admin action failed.");
     } finally {
       setPendingAction("");
     }
@@ -109,9 +111,7 @@ export function AdminDashboard({ pools, tournaments }) {
                   "Delete all archived pools and brackets permanently?\n\nThis cannot be undone."
                 )
               ) {
-                runAction("purge-archived", "/api/admin/archive", {
-                  method: "DELETE"
-                });
+                runAction("purge-archived", purgeArchivedMaterial);
               }
             }}
             disabled={pendingAction === "purge-archived"}
@@ -155,13 +155,9 @@ export function AdminDashboard({ pools, tournaments }) {
                         checked={Boolean(pool.featuredOnHome)}
                         disabled={pendingAction === `pool-featured:${pool.id}`}
                         onChange={(event) =>
-                          runAction(`pool-featured:${pool.id}`, `/api/admin/pools/${pool.id}`, {
-                            method: "PATCH",
-                            headers: {
-                              "content-type": "application/json"
-                            },
-                            body: JSON.stringify({ featuredOnHome: event.target.checked })
-                          })
+                          runAction(`pool-featured:${pool.id}`, () =>
+                            updateAdminPool(pool.id, { featuredOnHome: event.target.checked })
+                          )
                         }
                         className="peer sr-only"
                       />
@@ -179,13 +175,9 @@ export function AdminDashboard({ pools, tournaments }) {
                     <button
                       type="button"
                       onClick={() =>
-                        runAction(`pool-private:${pool.id}`, `/api/admin/pools/${pool.id}`, {
-                          method: "PATCH",
-                          headers: {
-                            "content-type": "application/json"
-                          },
-                          body: JSON.stringify({ visibility: "private" })
-                        })
+                        runAction(`pool-private:${pool.id}`, () =>
+                          updateAdminPool(pool.id, { visibility: "private" })
+                        )
                       }
                       disabled={pendingAction === `pool-private:${pool.id}`}
                       className="ui-button ui-button-accent"
@@ -197,9 +189,7 @@ export function AdminDashboard({ pools, tournaments }) {
                     <button
                       type="button"
                       onClick={() =>
-                        runAction(`pool-delete:${pool.id}`, `/api/admin/pools/${pool.id}`, {
-                          method: "DELETE"
-                        })
+                        runAction(`pool-delete:${pool.id}`, () => deleteArchivedAdminPool(pool.id))
                       }
                       disabled={pendingAction === `pool-delete:${pool.id}`}
                       className="ui-button ui-button-muted"
@@ -251,14 +241,7 @@ export function AdminDashboard({ pools, tournaments }) {
                       onClick={() =>
                         runAction(
                           `tournament-private:${tournament.id}`,
-                          `/api/admin/tournaments/${tournament.id}`,
-                          {
-                            method: "PATCH",
-                            headers: {
-                              "content-type": "application/json"
-                            },
-                            body: JSON.stringify({ visibility: "private" })
-                          }
+                          () => updateAdminTournament(tournament.id, { visibility: "private" })
                         )
                       }
                       disabled={pendingAction === `tournament-private:${tournament.id}`}
@@ -273,10 +256,7 @@ export function AdminDashboard({ pools, tournaments }) {
                       onClick={() =>
                         runAction(
                           `tournament-delete:${tournament.id}`,
-                          `/api/admin/tournaments/${tournament.id}`,
-                          {
-                            method: "DELETE"
-                          }
+                          () => deleteArchivedAdminTournament(tournament.id)
                         )
                       }
                       disabled={pendingAction === `tournament-delete:${tournament.id}`}
