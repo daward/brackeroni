@@ -659,6 +659,7 @@ export function VoteScreenPanels({
               <CandidateVoteCard
                 name={focusedMatch.leftName}
                 description={focusedMatch.leftDescription}
+                tags={focusedMatch.leftTags}
                 imageUrl={focusedMatch.leftImageUrl}
                 disabled={pendingVoteMatchId === focusedMatch.id}
                 onVote={() => vote(focusedMatch.id, focusedTournament.id, focusedMatch.leftEntryId)}
@@ -672,6 +673,7 @@ export function VoteScreenPanels({
               <CandidateVoteCard
                 name={focusedMatch.rightName}
                 description={focusedMatch.rightDescription}
+                tags={focusedMatch.rightTags}
                 imageUrl={focusedMatch.rightImageUrl}
                 disabled={pendingVoteMatchId === focusedMatch.id}
                 onVote={() => vote(focusedMatch.id, focusedTournament.id, focusedMatch.rightEntryId)}
@@ -721,6 +723,7 @@ export function VoteScreenPanels({
 function CandidateVoteCard({
   name,
   description,
+  tags,
   imageUrl,
   onVote,
   disabled = false,
@@ -750,6 +753,18 @@ function CandidateVoteCard({
       ) : null}
       <div className={`vote-candidate-copy ${imageUrl ? "" : "vote-candidate-copy-no-image"}`}>
         <p className="vote-candidate-name display-face">{name}</p>
+        {Array.isArray(tags) && tags.length > 0 ? (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {tags.map((tag) => (
+              <span
+                key={tag}
+                className="border border-[var(--line)] bg-[var(--panel-3)] px-2 py-1 text-[10px] uppercase tracking-[0.14em] text-[var(--accent-3)]"
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
+        ) : null}
         {description ? (
           <p className="vote-candidate-description">{description}</p>
         ) : null}

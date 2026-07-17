@@ -1,29 +1,21 @@
-import { NextResponse } from "next/server";
+import { z } from "zod";
+import { getCurrentUser } from "@/lib/auth/current-user";
+import { revealTournamentRound } from "@/lib/data/rounds";
+import { json, readJson, withRouteErrorHandling } from "@/lib/api/http";
 
-export async function GET(_, { params }) {
+const roundUpdateSchema = z.object({
+  revealed: z.literal(true)
+});
+
+export const PATCH = withRouteErrorHandling(async function PATCH(request, { params }) {
+  const user = await getCurrentUser(request);
   const { roundId } = await params;
+  roundUpdateSchema.parse(await readJson(request));
 
-  return NextResponse.json(
-    {
-      error: {
-        code: "NOT_IMPLEMENTED",
-        message: `Round retrieval is not implemented yet for ${roundId}.`
-      }
-    },
-    { status: 501 }
-  );
-}
+  const round = await revealTournamentRound({
+    roundId,
+    creatorUserId: user.id
+  });
 
-export async function PATCH(_, { params }) {
-  const { roundId } = await params;
-
-  return NextResponse.json(
-    {
-      error: {
-        code: "NOT_IMPLEMENTED",
-        message: `Round update is not implemented yet for ${roundId}.`
-      }
-    },
-    { status: 501 }
-  );
-}
+  return json({ item: round });
+});

@@ -168,7 +168,7 @@ function AggregateResultsTable({
 }) {
   return (
     <div className="results-table-wrap">
-      <table className="results-table">
+      <table className="results-table parallel-results-table">
         <thead>
           <tr>
             <th>
@@ -235,25 +235,32 @@ function AggregateResultsTable({
               key={entry.id}
               className={selectedEntryId === entry.id ? "results-table-row-active" : ""}
             >
-              <td>{entry.finalRank}</td>
+              <td>
+                <span className="results-ranking-rank parallel-results-table-rank">
+                  {entry.finalRank}
+                </span>
+              </td>
               <td>
                 <button
                   type="button"
                   onClick={() => onSelectEntry(entry.id)}
-                  className="results-table-entry"
+                  className="results-table-entry parallel-results-table-entry"
                 >
                   {entry.candidateImageUrl ? (
                     <BackdropRemoteImage
                       src={entry.candidateImageUrl}
                       alt={entry.candidateName}
-                      className="results-table-image"
+                      className="results-ranking-image"
                       imageClassName="object-cover object-center"
                       undersizedImageClassName="object-contain p-1.5"
-                      minimumSourceWidth={56}
-                      minimumSourceHeight={56}
+                      minimumSourceWidth={72}
+                      minimumSourceHeight={72}
                     />
                   ) : null}
-                  <span className="results-table-name">{entry.candidateName}</span>
+                  <div className="results-ranking-copy">
+                    <p className="results-ranking-name">{entry.candidateName}</p>
+                    <p className="results-ranking-seed">Seed {entry.seed}</p>
+                  </div>
                 </button>
               </td>
               <td>{typeof entry.yourRank === "number" ? entry.yourRank : "n/a"}</td>

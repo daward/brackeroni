@@ -212,6 +212,12 @@ export function ActiveStandardTournamentSection({
             disabled: isActionPending(`close-round:${tournament.id}`),
             className: "ui-button ui-button-muted w-full"
           },
+          {
+            key: `progress:${tournament.id}`,
+            href: `/results/${tournament.id}/progress`,
+            label: "Progress",
+            className: "ui-button ui-button-accent w-full"
+          },
           canCopyBracketLink(tournament)
             ? {
                 key: `copy:${tournament.id}`,
@@ -334,21 +340,17 @@ export function ActiveStandardTournamentSection({
 
 export function CompletedTournamentSection({
   tournament,
-  activeShareLink,
   hasSourcePool,
-  canCopyBracketLink,
-  describeTournamentAudienceMode,
   formatBracketRuleLabel,
   isActionPending,
-  onCopyShareLink,
   onRerunTournament,
   onArchiveTournament
 }) {
   return (
-    <div className="mt-4 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-      <div className="min-w-0 space-y-3">
+    <div className="mt-2 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+      <div className="min-w-0 space-y-2">
         {tournament.winnerName ? (
-          <p className="display-face text-lg font-black text-[var(--accent-3)]">
+          <p className="completed-bracket-winner">
             Winner: {tournament.winnerName}
             {tournament.winnerSeed ? ` (Seed ${tournament.winnerSeed})` : ""}
           </p>
@@ -356,12 +358,9 @@ export function CompletedTournamentSection({
         {hasSourcePool ? (
           <TournamentMetaRow
             separator="slash"
-            className="flex flex-wrap gap-2 text-xs uppercase tracking-[0.18em] text-[var(--muted)]"
+            className="results-meta flex flex-wrap gap-2"
             items={[
-              describeTournamentAudienceMode(tournament),
-              formatBracketRuleLabel(tournament.playStyle),
               formatBracketRuleLabel(tournament.resultMode),
-              formatBracketRuleLabel(tournament.tieBreakMode),
               `${tournament.entryCount} entries`
             ]}
           />
@@ -370,31 +369,23 @@ export function CompletedTournamentSection({
       <TournamentActionGroup
         layout="row"
         actions={[
-          canCopyBracketLink(tournament)
+          {
+            key: `complete-results:${tournament.id}`,
+            href: `/results/${tournament.id}`,
+            label: "View Results",
+            className: "ui-button ui-button-accent"
+          },
+          tournament.kind !== "parallel_parent"
             ? {
-                key: `complete-copy:${tournament.id}`,
-                label:
-                  tournament.sharingMode === "with_friends"
-                    ? activeShareLink
-                      ? "Copy Link"
-                      : "Preparing"
-                    : "Copy Link",
-                onClick: () => onCopyShareLink(tournament.id),
-                disabled:
-                  tournament.sharingMode === "with_friends" &&
-                  isActionPending(`share-link:${tournament.id}`),
+                key: `complete-progress:${tournament.id}`,
+                href: `/results/${tournament.id}/progress`,
+                label: "Progress",
                 className: "ui-button ui-button-accent"
               }
             : null,
           {
-            key: `complete-results:${tournament.id}`,
-            href: `/results/${tournament.id}`,
-            label: "Results",
-            className: "ui-button ui-button-accent"
-          },
-          {
             key: `complete-rerun:${tournament.id}`,
-            label: isActionPending(`rerun-tournament:${tournament.id}`) ? "Creating" : "Rerun",
+            label: isActionPending(`rerun-tournament:${tournament.id}`) ? "Creating" : "Run Again",
             onClick: () => onRerunTournament(tournament.id),
             disabled: isActionPending(`rerun-tournament:${tournament.id}`),
             className: "ui-button ui-button-accent"

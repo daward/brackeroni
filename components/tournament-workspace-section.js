@@ -101,7 +101,9 @@ export function TournamentWorkspaceSection({
           );
         })}
       </div>
-      <SectionCard>
+      <SectionCard
+        className={tournamentStageView === "complete" ? "results-shell border-0 bg-transparent" : ""}
+      >
         <div className="space-y-0">
           {(() => {
             const firstDraftTournamentId =
@@ -479,13 +481,9 @@ export function TournamentWorkspaceSection({
                       ) : tournament.status === "complete" ? (
                         <CompletedTournamentSection
                           tournament={tournament}
-                          activeShareLink={activeShareLink}
                           hasSourcePool={hasSourcePool}
-                          canCopyBracketLink={canCopyBracketLink}
-                          describeTournamentAudienceMode={describeTournamentAudienceMode}
                           formatBracketRuleLabel={formatBracketRuleLabel}
                           isActionPending={isActionPending}
-                          onCopyShareLink={handleCopyShareLink}
                           onRerunTournament={handleRerunTournament}
                           onArchiveTournament={handleArchiveTournament}
                         />

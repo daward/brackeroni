@@ -23,7 +23,9 @@ export const POST = withRouteErrorHandling(async function POST(request, { params
       creatorUserId: user.id,
       name: payload.name,
       description: payload.description,
-      imageUrl: payload.imageUrl
+      imageUrl: payload.imageUrl,
+      sourceUrl: payload.sourceUrl,
+      tags: payload.tags
     });
   }
 

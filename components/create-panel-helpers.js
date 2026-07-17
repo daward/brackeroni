@@ -223,9 +223,9 @@ export function normalizeParallelBracketItem(item) {
     activeRoundNumber: null,
     activeRoundOpenMatchCount: 0,
     openVoteCount: 0,
-    winnerEntryId: null,
-    winnerName: null,
-    winnerSeed: null
+    winnerEntryId: item.winnerEntryId ?? null,
+    winnerName: item.winnerName ?? null,
+    winnerSeed: item.winnerSeed ?? null
   };
 }
 

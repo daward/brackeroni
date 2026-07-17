@@ -1,9 +1,9 @@
-export function SectionCard({ title, action, children, actionAlign = "right" }) {
+export function SectionCard({ title, action, children, actionAlign = "right", className = "" }) {
   const justifyClass =
     title && action ? "justify-between" : actionAlign === "left" ? "justify-start" : "justify-end";
 
   return (
-    <section className="news-grid border border-[var(--line)] bg-[var(--panel)] p-0">
+    <section className={`news-grid border border-[var(--line)] bg-[var(--panel)] p-0 ${className}`}>
       {title || action ? (
         <div
           className={`flex items-center gap-4 border-b border-[var(--line)] bg-[var(--panel-3)] px-5 py-2 ${justifyClass}`}

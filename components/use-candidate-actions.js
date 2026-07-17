@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { formatCandidateTagText, parseCandidateTagText } from "@/lib/candidate-tags";
 import { isStrongSuggestedImageMatch } from "@/components/create-panel-helpers";
 import {
   createCandidateInPool,
@@ -127,7 +128,8 @@ export function useCandidateActions({
       [poolId]: {
         name: candidate.name || "",
         description: candidate.description || "",
-        imageUrl: candidate.imageUrl || ""
+        imageUrl: candidate.imageUrl || "",
+        tagsText: formatCandidateTagText(candidate.tags)
       }
     }));
     setErrorMessage("");
@@ -192,7 +194,8 @@ export function useCandidateActions({
       await createCandidateInPool(poolId, {
         name: draft.name,
         description: draft.description || null,
-        imageUrl: draft.imageUrl || null
+        imageUrl: draft.imageUrl || null,
+        tags: parseCandidateTagText(draft.tagsText)
       });
 
       await syncLinkedDraftBrackets(poolId, { syncWithPool: true });
@@ -283,7 +286,8 @@ export function useCandidateActions({
       await updateCandidateInPool(poolId, candidateEditor.candidateId, {
         name: draft.name,
         description: draft.description || null,
-        imageUrl: draft.imageUrl || null
+        imageUrl: draft.imageUrl || null,
+        tags: parseCandidateTagText(draft.tagsText)
       });
 
       closeCandidateEditor(poolId);

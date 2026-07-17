@@ -33,7 +33,8 @@ import {
 const emptyCandidateForm = {
   name: "",
   description: "",
-  imageUrl: ""
+  imageUrl: "",
+  tagsText: ""
 };
 
 const emptyPoolForm = {
@@ -97,7 +98,8 @@ export function CreatePanels() {
   const poolCardRefs = useRef({});
   const actionSearchParamsHandledRef = useRef({
     favoritePoolId: null,
-    makeBracketFromPoolId: null
+    makeBracketFromPoolId: null,
+    newBracketPreset: null
   });
   const poolSearchScrollHandledRef = useRef(null);
 
@@ -179,8 +181,11 @@ export function CreatePanels() {
     createPoolRecord,
     handleArchivePool,
     handleCopyPoolLink,
+    handleEnrichPoolCandidatesFromSourceUrls,
     handleImportCandidatesIntoPool,
     handleMergePool,
+    handleRemoveLowValueTagsFromPool,
+    handleRemoveTagFromPool,
     handlePoolEditSubmit,
     handlePoolImportSubmit,
     handlePoolSubmit,
@@ -536,6 +541,38 @@ export function CreatePanels() {
     });
   }, [pools, router, searchParams, startTransition]);
 
+  useEffect(() => {
+    const shouldOpenNewBracket = searchParams?.get("newBracket");
+
+    if (!shouldOpenNewBracket) {
+      return;
+    }
+
+    const presetKey = [
+      shouldOpenNewBracket,
+      searchParams?.get("sharingMode") || "",
+      searchParams?.get("visibility") || "",
+      searchParams?.get("resultMode") || ""
+    ].join("|");
+
+    if (actionSearchParamsHandledRef.current.newBracketPreset === presetKey) {
+      return;
+    }
+
+    actionSearchParamsHandledRef.current.newBracketPreset = presetKey;
+
+    setWorkspaceView("tournaments");
+    setTournamentStageView("draft");
+    setExpandedDraftTournamentId("all");
+    setTournamentForm((current) => ({
+      ...current,
+      sharingMode: searchParams?.get("sharingMode") || current.sharingMode,
+      visibility: searchParams?.get("visibility") || current.visibility,
+      resultMode: searchParams?.get("resultMode") || current.resultMode
+    }));
+    setIsTournamentModalOpen(true);
+  }, [searchParams]);
+
   return (
     <div className="space-y-6">
       <FlashMessages errorMessage={errorMessage} successMessage={successMessage} />
@@ -606,7 +643,10 @@ export function CreatePanels() {
           onSetOpenPoolMergeMenuId={setOpenPoolMergeMenuId}
           onCopyPoolLink={handleCopyPoolLink}
           onAutoFillMissingImages={handleAutoFillMissingImages}
+          onEnrichPoolCandidatesFromSourceUrls={handleEnrichPoolCandidatesFromSourceUrls}
           onMergePool={handleMergePool}
+          onRemoveLowValueTagsFromPool={handleRemoveLowValueTagsFromPool}
+          onRemoveTagFromPool={handleRemoveTagFromPool}
           onArchivePool={handleArchivePool}
           updateCandidateDraft={updateCandidateDraft}
           openCandidateCreator={openCandidateCreator}

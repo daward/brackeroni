@@ -1,6 +1,7 @@
 import { BookmarkletInstaller } from "@/components/bookmarklet-installer";
 import { SectionCard } from "@/components/section-card";
 import { requireCurrentUserPage } from "@/lib/auth/current-user";
+import { resolvePreferredOrigin } from "@/lib/app-origin";
 import { headers } from "next/headers";
 
 export const metadata = {
@@ -10,22 +11,13 @@ export const metadata = {
 export const dynamic = "force-dynamic";
 
 async function resolveAppOrigin() {
-  const configuredOrigin = process.env.NEXT_PUBLIC_APP_ORIGIN || process.env.APP_ORIGIN;
-  if (configuredOrigin) {
-    return configuredOrigin;
-  }
-
   const requestHeaders = await headers();
-  const forwardedProto = requestHeaders.get("x-forwarded-proto");
-  const forwardedHost = requestHeaders.get("x-forwarded-host");
-  const host = forwardedHost || requestHeaders.get("host");
-  const protocol = forwardedProto || (host?.includes("localhost") ? "http" : "https");
-
-  if (host) {
-    return `${protocol}://${host}`;
-  }
-
-  return "https://brackeroni.com";
+  return resolvePreferredOrigin({
+    configuredOrigin: process.env.NEXT_PUBLIC_APP_ORIGIN || process.env.APP_ORIGIN,
+    forwardedProto: requestHeaders.get("x-forwarded-proto"),
+    forwardedHost: requestHeaders.get("x-forwarded-host"),
+    host: requestHeaders.get("host")
+  });
 }
 
 export default async function ImportToolsPage({ searchParams }) {

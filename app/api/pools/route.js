@@ -4,6 +4,7 @@ import { createPool, listPools } from "@/lib/data/pools";
 import { json, readJson, withRouteErrorHandling } from "@/lib/api/http";
 import { buildGenericPageImportPrompt } from "@/lib/bookmarklets/prompt";
 import { extractCandidatesWithGeminiForPools } from "@/lib/gemini/extract-pools-v2";
+import { resolveCandidateSourceUrl } from "@/lib/source-url";
 import { poolCreateSchema } from "@/lib/validation/pool";
 
 export const GET = withRouteErrorHandling(async function GET(request) {
@@ -38,13 +39,17 @@ export const POST = withRouteErrorHandling(async function POST(request) {
     candidates = extracted.candidates.map((candidate) => ({
       name: candidate.label,
       description: candidate.description || null,
-      imageUrl: candidate.imageUrl || null
+      imageUrl: candidate.imageUrl || null,
+      sourceUrl: resolveCandidateSourceUrl(candidate.sourceUrl, payload.source.pageUrl || null),
+      tags: candidate.tags || []
     }));
   } else if (payload.source?.type === "items") {
     candidates = payload.source.items.map((candidate) => ({
       name: candidate.name,
       description: candidate.description || null,
-      imageUrl: candidate.imageUrl || null
+      imageUrl: candidate.imageUrl || null,
+      sourceUrl: resolveCandidateSourceUrl(candidate.sourceUrl, payload.source.pageUrl || null),
+      tags: candidate.tags || []
     }));
   }
 

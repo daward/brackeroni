@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { CandidateTagList } from "@/components/candidate-tag-list";
 import { getOptionalCurrentUser } from "@/lib/auth/current-user";
 import { getPoolById } from "@/lib/data/pools";
 
@@ -97,6 +98,7 @@ export default async function PublicPoolPage({ params }) {
               ) : null}
               <div className="px-4 py-4">
                 <p className="display-face text-lg font-black">{candidate.name}</p>
+                <CandidateTagList tags={candidate.tags} className="mt-2" />
                 {candidate.description ? (
                   <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
                     {candidate.description}

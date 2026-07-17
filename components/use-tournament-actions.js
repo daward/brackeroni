@@ -461,12 +461,12 @@ export function useTournamentActions({
     try {
       const data = await closeCurrentTournamentRound(tournamentId);
 
-      if (data.item?.status === "complete") {
-        router.replace(`/results/${tournamentId}`);
-        return;
-      }
-
-      setSuccessMessage("Round closed and bracket advanced.");
+      router.replace(`/results/${tournamentId}/progress`);
+      setSuccessMessage(
+        data.item?.status === "complete"
+          ? "Bracket complete. Review progress and reveal rounds when ready."
+          : "Round closed and bracket advanced."
+      );
       await loadWorkspace();
     } catch (error) {
       setErrorMessage(error.message || "Failed to close the current round.");

@@ -4,6 +4,7 @@ import { json, readJson, withRouteErrorHandling } from "@/lib/api/http";
 import { poolImportSchema } from "@/lib/validation/pool";
 import { buildGenericPageImportPrompt } from "@/lib/bookmarklets/prompt";
 import { extractCandidatesWithGeminiForPools } from "@/lib/gemini/extract-pools-v2";
+import { resolveCandidateSourceUrl } from "@/lib/source-url";
 
 export const POST = withRouteErrorHandling(async function POST(request, { params }) {
   const user = await getCurrentUser(request);
@@ -37,13 +38,17 @@ export const POST = withRouteErrorHandling(async function POST(request, { params
     candidates = extracted.candidates.map((candidate) => ({
       name: candidate.label,
       description: candidate.description || null,
-      imageUrl: candidate.imageUrl || null
+      imageUrl: candidate.imageUrl || null,
+      sourceUrl: resolveCandidateSourceUrl(candidate.sourceUrl, payload.source.pageUrl || null),
+      tags: candidate.tags || []
     }));
   } else {
     candidates = payload.source.items.map((candidate) => ({
       name: candidate.name,
       description: candidate.description || null,
-      imageUrl: candidate.imageUrl || null
+      imageUrl: candidate.imageUrl || null,
+      sourceUrl: resolveCandidateSourceUrl(candidate.sourceUrl, pool.importSourceUrl || null),
+      tags: candidate.tags || []
     }));
   }
 

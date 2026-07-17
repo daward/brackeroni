@@ -4,7 +4,10 @@ import { buildPoolImportPrompt } from "@/components/create-panel-helpers";
 import {
   archivePool,
   createPool,
+  enrichPoolCandidatesFromSourceUrls,
   mergePoolIntoPool,
+  removeLowValueTagsFromPoolCandidates,
+  removeTagFromPoolCandidates,
   updatePool,
   updateTournament
 } from "@/lib/client-api/create-workspace";
@@ -375,13 +378,125 @@ export function usePoolActions({
     }
   }
 
+  async function handleRemoveTagFromPool(poolId, tag) {
+    const normalizedTag = String(tag || "").trim();
+
+    if (!normalizedTag) {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Remove the tag "${normalizedTag}" from every candidate in this pool?`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    const actionKey = `remove-pool-tag:${poolId}:${normalizedTag.toLowerCase()}`;
+    if (isActionPending(actionKey)) {
+      return;
+    }
+
+    beginAction(actionKey);
+    setErrorMessage("");
+    setSuccessMessage("");
+
+    try {
+      await removeTagFromPoolCandidates(poolId, normalizedTag);
+      setOpenPoolActionsMenuId(null);
+      setOpenPoolMergeMenuId(null);
+      setSuccessMessage(`Removed "${normalizedTag}" from this pool.`);
+      await loadWorkspace();
+    } catch (error) {
+      setErrorMessage(error.message || "Failed to remove tag from pool.");
+    } finally {
+      endAction(actionKey);
+    }
+  }
+
+  async function handleEnrichPoolCandidatesFromSourceUrls(poolId) {
+    const actionKey = `enrich-pool-candidates:${poolId}`;
+    if (isActionPending(actionKey)) {
+      return;
+    }
+
+    beginAction(actionKey);
+    setErrorMessage("");
+    setSuccessMessage("");
+
+    try {
+      const data = await enrichPoolCandidatesFromSourceUrls(poolId);
+      setOpenPoolActionsMenuId(null);
+      setOpenPoolMergeMenuId(null);
+      setSuccessMessage(
+        `Enriched ${data.meta?.enrichedCount || 0} candidate${
+          data.meta?.enrichedCount === 1 ? "" : "s"
+        }. ${data.meta?.skippedCount || 0} skipped.${
+          (data.meta?.failedCount || 0) > 0 ? ` ${data.meta.failedCount} failed.` : ""
+        }`
+      );
+      await loadWorkspace();
+    } catch (error) {
+      setErrorMessage(error.message || "Failed to enrich candidates from source URLs.");
+    } finally {
+      endAction(actionKey);
+    }
+  }
+
+  async function handleRemoveLowValueTagsFromPool(poolId, maxCandidateCount) {
+    const threshold = Number(maxCandidateCount);
+
+    if (!Number.isInteger(threshold) || threshold < 1) {
+      setErrorMessage("Choose a valid minimum candidate count.");
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Remove every tag used by ${threshold} candidate${threshold === 1 ? "" : "s"} or fewer in this pool?`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    const actionKey = `remove-low-value-tags:${poolId}:${threshold}`;
+    if (isActionPending(actionKey)) {
+      return;
+    }
+
+    beginAction(actionKey);
+    setErrorMessage("");
+    setSuccessMessage("");
+
+    try {
+      const data = await removeLowValueTagsFromPoolCandidates(poolId, threshold);
+      const removedTagCount = data.meta?.removedTagCount || 0;
+      setOpenPoolActionsMenuId(null);
+      setOpenPoolMergeMenuId(null);
+      setSuccessMessage(
+        removedTagCount > 0
+          ? `Removed ${removedTagCount} low-value tag${removedTagCount === 1 ? "" : "s"}.`
+          : "No tags matched that threshold."
+      );
+      await loadWorkspace();
+    } catch (error) {
+      setErrorMessage(error.message || "Failed to remove low-value tags from pool.");
+    } finally {
+      endAction(actionKey);
+    }
+  }
+
   return {
     closePoolImportModal,
     createPoolRecord,
     handleArchivePool,
     handleCopyPoolLink,
+    handleEnrichPoolCandidatesFromSourceUrls,
     handleImportCandidatesIntoPool,
     handleMergePool,
+    handleRemoveLowValueTagsFromPool,
+    handleRemoveTagFromPool,
     handlePoolEditSubmit,
     handlePoolImportSubmit,
     handlePoolSubmit,

@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+import { CandidateTagList } from "@/components/candidate-tag-list";
 import { ResilientRemoteImage } from "@/components/resilient-remote-image";
 
 export function CandidatePreviewChips({ candidates, limit = 4 }) {
@@ -33,6 +35,7 @@ export function CandidatePreviewChips({ candidates, limit = 4 }) {
 }
 
 export function CandidateManagerPanel({
+  poolId = null,
   candidateDraft,
   isCandidateEditorOpen,
   isEditingCandidate,
@@ -50,19 +53,53 @@ export function CandidateManagerPanel({
   onSelectSuggestedImage,
   onEditCandidate,
   onRemoveCandidate,
+  onRemoveTagFromPool,
+  onRemoveLowValueTagsFromPool,
+  isRemoveTagPending,
+  isRemoveLowValueTagsPending,
   isCreatePending,
   isSavePending,
   removingCandidateId = null,
   listHeading = "In This Pool",
   listEmptyMessage = "No candidates in this pool yet."
 }) {
+  const [isTagDrawerOpen, setIsTagDrawerOpen] = useState(false);
+  const [activeTagFilter, setActiveTagFilter] = useState("");
+  const [lowValueTagThreshold, setLowValueTagThreshold] = useState("1");
+
+  const tagCounts = candidates.reduce((counts, candidate) => {
+    for (const tag of candidate.tags || []) {
+      counts[tag] = (counts[tag] || 0) + 1;
+    }
+
+    return counts;
+  }, {});
+  const sortedTags = Object.entries(tagCounts).sort((left, right) => {
+    if (right[1] !== left[1]) {
+      return right[1] - left[1];
+    }
+
+    return left[0].localeCompare(right[0]);
+  });
+  const resolvedTagFilter = activeTagFilter && tagCounts[activeTagFilter] ? activeTagFilter : "";
+  const visibleCandidates = resolvedTagFilter
+    ? candidates.filter((candidate) => (candidate.tags || []).includes(resolvedTagFilter))
+    : candidates;
+
   return (
     <>
       <div className="mt-6 border-t border-[var(--line)] pt-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className="display-face text-lg font-black uppercase tracking-[0.12em] text-[var(--accent-3)]">
-            {listHeading}
-          </p>
+          <div>
+            <p className="display-face text-lg font-black uppercase tracking-[0.12em] text-[var(--accent-3)]">
+              {resolvedTagFilter ? `${listHeading} • ${resolvedTagFilter}` : listHeading}
+            </p>
+            {resolvedTagFilter ? (
+              <p className="mt-1 text-[11px] uppercase tracking-[0.16em] text-[var(--accent-2)]">
+                Filtered by tag
+              </p>
+            ) : null}
+          </div>
           {!readOnly ? (
             <div className="flex flex-wrap gap-3">
               <button
@@ -81,14 +118,35 @@ export function CandidateManagerPanel({
                   Import Candidates
                 </button>
               ) : null}
+              {sortedTags.length > 0 ? (
+                <button
+                  type="button"
+                  onClick={() => setIsTagDrawerOpen(true)}
+                  className="ui-button ui-button-muted"
+                >
+                  Manage Tags
+                </button>
+              ) : null}
             </div>
+          ) : sortedTags.length > 0 ? (
+            <button
+              type="button"
+              onClick={() => setIsTagDrawerOpen(true)}
+              className="ui-button ui-button-muted"
+            >
+              View Tags
+            </button>
           ) : null}
         </div>
         <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          {candidates.length === 0 ? (
-            <span className="text-sm text-[var(--muted)]">{listEmptyMessage}</span>
+          {visibleCandidates.length === 0 ? (
+            <span className="text-sm text-[var(--muted)]">
+              {resolvedTagFilter
+                ? `No candidates match the "${resolvedTagFilter}" tag.`
+                : listEmptyMessage}
+            </span>
           ) : (
-            candidates.map((candidate) => (
+            visibleCandidates.map((candidate) => (
               <div
                 key={candidate.id}
                 className={`group relative flex flex-col overflow-hidden border border-[var(--line)] bg-[var(--panel)] ${
@@ -114,7 +172,27 @@ export function CandidateManagerPanel({
                     </div>
                   ) : null}
                   <div className="flex flex-1 flex-col px-3 py-3">
-                    <p className="display-face text-sm font-black">{candidate.name}</p>
+                    <div className="flex items-start justify-between gap-3">
+                      <p className="display-face text-sm font-black">{candidate.name}</p>
+                      {candidate.sourceUrl ? (
+                        <a
+                          href={candidate.sourceUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          onClick={(event) => event.stopPropagation()}
+                          aria-label={`Open source for ${candidate.name}`}
+                          title={`Open source for ${candidate.name}`}
+                          className="mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center border border-[var(--line)] text-[var(--muted)] transition hover:border-[var(--accent-3)] hover:text-[var(--accent-3)]"
+                        >
+                          <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 fill-none stroke-current stroke-2">
+                            <path d="M14 5h5v5" />
+                            <path d="M10 14 19 5" />
+                            <path d="M19 14v5H5V5h5" />
+                          </svg>
+                        </a>
+                      ) : null}
+                    </div>
+                    <CandidateTagList tags={candidate.tags} className="mt-2" />
                     {candidate.description ? (
                       <p className="mt-2 text-xs leading-5 text-[var(--muted)]">
                         {candidate.description}
@@ -154,6 +232,147 @@ export function CandidateManagerPanel({
           )}
         </div>
       </div>
+
+      {isTagDrawerOpen ? (
+        <div className="fixed inset-0 z-40 bg-black/70">
+          <button
+            type="button"
+            aria-label="Close tag drawer"
+            onClick={() => setIsTagDrawerOpen(false)}
+            className="absolute inset-0 cursor-default"
+          />
+          <div className="absolute inset-y-0 right-0 flex w-full max-w-[30rem] flex-col border-l border-[var(--line)] bg-[var(--panel)] shadow-[0_0_40px_rgba(0,0,0,0.45)]">
+            <div className="flex items-start justify-between gap-4 border-b border-[var(--line)] bg-[var(--panel-3)] px-5 py-4">
+              <div>
+                <p className="display-face text-xs font-black uppercase tracking-[0.18em] text-[var(--accent-2)]">
+                  Pool Tags
+                </p>
+                <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+                  Filter the pool or remove a tag everywhere.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsTagDrawerOpen(false)}
+                className="display-face text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--muted)]"
+              >
+                Close
+              </button>
+            </div>
+            <div className="ui-scroll-subtle flex-1 overflow-y-auto px-5 py-5">
+              {sortedTags.length === 0 ? (
+                <p className="text-sm text-[var(--muted)]">No tags in this pool yet.</p>
+              ) : (
+                <div className="space-y-5">
+                  <section className="border border-[var(--line)] bg-[var(--panel-3)] p-4">
+                    <p className="display-face text-xs font-black uppercase tracking-[0.18em] text-[var(--accent-3)]">
+                      Filter
+                    </p>
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setActiveTagFilter("")}
+                        className={`border px-3 py-2 text-[11px] uppercase tracking-[0.16em] transition ${
+                          !resolvedTagFilter
+                            ? "border-[var(--accent-2)] bg-[var(--accent-2)] text-black"
+                            : "border-[var(--line)] bg-[var(--panel)] text-[var(--muted)] hover:border-[var(--accent-3)] hover:text-[var(--accent-3)]"
+                        }`}
+                      >
+                        All Tags
+                      </button>
+                      {sortedTags.map(([tag, count]) => (
+                        <button
+                          key={tag}
+                          type="button"
+                          onClick={() =>
+                            setActiveTagFilter((current) => (current === tag ? "" : tag))
+                          }
+                          className={`border px-3 py-2 text-[11px] uppercase tracking-[0.16em] transition ${
+                            resolvedTagFilter === tag
+                              ? "border-[var(--accent-3)] bg-[var(--panel-2)] text-[var(--accent-3)]"
+                              : "border-[var(--line)] bg-[var(--panel)] text-[var(--muted)] hover:border-[var(--accent-3)] hover:text-[var(--accent-3)]"
+                          }`}
+                        >
+                          {tag} ({count})
+                        </button>
+                      ))}
+                    </div>
+                  </section>
+
+                  {!readOnly ? (
+                    <section className="border border-[var(--line)] bg-[var(--panel-3)] p-4">
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <p className="display-face text-xs font-black uppercase tracking-[0.18em] text-[var(--accent)]">
+                            Delete Tag
+                          </p>
+                          <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+                            Remove one tag everywhere, or clear tags with low usage.
+                          </p>
+                        </div>
+                      </div>
+                      <div className="mt-4 flex items-end gap-3 border border-[var(--line)] bg-[var(--panel)] px-3 py-3">
+                        <label className="flex-1">
+                          <span className="mb-2 block text-[11px] uppercase tracking-[0.16em] text-[var(--muted)]">
+                            Remove Tags Used By
+                          </span>
+                          <input
+                            type="number"
+                            min="1"
+                            step="1"
+                            inputMode="numeric"
+                            value={lowValueTagThreshold}
+                            onChange={(event) => setLowValueTagThreshold(event.target.value)}
+                            className="ui-field ui-field-panel"
+                          />
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            onRemoveLowValueTagsFromPool?.(poolId, Number(lowValueTagThreshold))
+                          }
+                          disabled={Boolean(isRemoveLowValueTagsPending?.(Number(lowValueTagThreshold)))}
+                          className="border border-[var(--line)] px-3 py-2 text-[11px] uppercase tracking-[0.16em] text-[var(--muted)] transition hover:border-[var(--accent)] hover:text-[var(--accent)] disabled:opacity-60"
+                        >
+                          {isRemoveLowValueTagsPending?.(Number(lowValueTagThreshold))
+                            ? "Removing"
+                            : "Delete <= X"}
+                        </button>
+                      </div>
+                      <p className="display-face text-xs font-black uppercase tracking-[0.18em] text-[var(--accent)]">
+                        Delete Individually
+                      </p>
+                      <div className="mt-4 space-y-2">
+                        {sortedTags.map(([tag, count]) => (
+                          <div
+                            key={`remove:${tag}`}
+                            className="flex items-center justify-between gap-3 border border-[var(--line)] bg-[var(--panel)] px-3 py-3"
+                          >
+                            <div className="min-w-0">
+                              <p className="truncate text-sm text-[var(--ink)]">{tag}</p>
+                              <p className="mt-1 text-[11px] uppercase tracking-[0.16em] text-[var(--muted)]">
+                                {count} candidate{count === 1 ? "" : "s"}
+                              </p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => onRemoveTagFromPool?.(poolId, tag)}
+                              disabled={Boolean(isRemoveTagPending?.(tag))}
+                              className="border border-[var(--line)] px-3 py-2 text-[11px] uppercase tracking-[0.16em] text-[var(--muted)] transition hover:border-[var(--accent)] hover:text-[var(--accent)] disabled:opacity-60"
+                            >
+                              {isRemoveTagPending?.(tag) ? "Removing" : "Delete"}
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+                  ) : null}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {isCandidateEditorOpen && !readOnly ? (
         <div className="fixed inset-0 z-40 bg-black/70">
@@ -205,6 +424,13 @@ export function CandidateManagerPanel({
                     disabled={readOnly}
                     onChange={(event) => onDraftChange("imageUrl", event.target.value)}
                     placeholder="Image URL"
+                    className="ui-field ui-field-panel"
+                  />
+                  <input
+                    value={candidateDraft.tagsText}
+                    disabled={readOnly}
+                    onChange={(event) => onDraftChange("tagsText", event.target.value)}
+                    placeholder="Tags (comma-separated)"
                     className="ui-field ui-field-panel"
                   />
                   <div className="flex flex-wrap gap-3">

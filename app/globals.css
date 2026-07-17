@@ -1839,6 +1839,24 @@ optgroup {
   background: transparent;
 }
 
+.results-shell.news-grid::after {
+  border: 0;
+}
+
+.completed-bracket-row {
+  border-bottom: 1px solid rgba(86, 80, 72, 0.9);
+}
+
+.completed-bracket-winner {
+  color: var(--accent-3);
+  font-family: "Arial Narrow", Arial, Helvetica, sans-serif;
+  font-size: 1.18rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  line-height: 1.15;
+  text-transform: uppercase;
+}
+
 .results-header {
   padding: 0.85rem 0 0.9rem;
   position: relative;
@@ -1915,6 +1933,29 @@ optgroup {
 
 .results-page-parallel .results-grid {
   gap: 1.4rem;
+}
+
+.parallel-results-table-rank {
+  display: inline-block;
+  font-family: "Arial Narrow", Arial, Helvetica, sans-serif;
+}
+
+.parallel-results-table tbody td {
+  padding-block: 1rem;
+}
+
+.parallel-results-table tbody td:first-child {
+  width: 3.25rem;
+  padding-right: 0.9rem;
+  vertical-align: middle;
+}
+
+.parallel-results-table-entry {
+  gap: 0.9rem;
+}
+
+.parallel-results-table-entry .results-ranking-copy {
+  display: block;
 }
 
 .results-ranking-rail,
@@ -2378,6 +2419,7 @@ optgroup {
     width: 8rem;
     height: 5.5rem;
   }
+
 }
 
 @media (min-width: 1024px) {

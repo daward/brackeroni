@@ -6,6 +6,14 @@ function buildBookmarkletHref(origin, poolId = null, poolName = null) {
   const script = `
  (async () => {
  const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+  const BRIDGE_URL = ${JSON.stringify(`${origin}/import/bridge`)};
+  const BRIDGE_ORIGIN = new URL(BRIDGE_URL).origin;
+  const IMPORT_PAYLOAD_MESSAGE_TYPE = "BRACKERONI_IMPORT_PAYLOAD";
+  const IMPORT_READY_MESSAGE_TYPE = "BRACKERONI_IMPORT_READY";
+  const bridgeWindow = window.open("", "_blank");
+  try {
+    window.focus();
+  } catch {}
   const MAX_HTML_CHARS = 180000;
   const MAX_TEXT_CHARS = 90000;
   const MAX_CAPTURED_ITEMS = 240;
@@ -349,6 +357,205 @@ function buildBookmarkletHref(origin, poolId = null, poolName = null) {
     return normalized ? normalized.slice(0, maxLength) : "";
   }
 
+  function isLikelyNoiseMetadata(value) {
+    const normalized = collapseWhitespace(value);
+
+    if (!normalized) {
+      return true;
+    }
+
+    if (normalized.length > 96) {
+      return true;
+    }
+
+    if (/^\\d+(\\.\\d+)?$/.test(normalized)) {
+      return true;
+    }
+
+    if (/^\\(?\\d[\\d,]*\\)?$/.test(normalized)) {
+      return true;
+    }
+
+    if (/^\\d(\\.\\d)?\\s+of\\s+5\\s+bubbles$/i.test(normalized)) {
+      return true;
+    }
+
+    if (/^(image|photos?|reviews?)$/i.test(normalized)) {
+      return true;
+    }
+
+    if (/^by\\s+/i.test(normalized)) {
+      return true;
+    }
+
+    return false;
+  }
+
+  function collectCardMetadata(element, title) {
+    if (!element) {
+      return [];
+    }
+
+    const normalizedTitle = collapseWhitespace(title).toLowerCase();
+    const seen = new Set();
+    const metadata = [];
+
+    for (const node of element.querySelectorAll("span, div, p, li")) {
+      const value = collapseWhitespace(node.textContent);
+      const normalized = value.toLowerCase();
+
+      if (!value || normalized === normalizedTitle || seen.has(normalized)) {
+        continue;
+      }
+
+      if (isLikelyNoiseMetadata(value)) {
+        continue;
+      }
+
+      if (
+        value.split(" ").length <= 12 ||
+        /(?:tickets?|tours?|from\\s+\\$|open now|closed now|traveler|choice|award|museum|landmark|park|bridge|show|food|midtown|manhattan|brooklyn)/i.test(
+          value
+        )
+      ) {
+        seen.add(normalized);
+        metadata.push(value);
+      }
+
+      if (metadata.length >= 8) {
+        break;
+      }
+    }
+
+    return metadata;
+  }
+
+  function normalizeImageCandidate(value) {
+    const normalized = collapseWhitespace(value);
+
+    if (!normalized) {
+      return "";
+    }
+
+    if (/^data:image\\//i.test(normalized)) {
+      return "";
+    }
+
+    if (/^blob:/i.test(normalized)) {
+      return "";
+    }
+
+    if (/^\\/\\//.test(normalized)) {
+      return window.location.protocol + normalized;
+    }
+
+    return normalized;
+  }
+
+  function extractBestSrcsetCandidate(value) {
+    const candidates = String(value || "")
+      .split(",")
+      .map((entry) => collapseWhitespace(entry))
+      .map((entry) => {
+        const parts = entry.split(/\\s+/).filter(Boolean);
+
+        return {
+          url: normalizeImageCandidate(parts[0] || ""),
+          weight: Number((parts[1] || "").replace(/[^\\d.]/g, "")) || 0
+        };
+      })
+      .filter((candidate) => candidate.url);
+
+    if (candidates.length === 0) {
+      return "";
+    }
+
+    candidates.sort((left, right) => right.weight - left.weight);
+    return candidates[0].url;
+  }
+
+  function extractImageUrl(element) {
+    if (!element) {
+      return "";
+    }
+
+    const image = element.querySelector("img");
+    const imageCandidates = [
+      extractBestSrcsetCandidate(image?.getAttribute?.("srcset")),
+      extractBestSrcsetCandidate(image?.getAttribute?.("data-thumb-srcset")),
+      extractBestSrcsetCandidate(image?.getAttribute?.("data-srcset")),
+      normalizeImageCandidate(image?.currentSrc),
+      normalizeImageCandidate(image?.getAttribute?.("src")),
+      normalizeImageCandidate(image?.getAttribute?.("data-thumb")),
+      normalizeImageCandidate(image?.getAttribute?.("data-thumb-url")),
+      normalizeImageCandidate(image?.getAttribute?.("data-src")),
+      normalizeImageCandidate(image?.getAttribute?.("data-lazy-src")),
+      normalizeImageCandidate(image?.getAttribute?.("data-delayed-url")),
+      normalizeImageCandidate(image?.getAttribute?.("data-url"))
+    ].filter(Boolean);
+
+    if (imageCandidates.length > 0) {
+      return imageCandidates[0];
+    }
+
+    const backgroundNode = element.querySelector("[style*='background-image']");
+    const backgroundImageValue = backgroundNode?.style?.backgroundImage || "";
+    const backgroundImageMatch = backgroundImageValue.match(/url\\((['"]?)(.*?)\\1\\)/i);
+
+    if (backgroundImageMatch?.[2]) {
+      return normalizeImageCandidate(backgroundImageMatch[2]);
+    }
+
+    return "";
+  }
+
+  function inferYouTubeThumbnailFromHref(href) {
+    const rawHref = collapseWhitespace(href);
+
+    if (!rawHref) {
+      return "";
+    }
+
+    try {
+      const url = new URL(rawHref, window.location.href);
+      let host = url.hostname.toLowerCase();
+
+      if (host.startsWith("www.")) {
+        host = host.slice(4);
+      }
+
+      if (host !== "youtube.com" && host !== "m.youtube.com" && host !== "youtu.be") {
+        return "";
+      }
+
+      let videoId = "";
+
+      if (host === "youtu.be") {
+        let pathValue = url.pathname || "";
+
+        while (pathValue.startsWith("/")) {
+          pathValue = pathValue.slice(1);
+        }
+
+        videoId = pathValue.split("/")[0] || "";
+      } else if (url.pathname === "/watch") {
+        videoId = url.searchParams.get("v") || "";
+      } else if (url.pathname.startsWith("/shorts/")) {
+        videoId = url.pathname.split("/")[2] || "";
+      }
+
+      videoId = collapseWhitespace(videoId);
+
+      if (!videoId) {
+        return "";
+      }
+
+      return "https://i.ytimg.com/vi/" + encodeURIComponent(videoId) + "/hqdefault.jpg";
+    } catch {
+      return "";
+    }
+  }
+
   function compactCardHtml(element) {
     if (!element) {
       return "";
@@ -374,15 +581,8 @@ function buildBookmarkletHref(origin, poolId = null, poolName = null) {
     }
 
     const href = collapseWhitespace(link?.getAttribute("href"));
-    const imageUrl =
-      collapseWhitespace(image?.getAttribute?.("src")) ||
-      collapseWhitespace(image?.getAttribute?.("data-thumb")) ||
-      collapseWhitespace(image?.getAttribute?.("data-src")) ||
-      collapseWhitespace(image?.currentSrc);
-    const metadata = [...element.querySelectorAll("span, div, p")]
-      .map((node) => collapseWhitespace(node.textContent))
-      .filter((value) => value && value !== title)
-      .slice(0, 4)
+    const imageUrl = extractImageUrl(element) || inferYouTubeThumbnailFromHref(href);
+    const metadata = collectCardMetadata(element, title)
       .join(" • ");
 
     return [
@@ -409,10 +609,8 @@ function buildBookmarkletHref(origin, poolId = null, poolName = null) {
     return {
       href: collapseWhitespace(link?.getAttribute("href")) || null,
       imageUrl:
-        collapseWhitespace(image?.getAttribute("src")) ||
-        collapseWhitespace(image?.getAttribute("data-thumb")) ||
-        collapseWhitespace(image?.getAttribute("data-src")) ||
-        collapseWhitespace(image?.currentSrc) ||
+        extractImageUrl(container) ||
+        inferYouTubeThumbnailFromHref(collapseWhitespace(link?.getAttribute("href"))) ||
         null,
       title: collapseWhitespace(titleNode?.textContent) || null,
       metadata: collapseWhitespace(metadataNode?.textContent) || null
@@ -523,10 +721,7 @@ function buildBookmarkletHref(origin, poolId = null, poolName = null) {
               collapseWhitespace(item.querySelector("img")?.currentSrc) ||
               null,
             metadata:
-              [...item.querySelectorAll("span, div, p")]
-                .map((node) => collapseWhitespace(node.textContent))
-                .filter((value) => value && value !== (cardTitleFromElement(item) || identity))
-                .slice(0, 2)
+              collectCardMetadata(item, cardTitleFromElement(item) || identity)
                 .join(" • ") || null,
             html
           });
@@ -790,6 +985,28 @@ function buildBookmarkletHref(origin, poolId = null, poolName = null) {
     }
   }
 
+  function buildSanitizedPageUrl() {
+    try {
+      const url = new URL(window.location.href);
+      const hashParams = new URLSearchParams(
+        url.hash.startsWith("#") ? url.hash.slice(1) : url.hash
+      );
+
+      hashParams.delete("brackeroni-continue-pool");
+      hashParams.delete("brackeroni-continue-name");
+      hashParams.delete("brackeroni-continue-mode");
+      hashParams.delete("brackeroni-continue-selector");
+      hashParams.delete("brackeroni-continue-last-key");
+      hashParams.delete("brackeroni-continue-last-title");
+      hashParams.delete("brackeroni-continue-count");
+
+      url.hash = hashParams.toString();
+      return url.toString();
+    } catch {
+      return window.location.href;
+    }
+  }
+
   const preferredRoot =
     document.querySelector("main") ||
     document.querySelector("article") ||
@@ -807,13 +1024,6 @@ function buildBookmarkletHref(origin, poolId = null, poolName = null) {
     continuationState.continueMode &&
       (continuationState.continueLastKey || continuationState.continueCount > 0)
   );
-
-  if (continuationState.continuePoolId && !hasContinuationCursor && !selectionHtml.trim() && !selectionText.trim()) {
-    window.alert(
-      "For continuation imports, either highlight the next section of the page or continue from a link that already carries bookmarklet state."
-    );
-    return;
-  }
 
   await hydrateDocumentScroll();
 
@@ -848,7 +1058,7 @@ function buildBookmarkletHref(origin, poolId = null, poolName = null) {
   const text = compactText(selectionText || preferredRoot?.innerText || document.body?.innerText || "");
   const payload = {
     pageTitle: document.title || "",
-    pageUrl: window.location.href,
+    pageUrl: buildSanitizedPageUrl(),
     continuePoolId: continuationState.continuePoolId,
     continuePoolName: continuationState.continuePoolName,
     selectionHtml,
@@ -881,28 +1091,97 @@ function buildBookmarkletHref(origin, poolId = null, poolName = null) {
       }
     }
   };
-  const form = document.createElement("form");
-  form.method = "POST";
-  form.action = "${origin}/import/bridge";
-  form.style.display = "none";
+  try {
+    const payloadString = JSON.stringify(payload);
 
-  const payloadField = document.createElement("input");
-  payloadField.type = "hidden";
-  payloadField.name = "payload";
-  payloadField.value = JSON.stringify(payload);
-  form.appendChild(payloadField);
+    if (bridgeWindow) {
+      let bridgeCompleted = false;
 
-  document.body.appendChild(form);
-  form.submit();
+      const cleanup = () => {
+        window.removeEventListener("message", handleBridgeMessage);
+        window.clearInterval(retryTimer);
+        window.clearTimeout(fallbackTimer);
+      };
+
+      const sendPayload = () => {
+        try {
+          bridgeWindow.postMessage(
+            {
+              type: IMPORT_PAYLOAD_MESSAGE_TYPE,
+              payload
+            },
+            BRIDGE_ORIGIN
+          );
+        } catch {}
+      };
+
+      const handleBridgeMessage = (event) => {
+        if (event.origin !== BRIDGE_ORIGIN) {
+          return;
+        }
+
+        if (event.data?.type !== IMPORT_READY_MESSAGE_TYPE) {
+          return;
+        }
+
+        bridgeCompleted = true;
+        sendPayload();
+      };
+
+      window.addEventListener("message", handleBridgeMessage);
+
+      try {
+        bridgeWindow.location.replace(BRIDGE_URL);
+      } catch {}
+
+      const retryTimer = window.setInterval(() => {
+        if (bridgeWindow.closed) {
+          cleanup();
+          return;
+        }
+
+        sendPayload();
+      }, 350);
+
+      const fallbackTimer = window.setTimeout(() => {
+        if (bridgeCompleted || bridgeWindow.closed) {
+          cleanup();
+          return;
+        }
+
+        cleanup();
+
+        try {
+          window.name = payloadString;
+        } catch {}
+
+        window.location.assign("${origin}/import");
+      }, 4000);
+
+      sendPayload();
+      return;
+    }
+
+    window.name = payloadString;
+  } catch (error) {
+    window.alert("Brackeroni could not prepare the import payload.");
+    return;
+  }
+
+  window.location.assign("${origin}/import");
   await wait(50);
-  form.remove();
  })();
   `.trim();
 
   return `javascript:${encodeURIComponent(script)}`;
 }
 
-export function BookmarkletInstaller({ origin, poolId = null, poolName = null }) {
+export function BookmarkletInstaller({
+  origin,
+  poolId = null,
+  poolName = null,
+  showInstructions = true
+}) {
   const bookmarkletHref = useMemo(
     () => buildBookmarkletHref(origin, poolId, poolName),
     [origin, poolId, poolName]
@@ -955,17 +1234,19 @@ export function BookmarkletInstaller({ origin, poolId = null, poolName = null })
           {copyMessage ? <p className="text-xs leading-5 text-[var(--muted)]">{copyMessage}</p> : null}
         </div>
       </div>
-      <div className="space-y-3 border border-[var(--line)] bg-[var(--panel-2)] p-4">
-        <p className="display-face text-xs font-black uppercase tracking-[0.18em] text-[var(--accent-3)]">
-          Use It
-        </p>
-        <ol className="space-y-2 text-sm leading-7 text-[var(--muted)]">
-          <li>1. Drag the link to your bookmarks bar, or copy the code into a new bookmark.</li>
-          <li>2. Open a page on Boston.com, Wikipedia, Tripadvisor, Board Game Arena, or similar.</li>
-          <li>3. Highlight text first if you want to narrow the import.</li>
-          <li>4. Click the bookmarklet and finish the review on Brackeroni.</li>
-        </ol>
-      </div>
+      {showInstructions ? (
+        <div className="space-y-3 border border-[var(--line)] bg-[var(--panel-2)] p-4">
+          <p className="display-face text-xs font-black uppercase tracking-[0.18em] text-[var(--accent-3)]">
+            Use It
+          </p>
+          <ol className="space-y-2 text-sm leading-7 text-[var(--muted)]">
+            <li>1. Drag the link to your bookmarks bar, or copy the code into a new bookmark.</li>
+            <li>2. Open a page on Boston.com, Wikipedia, Tripadvisor, Board Game Arena, or similar.</li>
+            <li>3. Highlight text first if you want to narrow the import.</li>
+            <li>4. Click the bookmarklet and finish the review on Brackeroni.</li>
+          </ol>
+        </div>
+      ) : null}
     </div>
   );
 }

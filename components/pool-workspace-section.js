@@ -27,7 +27,10 @@ export function PoolWorkspaceSection({
   onSetOpenPoolMergeMenuId,
   onCopyPoolLink,
   onAutoFillMissingImages,
+  onEnrichPoolCandidatesFromSourceUrls,
   onMergePool,
+  onRemoveLowValueTagsFromPool,
+  onRemoveTagFromPool,
   onArchivePool,
   updateCandidateDraft,
   openCandidateCreator,
@@ -73,6 +76,9 @@ export function PoolWorkspaceSection({
               const previewCandidates = poolDetails[pool.id]?.candidates || [];
               const missingPoolImageCount = previewCandidates.filter(
                 (candidate) => !candidate.imageUrl
+              ).length;
+              const sourceLinkedCandidateCount = previewCandidates.filter(
+                (candidate) => candidate.sourceUrl
               ).length;
               const inlinePoolDraft = poolInlineDrafts[pool.id] || {
                 name: pool.name,
@@ -192,10 +198,12 @@ export function PoolWorkspaceSection({
                                 pools={pools}
                                 poolIsReadOnly={poolIsReadOnly}
                                 missingPoolImageCount={missingPoolImageCount}
+                                sourceLinkedCandidateCount={sourceLinkedCandidateCount}
                                 openPoolMergeMenuId={openPoolMergeMenuId}
                                 isActionPending={isActionPending}
                                 onCopyPoolLink={onCopyPoolLink}
                                 onAutoFillMissingImages={onAutoFillMissingImages}
+                                onEnrichPoolCandidatesFromSourceUrls={onEnrichPoolCandidatesFromSourceUrls}
                                 onSetOpenPoolMergeMenuId={onSetOpenPoolMergeMenuId}
                                 onMergePool={onMergePool}
                                 onArchivePool={onArchivePool}
@@ -220,7 +228,7 @@ export function PoolWorkspaceSection({
                         candidateDraft={candidateDraft}
                         isCandidateEditorOpen={isCandidateEditorOpen}
                         isEditingCandidate={isEditingPoolCandidate}
-                        candidates={poolDetails[pool.id]?.candidates || []}
+                        candidates={previewCandidates}
                         readOnly={poolIsReadOnly}
                         imageSuggestions={imageSuggestions[pool.id] || []}
                         imageSuggestionLoading={Boolean(imageSuggestionLoading[pool.id])}
@@ -237,7 +245,17 @@ export function PoolWorkspaceSection({
                         onClearImage={() => selectSuggestedImage(pool.id, "")}
                         onSelectSuggestedImage={(imageUrl) => selectSuggestedImage(pool.id, imageUrl)}
                         onEditCandidate={(candidate) => openCandidateEditor(pool.id, candidate)}
-                        onRemoveCandidate={(candidate) => handleRemoveCandidateFromPool(pool.id, candidate)}
+                        onRemoveCandidate={(candidate) =>
+                          handleRemoveCandidateFromPool(pool.id, candidate)
+                        }
+                        onRemoveTagFromPool={onRemoveTagFromPool}
+                        onRemoveLowValueTagsFromPool={onRemoveLowValueTagsFromPool}
+                        isRemoveTagPending={(tag) =>
+                          isActionPending(`remove-pool-tag:${pool.id}:${tag.toLowerCase()}`)
+                        }
+                        isRemoveLowValueTagsPending={(threshold) =>
+                          isActionPending(`remove-low-value-tags:${pool.id}:${threshold}`)
+                        }
                         isCreatePending={isActionPending(`create-candidate:${pool.id}`)}
                         isSavePending={isActionPending(`save-candidate:${pool.id}`)}
                         removingCandidateId={
@@ -245,6 +263,8 @@ export function PoolWorkspaceSection({
                             isActionPending(`remove-candidate:${pool.id}:${candidate.id}`)
                           )?.id || null
                         }
+                        listHeading="In This Pool"
+                        listEmptyMessage="No candidates in this pool yet."
                       />
                     </>
                   ) : (
@@ -272,7 +292,9 @@ export function PoolWorkspaceSection({
                           </p>
                         ) : null}
                         {pool.description ? (
-                          <p className="mt-3 text-sm leading-6 text-[var(--muted)]">{pool.description}</p>
+                          <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
+                            {pool.description}
+                          </p>
                         ) : null}
                       </div>
                       <div className="xl:self-start xl:pt-0">
@@ -295,10 +317,12 @@ function PoolActionsMenu({
   pools,
   poolIsReadOnly,
   missingPoolImageCount,
+  sourceLinkedCandidateCount,
   openPoolMergeMenuId,
   isActionPending,
   onCopyPoolLink,
   onAutoFillMissingImages,
+  onEnrichPoolCandidatesFromSourceUrls,
   onSetOpenPoolMergeMenuId,
   onMergePool,
   onArchivePool
@@ -333,6 +357,25 @@ function PoolActionsMenu({
           </span>
           <span className="text-[11px] uppercase tracking-[0.18em] text-[var(--muted)]">
             {missingPoolImageCount}
+          </span>
+        </button>
+        <button
+          type="button"
+          onClick={() => onEnrichPoolCandidatesFromSourceUrls(pool.id)}
+          disabled={
+            poolIsReadOnly ||
+            sourceLinkedCandidateCount === 0 ||
+            isActionPending(`enrich-pool-candidates:${pool.id}`)
+          }
+          className="flex w-full items-center justify-between gap-3 px-3 py-3 text-left transition hover:bg-[var(--panel-3)] disabled:opacity-60"
+        >
+          <span className="text-sm">
+            {isActionPending(`enrich-pool-candidates:${pool.id}`)
+              ? "Enriching tags"
+              : "Enrich tags from links"}
+          </span>
+          <span className="text-[11px] uppercase tracking-[0.18em] text-[var(--muted)]">
+            {sourceLinkedCandidateCount}
           </span>
         </button>
         <button
