@@ -426,16 +426,45 @@ export function usePoolActions({
     setSuccessMessage("");
 
     try {
-      const data = await enrichPoolCandidatesFromSourceUrls(poolId);
-      setOpenPoolActionsMenuId(null);
-      setOpenPoolMergeMenuId(null);
-      setSuccessMessage(
-        `Enriched ${data.meta?.enrichedCount || 0} candidate${
-          data.meta?.enrichedCount === 1 ? "" : "s"
-        }. ${data.meta?.skippedCount || 0} skipped.${
-          (data.meta?.failedCount || 0) > 0 ? ` ${data.meta.failedCount} failed.` : ""
-        }`
-      );
+      let shouldContinue = true;
+      let lastData = null;
+
+      while (shouldContinue) {
+        const data = await enrichPoolCandidatesFromSourceUrls(poolId);
+        lastData = data;
+        setOpenPoolActionsMenuId(null);
+        setOpenPoolMergeMenuId(null);
+
+        const processedCount = data.meta?.processedCount || 0;
+        const remainingCount = data.meta?.remainingCount || 0;
+        const enrichedCount = data.meta?.enrichedCount || 0;
+        const skippedCount = data.meta?.skippedCount || 0;
+        const failedCount = data.meta?.failedCount || 0;
+
+        setSuccessMessage(
+          `Processed ${processedCount} candidate${
+            processedCount === 1 ? "" : "s"
+          }. Enriched ${enrichedCount} candidate${
+            enrichedCount === 1 ? "" : "s"
+          }. ${skippedCount} skipped.${failedCount > 0 ? ` ${failedCount} failed.` : ""}${
+            remainingCount > 0
+              ? ` ${remainingCount} candidate${remainingCount === 1 ? "" : "s"} still remain.`
+              : ""
+          }`
+        );
+
+        if (remainingCount <= 0 || processedCount <= 0) {
+          shouldContinue = false;
+          break;
+        }
+
+        shouldContinue = window.confirm(
+          `Enrichment processed ${processedCount} candidates.\n\n${remainingCount} candidate${
+            remainingCount === 1 ? "" : "s"
+          } remain.\n\nContinue from where this pass left off?`
+        );
+      }
+
       await loadWorkspace();
     } catch (error) {
       setErrorMessage(error.message || "Failed to enrich candidates from source URLs.");

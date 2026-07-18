@@ -1,4 +1,5 @@
-﻿import Link from "next/link";
+import Link from "next/link";
+import { Plane } from "lucide-react";
 import { FeaturedHomePools } from "@/components/featured-home-pools";
 import { FeaturedHomeVoteSection } from "@/components/featured-home-matchups";
 import { getOptionalCurrentUser } from "@/lib/auth/current-user";
@@ -125,6 +126,23 @@ export default async function HomePage() {
           </div>
         </section>
       </div>
+
+      <section className="home-use-cases-section">
+        <div className="home-use-cases-header">
+          <h2 className="home-use-cases-title display-face">Explore ways to use Brackeroni</h2>
+        </div>
+        <div className="home-use-cases-grid">
+          <Link href="/use-cases/trip-decisions" className="home-use-case-card">
+            <div className="home-use-case-card-copy">
+              <p className="home-use-case-card-title display-face">Trip Decisions</p>
+              <p className="home-use-case-card-meta">Group travel picks</p>
+            </div>
+            <div className="home-use-case-card-icon" aria-hidden="true">
+              <Plane className="home-use-case-card-icon-svg" strokeWidth={2.1} />
+            </div>
+          </Link>
+        </div>
+      </section>
     </div>
   );
 }

@@ -35,6 +35,22 @@ function labelForVisibility(visibility) {
   return "Private";
 }
 
+function labelForAudience(tournament) {
+  if (tournament.visibility === "public_listed") {
+    return "Public";
+  }
+
+  if (tournament.visibility === "public_unlisted") {
+    return "Public Unlisted";
+  }
+
+  if (tournament.sharingMode === "with_friends") {
+    return "Friends";
+  }
+
+  return "Private";
+}
+
 function labelForEnum(value) {
   return String(value || "").replaceAll("_", " ");
 }
@@ -220,11 +236,11 @@ export function AdminDashboard({ pools, tournaments }) {
                 <div>
                   <h2 className="display-face text-2xl font-black">{tournament.title}</h2>
                   <p className="mt-1 text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
-                    {labelForVisibility(tournament.visibility)} / {tournament.status} /{" "}
+                    {labelForAudience(tournament)} / {tournament.status} /{" "}
                     {tournament.entryCount} entries / {tournament.creatorEmail}
                   </p>
                   <p className="mt-2 text-[11px] uppercase tracking-[0.16em] text-[var(--accent-3)]">
-                    {labelForEnum(tournament.sharingMode)} / {labelForEnum(tournament.playStyle)} /{" "}
+                    {labelForAudience(tournament)} / {labelForEnum(tournament.playStyle)} /{" "}
                     {labelForEnum(tournament.resultMode)} / {labelForEnum(tournament.tieBreakMode)} /{" "}
                     {labelForEnum(tournament.votingAccess)} / {labelForEnum(tournament.roundClosureMode)}
                   </p>

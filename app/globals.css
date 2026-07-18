@@ -311,6 +311,116 @@ optgroup {
   text-transform: uppercase;
 }
 
+.home-use-cases-section {
+  padding-top: 0.6rem;
+}
+
+.home-use-cases-header {
+  display: grid;
+  justify-items: start;
+  align-content: start;
+  position: relative;
+  padding: 0;
+}
+
+.home-use-cases-header::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -0.75rem;
+  height: 6px;
+  background:
+    linear-gradient(
+      to bottom,
+      var(--line-strong) 0,
+      var(--line-strong) 1px,
+      transparent 1px,
+      transparent 4px,
+      rgba(86, 80, 72, 0.82) 4px,
+      rgba(86, 80, 72, 0.82) 5px,
+      transparent 5px
+    );
+}
+
+.home-use-cases-title {
+  margin: 0;
+  font-size: 1.45rem;
+  font-weight: 900;
+  line-height: 1;
+  text-align: left;
+}
+
+.home-use-cases-grid {
+  display: flex;
+  justify-content: flex-start;
+  margin-top: 1.35rem;
+}
+
+.home-use-case-card {
+  display: flex;
+  width: 15rem;
+  max-width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border: 1px solid rgba(86, 80, 72, 0.82);
+  padding: 0.9rem 1rem 0.95rem;
+  background: rgba(255, 255, 255, 0.02);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+  transition:
+    border-color 150ms ease,
+    background-color 150ms ease,
+    color 150ms ease;
+}
+
+.home-use-case-card:hover,
+.home-use-case-card:focus-visible {
+  border-color: var(--accent-3);
+  background: rgba(52, 211, 196, 0.08);
+}
+
+.home-use-case-card-copy {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.home-use-case-card-title {
+  color: var(--accent-3);
+  font-family: "Arial Narrow", Arial, Helvetica, sans-serif;
+  font-size: 0.95rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.home-use-case-card-meta {
+  color: var(--muted);
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+}
+
+.home-use-case-card-icon {
+  display: flex;
+  height: 3.25rem;
+  width: 3.25rem;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent-2);
+}
+
+.home-use-case-card-icon-svg {
+  height: 2.5rem;
+  width: 2.5rem;
+}
+
+@media (max-width: 767px) {
+  .home-use-case-card {
+    width: 100%;
+  }
+}
+
 .home-page {
   display: flex;
   flex-direction: column;
@@ -425,7 +535,6 @@ optgroup {
 }
 
 .home-pool-rail {
-  border-bottom: 1px solid var(--line-strong);
   padding-top: 0.5rem;
   padding-bottom: 0.1rem;
   background: transparent;

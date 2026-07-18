@@ -22,6 +22,8 @@ function draftFromTournament(tournament) {
     title: tournament.title,
     sourcePoolId: tournament.sourcePoolId || "",
     sharingMode: tournament.sharingMode,
+    visibility: tournament.visibility,
+    votingAccess: tournament.votingAccess,
     playStyle: tournament.playStyle,
     resultMode: tournament.resultMode,
     tieBreakMode: tournament.tieBreakMode
@@ -33,6 +35,8 @@ function inlineDraftFromCreatedTournament(item) {
     title: item.title,
     sourcePoolId: item.sourcePoolId || "",
     sharingMode: item.sharingMode,
+    visibility: item.visibility,
+    votingAccess: item.votingAccess,
     playStyle: item.playStyle,
     resultMode: item.resultMode,
     tieBreakMode: item.tieBreakMode

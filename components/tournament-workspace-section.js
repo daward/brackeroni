@@ -169,6 +169,8 @@ export function TournamentWorkspaceSection({
                     title: tournament.title,
                     sourcePoolId: tournament.sourcePoolId || "",
                     sharingMode: tournament.sharingMode,
+                    visibility: tournament.visibility,
+                    votingAccess: tournament.votingAccess,
                     playStyle: tournament.playStyle,
                     resultMode: tournament.resultMode,
                     tieBreakMode: tournament.tieBreakMode

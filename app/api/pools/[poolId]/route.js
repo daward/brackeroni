@@ -51,9 +51,11 @@ export const PATCH = withRouteErrorHandling(async function PATCH(request, { para
     return json({
       item: result.pool,
       meta: {
+        processedCount: result.processedCount,
         enrichedCount: result.enrichedCount,
         skippedCount: result.skippedCount,
-        failedCount: result.failedCount
+        failedCount: result.failedCount,
+        remainingCount: result.remainingCount
       }
     });
   }
