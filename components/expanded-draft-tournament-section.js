@@ -98,7 +98,8 @@ function DraftRulesPanel({
   onToggleRules,
   onPlayStyleChange,
   onResultModeChange,
-  onTieBreakModeChange
+  onTieBreakModeChange,
+  onAdvancementModeChange
 }) {
   return (
     <div className="border border-[var(--line)] bg-[var(--panel)] p-4">
@@ -107,6 +108,7 @@ function DraftRulesPanel({
           <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--muted)]">
             {bracketDraft.playStyle.replace("_", " ")} {" / "}
             {formatBracketRuleLabel(bracketDraft.resultMode)} {" / "}
+            {formatBracketRuleLabel(bracketDraft.advancementMode || "vote_winner")} {" / "}
             {bracketDraft.tieBreakMode.replace("_", " ")}
           </p>
           {isPublishedTournament ? (
@@ -126,7 +128,7 @@ function DraftRulesPanel({
         ) : null}
       </div>
       {rulesExpanded && !isPublishedTournament ? (
-        <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <BracketStyleField
             value={bracketDraft.playStyle}
             onChange={onPlayStyleChange}
@@ -138,6 +140,27 @@ function DraftRulesPanel({
             onChange={onResultModeChange}
             className="ui-field ui-field-panel ui-field-select"
           />
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.18em] text-[var(--accent-3)]">
+              <span>Advancement</span>
+              <button
+                type="button"
+                title="Choose whether votes decide who advances or whether the creator picks the winner for each live matchup."
+                className="cursor-help border border-[var(--line)] px-2 py-0.5 text-[10px] text-[var(--muted)]"
+              >
+                ?
+              </button>
+            </div>
+            <select
+              aria-label="Advancement"
+              value={bracketDraft.advancementMode || "vote_winner"}
+              onChange={(event) => onAdvancementModeChange(event.target.value)}
+              className="ui-field ui-field-panel ui-field-select"
+            >
+              <option value="vote_winner">Vote Winner</option>
+              <option value="manual_winner">Manual Winner</option>
+            </select>
+          </div>
           <div className="space-y-2">
             <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.18em] text-[var(--accent-3)]">
               <span>Tie Break</span>
@@ -326,6 +349,11 @@ export function ExpandedDraftTournamentSection({
     onPersistTournamentPatch({ tieBreakMode });
   }
 
+  function handleAdvancementModeChange(advancementMode) {
+    onPatchDraft({ advancementMode });
+    onPersistTournamentPatch({ advancementMode });
+  }
+
   const createPoolPending = isActionPending(`create-pool-for-tournament:${tournament.id}`);
 
   return (
@@ -345,6 +373,7 @@ export function ExpandedDraftTournamentSection({
           onPlayStyleChange={handlePlayStyleChange}
           onResultModeChange={handleResultModeChange}
           onTieBreakModeChange={handleTieBreakModeChange}
+          onAdvancementModeChange={handleAdvancementModeChange}
         />
       </div>
 

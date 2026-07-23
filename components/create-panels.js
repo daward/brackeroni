@@ -4,11 +4,6 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { SeedingModal } from "@/components/seeding-modal";
-import {
-  BracketStyleField,
-  ParallelResultModeNotice,
-  ResultModeField
-} from "@/components/bracket-config-fields";
 import { PoolWorkspaceSection } from "@/components/pool-workspace-section";
 import {
   getTournamentAudienceMode,
@@ -23,9 +18,6 @@ import { usePoolActions } from "@/components/use-pool-actions";
 import { useSeedingActions } from "@/components/use-seeding-actions";
 import { useTournamentActions } from "@/components/use-tournament-actions";
 import { useTournamentSharingActions } from "@/components/use-tournament-sharing-actions";
-import {
-  usesBracketStyleForResultMode
-} from "@/lib/bracket-modes";
 import {
   favoritePool,
 } from "@/lib/client-api/create-workspace";
@@ -50,24 +42,12 @@ const emptyPoolImportForm = {
   text: ""
 };
 
-const emptyTournamentForm = {
-  title: "",
-  sourcePoolId: "",
-  sharingMode: "private",
-  visibility: "private",
-  votingAccess: "signed_in_only",
-  playStyle: "fixed_bracket",
-  resultMode: "winner_only",
-  tieBreakMode: "higher_seed_wins"
-};
-
 export function CreatePanels() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [expandedPoolId, setExpandedPoolId] = useState(null);
   const [isPoolModalOpen, setIsPoolModalOpen] = useState(false);
   const [isPoolImportModalOpen, setIsPoolImportModalOpen] = useState(false);
-  const [isTournamentModalOpen, setIsTournamentModalOpen] = useState(false);
   const [editingPool, setEditingPool] = useState(null);
   const [poolEditForm, setPoolEditForm] = useState(emptyPoolForm);
   const [candidateEditor, setCandidateEditor] = useState(null);
@@ -77,13 +57,13 @@ export function CreatePanels() {
   const [imageSuggestionQuery, setImageSuggestionQuery] = useState({});
   const [poolForm, setPoolForm] = useState(emptyPoolForm);
   const [poolImportForm, setPoolImportForm] = useState(emptyPoolImportForm);
-  const [tournamentForm, setTournamentForm] = useState(emptyTournamentForm);
   const [poolInlineDrafts, setPoolInlineDrafts] = useState({});
   const [openPoolActionsMenuId, setOpenPoolActionsMenuId] = useState(null);
   const [openPoolMergeMenuId, setOpenPoolMergeMenuId] = useState(null);
   const [tournamentInlineDrafts, setTournamentInlineDrafts] = useState({});
-  const [workspaceView, setWorkspaceView] = useState("tournaments");
-  const [tournamentStageView, setTournamentStageView] = useState("draft");
+  const [workspaceView, setWorkspaceViewState] = useState("tournaments");
+  const [tournamentStageView, setTournamentStageViewState] = useState("draft");
+  const [selectedLiveTournamentId, setSelectedLiveTournamentId] = useState(null);
   const [expandedDraftTournamentId, setExpandedDraftTournamentId] = useState("all");
   const [managedEntrantsTournamentId, setManagedEntrantsTournamentId] = useState(null);
   const [poolMenuTournamentId, setPoolMenuTournamentId] = useState(null);
@@ -103,16 +83,70 @@ export function CreatePanels() {
   });
   const poolSearchScrollHandledRef = useRef(null);
 
+  function navigateCreateWithParams(nextParams, { history = "replace" } = {}) {
+    const href = nextParams.toString() ? `/create?${nextParams.toString()}` : "/create";
+
+    if (history === "push") {
+      router.push(href);
+      return;
+    }
+
+    router.replace(href);
+  }
+
+  function setWorkspaceView(nextView, { history = "replace" } = {}) {
+    setWorkspaceViewState(nextView);
+
+    const nextParams = new URLSearchParams(searchParams?.toString() || "");
+    nextParams.set("view", nextView);
+
+    if (nextView === "tournaments") {
+      nextParams.delete("pool");
+      nextParams.delete("favoritePool");
+      nextParams.delete("makeBracketFromPool");
+      if (!nextParams.get("stage")) {
+        nextParams.set("stage", tournamentStageView);
+      }
+    } else {
+      nextParams.delete("stage");
+      nextParams.delete("tournament");
+      nextParams.delete("pool");
+      nextParams.delete("favoritePool");
+      nextParams.delete("makeBracketFromPool");
+    }
+
+    navigateCreateWithParams(nextParams, { history });
+  }
+
+  function setTournamentStageView(nextStage, { history = "replace" } = {}) {
+    setTournamentStageViewState(nextStage);
+    setWorkspaceViewState("tournaments");
+
+    const nextParams = new URLSearchParams(searchParams?.toString() || "");
+    nextParams.set("view", "tournaments");
+    nextParams.set("stage", nextStage);
+    nextParams.delete("tournament");
+    nextParams.delete("pool");
+    nextParams.delete("favoritePool");
+    nextParams.delete("makeBracketFromPool");
+
+    navigateCreateWithParams(nextParams, { history });
+  }
+
   const {
     isWorkspacePending,
-    loadFriendsTournamentMeta,
     loadWorkspace,
+    ensurePoolDetails,
+    ensureTournamentWorkspaceDetails,
     poolDetails,
     pools,
+    refreshTournamentMatches,
     removeCandidateFromWorkspace,
+    replaceTournamentMatchInWorkspace,
     replaceTournamentInWorkspace,
     setTournamentShareLink,
     tournamentInvites,
+    tournamentMatches,
     tournaments,
     tournamentShareLinks
   } = useCreateWorkspaceData({
@@ -222,16 +256,29 @@ export function CreatePanels() {
   });
 
   const {
+    addSeedingSubBracket,
     closeSeedingEditor,
+    createSubBracketAndMoveEntry,
     draggingEntryId,
+    handleSeedDropIntoGroup,
     handleSeedDrop,
     handleSeedingSubmit,
+    moveEntryIntoGroup,
     openSeedingEditor,
+    removeFromPlayInAtIndex,
+    removeSeedingSubBracket,
+    seedingAutosaveState,
+    seedingSaveError,
     savingSeeding,
     seedingEntries,
+    seedingGroups,
     seedingLoading,
+    seedingMoveTargets,
     seedingTournament,
-    setDraggingEntryId
+    renameSeedingSubBracket,
+    setDraggingEntryId,
+    toggleSeedingSubBracket,
+    togglePlayInAtIndex
   } = useSeedingActions({
     setErrorMessage,
     setSuccessMessage,
@@ -258,16 +305,12 @@ export function CreatePanels() {
     handleArchiveTournament,
     handleCloseCurrentRound,
     handleRerunTournament,
+    handleSetManualMatchWinner,
     handleStartTournament,
     handleSyncTournamentWithPool,
-    handleTournamentSubmit,
     updateTournamentInline
   } = useTournamentActions({
     router,
-    tournamentForm,
-    setTournamentForm,
-    emptyTournamentForm,
-    setIsTournamentModalOpen,
     tournaments,
     tournamentInlineDrafts,
     setTournamentInlineDrafts,
@@ -276,6 +319,8 @@ export function CreatePanels() {
     setExpandedDraftTournamentId,
     setEditingTournamentTitleId,
     setRecentlySavedBrackets,
+    refreshTournamentMatches,
+    replaceTournamentMatchInWorkspace,
     replaceTournamentInWorkspace,
     tournamentCardRefs,
     isActionPending,
@@ -353,30 +398,62 @@ export function CreatePanels() {
   }, [errorMessage]);
 
   useEffect(() => {
-    const friendsMetaCount = tournaments.filter(
-      (tournament) =>
-        tournament.sharingMode === "with_friends" &&
-        (tournament.status === "draft" || tournament.status === "active")
-    ).length;
-
-    if (workspaceView !== "tournaments" || friendsMetaCount === 0) {
-      return undefined;
+    if (workspaceView !== "pools" || !expandedPoolId) {
+      return;
     }
 
-    const timer = setInterval(() => {
-      loadFriendsTournamentMeta(tournaments).catch(() => {
-        // Keep the existing screen stable; the standard flash state handles explicit actions.
-      });
-    }, 10000);
+    ensurePoolDetails(expandedPoolId).catch((error) => {
+      setErrorMessage(error.message || "Failed to load pool.");
+    });
+  }, [ensurePoolDetails, expandedPoolId, workspaceView]);
 
-    return () => clearInterval(timer);
-  }, [workspaceView, tournaments]);
+  useEffect(() => {
+    if (workspaceView !== "tournaments") {
+      return;
+    }
+
+    if (tournamentStageView === "draft") {
+      const targetDraftId =
+        expandedDraftTournamentId === "all"
+          ? tournaments.find((tournament) => tournament.status === "draft")?.id ?? null
+          : expandedDraftTournamentId;
+
+      if (!targetDraftId) {
+        return;
+      }
+
+      const targetTournament = tournaments.find((tournament) => tournament.id === targetDraftId);
+      if (!targetTournament) {
+        return;
+      }
+
+      ensureTournamentWorkspaceDetails(targetTournament).catch((error) => {
+        setErrorMessage(error.message || "Failed to load bracket.");
+      });
+
+      const sourcePoolId =
+        tournamentInlineDrafts[targetTournament.id]?.sourcePoolId || targetTournament.sourcePoolId;
+      if (sourcePoolId) {
+        ensurePoolDetails(sourcePoolId).catch((error) => {
+          setErrorMessage(error.message || "Failed to load pool.");
+        });
+      }
+    }
+  }, [
+    ensurePoolDetails,
+    ensureTournamentWorkspaceDetails,
+    expandedDraftTournamentId,
+    tournamentInlineDrafts,
+    tournamentStageView,
+    tournaments,
+    workspaceView
+  ]);
 
   useEffect(() => {
     const requestedView = searchParams?.get("view");
 
     if (requestedView === "pools" || requestedView === "tournaments") {
-      setWorkspaceView(requestedView);
+      setWorkspaceViewState(requestedView);
     }
   }, [searchParams]);
 
@@ -385,24 +462,69 @@ export function CreatePanels() {
       return;
     }
 
-    const missingLinks = tournaments.filter(
-      (tournament) =>
-        (tournament.status === "draft" || tournament.status === "active") &&
-        tournament.sharingMode === "with_friends" &&
-        !tournamentShareLinks[tournament.id]?.some((item) => item.active) &&
-        !isActionPending(`share-link:${tournament.id}`)
-    );
+    let targetTournament = null;
 
-    if (missingLinks.length === 0) {
+    if (tournamentStageView === "active") {
+      targetTournament =
+        tournaments.find((tournament) => tournament.id === selectedLiveTournamentId) ||
+        tournaments.find((tournament) => tournament.status === "active") ||
+        null;
+    } else if (tournamentStageView === "draft") {
+      const targetDraftId =
+        expandedDraftTournamentId === "all"
+          ? tournaments.find((tournament) => tournament.status === "draft")?.id ?? null
+          : expandedDraftTournamentId;
+
+      targetTournament =
+        tournaments.find((tournament) => tournament.id === targetDraftId) || null;
+    }
+
+    if (
+      !targetTournament ||
+      (targetTournament.status !== "draft" && targetTournament.status !== "active") ||
+      targetTournament.sharingMode !== "with_friends" ||
+      tournamentShareLinks[targetTournament.id]?.some((item) => item.active) ||
+      isActionPending(`share-link:${targetTournament.id}`)
+    ) {
       return;
     }
 
-    missingLinks.forEach((tournament) => {
-      handleEnsureShareLink(tournament.id, { silent: true }).catch(() => {
-        // Error handling stays in the action path.
-      });
+    handleEnsureShareLink(targetTournament.id, { silent: true }).catch(() => {
+      // Error handling stays in the action path.
     });
-  }, [workspaceView, tournaments, tournamentShareLinks]);
+  }, [
+    expandedDraftTournamentId,
+    selectedLiveTournamentId,
+    tournamentShareLinks,
+    tournamentStageView,
+    tournaments,
+    workspaceView
+  ]);
+
+  useEffect(() => {
+    if (workspaceView !== "tournaments" || tournamentStageView !== "active") {
+      return;
+    }
+
+    const targetTournament =
+      tournaments.find((tournament) => tournament.id === selectedLiveTournamentId) ||
+      tournaments.find((tournament) => tournament.status === "active") ||
+      null;
+
+    if (!targetTournament) {
+      return;
+    }
+
+    ensureTournamentWorkspaceDetails(targetTournament).catch((error) => {
+      setErrorMessage(error.message || "Failed to load bracket.");
+    });
+  }, [
+    ensureTournamentWorkspaceDetails,
+    selectedLiveTournamentId,
+    tournamentStageView,
+    tournaments,
+    workspaceView
+  ]);
 
   useEffect(() => {
     if (workspaceView !== "tournaments") {
@@ -413,7 +535,7 @@ export function CreatePanels() {
     const requestedTournamentId = searchParams?.get("tournament");
 
     if (requestedStage === "draft" || requestedStage === "active" || requestedStage === "complete") {
-      setTournamentStageView(requestedStage);
+      setTournamentStageViewState(requestedStage);
     }
 
     if (!requestedTournamentId) {
@@ -426,12 +548,12 @@ export function CreatePanels() {
     }
 
     if (requestedTournament.status === "draft") {
-      setTournamentStageView("draft");
+      setTournamentStageViewState("draft");
       setExpandedDraftTournamentId(requestedTournament.id);
     } else if (requestedTournament.status === "active") {
-      setTournamentStageView("active");
+      setTournamentStageViewState("active");
     } else if (requestedTournament.status === "complete") {
-      setTournamentStageView("complete");
+      setTournamentStageViewState("complete");
     }
 
     const timer = setTimeout(() => {
@@ -552,7 +674,8 @@ export function CreatePanels() {
       shouldOpenNewBracket,
       searchParams?.get("sharingMode") || "",
       searchParams?.get("visibility") || "",
-      searchParams?.get("resultMode") || ""
+      searchParams?.get("resultMode") || "",
+      searchParams?.get("advancementMode") || ""
     ].join("|");
 
     if (actionSearchParamsHandledRef.current.newBracketPreset === presetKey) {
@@ -561,17 +684,32 @@ export function CreatePanels() {
 
     actionSearchParamsHandledRef.current.newBracketPreset = presetKey;
 
-    setWorkspaceView("tournaments");
-    setTournamentStageView("draft");
-    setExpandedDraftTournamentId("all");
-    setTournamentForm((current) => ({
-      ...current,
-      sharingMode: searchParams?.get("sharingMode") || current.sharingMode,
-      visibility: searchParams?.get("visibility") || current.visibility,
-      resultMode: searchParams?.get("resultMode") || current.resultMode
-    }));
-    setIsTournamentModalOpen(true);
-  }, [searchParams]);
+    startTransition(async () => {
+      const createdBracket = await createDraftBracket({
+        sharingMode: searchParams?.get("sharingMode") || "private",
+        visibility: searchParams?.get("visibility") || "private",
+        votingAccess: searchParams?.get("votingAccess") || "signed_in_only",
+        resultMode: searchParams?.get("resultMode") || "winner_only",
+        advancementMode: searchParams?.get("advancementMode") || "vote_winner",
+        playStyle: searchParams?.get("playStyle") || "fixed_bracket",
+        tieBreakMode: searchParams?.get("tieBreakMode") || "higher_seed_wins"
+      });
+
+      if (!createdBracket?.id) {
+        actionSearchParamsHandledRef.current.newBracketPreset = null;
+        return;
+      }
+
+      setWorkspaceView("tournaments");
+      setTournamentStageView("draft");
+      setExpandedDraftTournamentId(createdBracket.id);
+      router.replace(`/create?view=tournaments&stage=draft&tournament=${createdBracket.id}`);
+    });
+  }, [createDraftBracket, router, searchParams, startTransition]);
+
+  async function handleOpenSeedingEditor(tournament) {
+    await openSeedingEditor(tournament);
+  }
 
   return (
     <div className="space-y-6">
@@ -581,7 +719,7 @@ export function CreatePanels() {
         <div className="grid gap-px border-b border-[var(--line)] bg-[var(--line)] md:grid-cols-2">
           <button
             type="button"
-            onClick={() => setWorkspaceView("tournaments")}
+            onClick={() => setWorkspaceView("tournaments", { history: "push" })}
             className={`px-5 py-4 text-left transition ${
               workspaceView === "tournaments"
                 ? "border-l-4 border-[var(--accent-2)] bg-[var(--panel)] md:border-b-2 md:border-l-0"
@@ -597,7 +735,7 @@ export function CreatePanels() {
           </button>
           <button
             type="button"
-            onClick={() => setWorkspaceView("pools")}
+            onClick={() => setWorkspaceView("pools", { history: "push" })}
             className={`px-5 py-4 text-left transition ${
               workspaceView === "pools"
                 ? "border-l-4 border-[var(--accent-2)] bg-[var(--panel)] md:border-b-2 md:border-l-0"
@@ -667,6 +805,8 @@ export function CreatePanels() {
           tournaments={tournaments}
           tournamentStageView={tournamentStageView}
           setTournamentStageView={setTournamentStageView}
+          selectedLiveTournamentId={selectedLiveTournamentId}
+          setSelectedLiveTournamentId={setSelectedLiveTournamentId}
           tournamentInlineDrafts={tournamentInlineDrafts}
           setTournamentInlineDrafts={setTournamentInlineDrafts}
           expandedDraftTournamentId={expandedDraftTournamentId}
@@ -694,7 +834,7 @@ export function CreatePanels() {
           createDraftBracket={createDraftBracket}
           createPoolRecord={createPoolRecord}
           handleSyncTournamentWithPool={handleSyncTournamentWithPool}
-          openSeedingEditor={openSeedingEditor}
+          openSeedingEditor={handleOpenSeedingEditor}
           updateCandidateDraft={updateCandidateDraft}
           openCandidateCreator={openCandidateCreator}
           handleImportCandidatesIntoPool={handleImportCandidatesIntoPool}
@@ -711,6 +851,8 @@ export function CreatePanels() {
           updateTournamentInline={updateTournamentInline}
           handleCloseCurrentRound={handleCloseCurrentRound}
           handleRerunTournament={handleRerunTournament}
+          handleSetManualMatchWinner={handleSetManualMatchWinner}
+          tournamentMatches={tournamentMatches}
         />
       ) : null}
 
@@ -892,165 +1034,6 @@ export function CreatePanels() {
         </div>
       ) : null}
 
-      {isTournamentModalOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
-          <div className="w-full max-w-2xl border border-[var(--line)] bg-[var(--panel)]">
-            <div className="flex items-center justify-between gap-4 border-b border-[var(--line)] bg-[var(--panel-3)] px-5 py-4">
-              <h2 className="display-face text-2xl font-black uppercase tracking-[0.1em]">
-                New Bracket
-              </h2>
-              <button
-                type="button"
-                onClick={() => {
-                  setIsTournamentModalOpen(false);
-                  setTournamentForm(emptyTournamentForm);
-                }}
-                className="display-face text-xs font-black uppercase tracking-[0.18em] text-[var(--accent-2)]"
-              >
-                Close
-              </button>
-            </div>
-            <div className="px-5 py-5">
-              <form className="space-y-3" onSubmit={handleTournamentSubmit}>
-                <input
-                  value={tournamentForm.title}
-                  onChange={(event) =>
-                    setTournamentForm((current) => ({ ...current, title: event.target.value }))
-                  }
-                  placeholder="Bracket title"
-                  className="ui-field ui-field-modal"
-                />
-                <select
-                  value={tournamentForm.sourcePoolId}
-                  onChange={(event) =>
-                    setTournamentForm((current) => ({ ...current, sourcePoolId: event.target.value }))
-                  }
-                  className="ui-field ui-field-modal ui-field-select"
-                >
-                  <option value="">Choose source pool</option>
-                  {pools.map((pool) => (
-                    <option key={pool.id} value={pool.id}>
-                      {pool.name}
-                    </option>
-                  ))}
-                </select>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="block space-y-2">
-                    <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--accent-3)]">
-                      Bracket Access
-                    </p>
-                    <select
-                      aria-label="Bracket Access"
-                      value={getTournamentAudienceMode(tournamentForm)}
-                      onChange={(event) => {
-                        const audiencePatch = getTournamentAudiencePatch(event.target.value);
-                        setTournamentForm((current) => ({
-                          ...current,
-                          ...audiencePatch
-                        }));
-                      }}
-                      className="ui-field ui-field-modal ui-field-select"
-                    >
-                      <option value="private">Private</option>
-                      <option value="with_friends">Friends</option>
-                      <option value="public_listed">Public</option>
-                      <option value="public_unlisted">Public Unlisted</option>
-                    </select>
-                  </div>
-                  <div className="block">
-                    <select
-                      aria-label="Voting Access"
-                      value={tournamentForm.votingAccess}
-                      onChange={(event) =>
-                        setTournamentForm((current) => ({
-                          ...current,
-                          votingAccess: event.target.value
-                        }))
-                      }
-                      className="ui-field ui-field-modal ui-field-select"
-                    >
-                      <option value="signed_in_only">Signed-In Voting</option>
-                      <option value="anyone">Anyone Can Vote</option>
-                    </select>
-                  </div>
-                  <div className="sm:col-span-2">
-                    <TournamentPublishWarning visibility={tournamentForm.visibility} />
-                  </div>
-                  {usesBracketStyleForResultMode(tournamentForm.resultMode) ? (
-                  <BracketStyleField
-                    value={tournamentForm.playStyle}
-                    onChange={(playStyle) =>
-                      setTournamentForm((current) => ({ ...current, playStyle }))
-                    }
-                    className="ui-field ui-field-modal ui-field-select"
-                  />
-                  ) : null}
-                  <ResultModeField
-                    value={tournamentForm.resultMode}
-                    onChange={(resultMode) =>
-                      setTournamentForm((current) => ({ ...current, resultMode }))
-                    }
-                    className="ui-field ui-field-modal ui-field-select"
-                  />
-                  <ParallelResultModeNotice resultMode={tournamentForm.resultMode} />
-                  <div className="block space-y-2">
-                    <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.18em] text-[var(--accent-3)]">
-                      <span className="pointer-events-none">Tie Break</span>
-                      <button
-                        type="button"
-                        title="Decides who advances if a round is closed without a clear vote winner."
-                        className="cursor-help border border-[var(--line)] px-2 py-0.5 text-[10px] text-[var(--muted)]"
-                      >
-                        ?
-                      </button>
-                    </div>
-                    <select
-                      aria-label="Tie Break"
-                      value={tournamentForm.tieBreakMode}
-                      onChange={(event) =>
-                        setTournamentForm((current) => ({
-                          ...current,
-                          tieBreakMode: event.target.value
-                        }))
-                      }
-                      className="ui-field ui-field-modal ui-field-select"
-                    >
-                      <option value="higher_seed_wins">Higher Seed Wins</option>
-                      <option value="random">Random</option>
-                    </select>
-                  </div>
-                </div>
-                <div className="flex flex-wrap gap-3">
-                  <button
-                    type="submit"
-                    disabled={
-                      isPending ||
-                      isActionPending("create-tournament") ||
-                      isActionPending("create-parallel-tournament")
-                    }
-                    className="ui-button ui-button-primary"
-                  >
-                    {isActionPending("create-tournament") || isActionPending("create-parallel-tournament")
-                      ? "Creating"
-                      : "Create Bracket"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsTournamentModalOpen(false);
-                      setTournamentForm(emptyTournamentForm);
-                    }}
-                    className="ui-button ui-button-muted"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
-      ) : null}
-
       {editingPool ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
           <div className="w-full max-w-lg border border-[var(--line)] bg-[var(--panel)]">
@@ -1131,14 +1114,27 @@ export function CreatePanels() {
       <SeedingModal
         tournament={seedingTournament}
         entries={seedingEntries}
+        groups={seedingGroups}
         loading={seedingLoading}
+        moveTargets={seedingMoveTargets}
+        autosaveState={seedingAutosaveState}
+        autosaveError={seedingSaveError}
         saving={savingSeeding}
         draggingEntryId={draggingEntryId}
+        onAddSubBracket={addSeedingSubBracket}
+        onCreateSubBracketAndMoveEntry={createSubBracketAndMoveEntry}
+        onTogglePlayInAtIndex={togglePlayInAtIndex}
+        onRemoveFromPlayInAtIndex={removeFromPlayInAtIndex}
+        onRemoveSubBracket={removeSeedingSubBracket}
         onClose={closeSeedingEditor}
         onSubmit={handleSeedingSubmit}
         onDragStart={setDraggingEntryId}
         onDragEnd={() => setDraggingEntryId(null)}
         onDrop={handleSeedDrop}
+        onDropIntoGroup={handleSeedDropIntoGroup}
+        onMoveEntryIntoGroup={moveEntryIntoGroup}
+        onRenameSubBracket={renameSeedingSubBracket}
+        onToggleSubBracket={toggleSeedingSubBracket}
       />
 
     </div>

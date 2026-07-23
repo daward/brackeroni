@@ -10,6 +10,7 @@ import {
   createTournament,
   deleteTournament,
   rerunTournament,
+  setTournamentMatchWinner,
   startParallelTournament,
   startTournament,
   syncTournamentWithPool,
@@ -26,7 +27,8 @@ function draftFromTournament(tournament) {
     votingAccess: tournament.votingAccess,
     playStyle: tournament.playStyle,
     resultMode: tournament.resultMode,
-    tieBreakMode: tournament.tieBreakMode
+    tieBreakMode: tournament.tieBreakMode,
+    advancementMode: tournament.advancementMode || "vote_winner"
   };
 }
 
@@ -39,16 +41,13 @@ function inlineDraftFromCreatedTournament(item) {
     votingAccess: item.votingAccess,
     playStyle: item.playStyle,
     resultMode: item.resultMode,
-    tieBreakMode: item.tieBreakMode
+    tieBreakMode: item.tieBreakMode,
+    advancementMode: item.advancementMode || "vote_winner"
   };
 }
 
 export function useTournamentActions({
   router,
-  tournamentForm,
-  setTournamentForm,
-  emptyTournamentForm,
-  setIsTournamentModalOpen,
   tournaments,
   tournamentInlineDrafts,
   setTournamentInlineDrafts,
@@ -57,6 +56,8 @@ export function useTournamentActions({
   setExpandedDraftTournamentId,
   setEditingTournamentTitleId,
   setRecentlySavedBrackets,
+  refreshTournamentMatches,
+  replaceTournamentMatchInWorkspace,
   replaceTournamentInWorkspace,
   tournamentCardRefs,
   isActionPending,
@@ -66,9 +67,9 @@ export function useTournamentActions({
   setSuccessMessage,
   loadWorkspace
 }) {
-  async function createDraftBracket() {
+  async function createDraftBracket(options = {}) {
     if (isActionPending("create-tournament")) {
-      return;
+      return null;
     }
 
     beginAction("create-tournament");
@@ -77,13 +78,16 @@ export function useTournamentActions({
 
     try {
       const data = await createTournament({
-        title: "Untitled Bracket",
+        title: options.title || "Untitled Bracket",
         description: null,
-        sourcePoolId: null,
-        sharingMode: "private",
-        playStyle: "fixed_bracket",
-        resultMode: "winner_only",
-        tieBreakMode: "higher_seed_wins"
+        sourcePoolId: options.sourcePoolId ?? null,
+        sharingMode: options.sharingMode || "private",
+        visibility: options.visibility || "private",
+        votingAccess: options.votingAccess || "signed_in_only",
+        playStyle: options.playStyle || "fixed_bracket",
+        resultMode: options.resultMode || "winner_only",
+        tieBreakMode: options.tieBreakMode || "higher_seed_wins",
+        advancementMode: options.advancementMode || "vote_winner"
       });
 
       setTournamentInlineDrafts((current) => ({
@@ -94,8 +98,10 @@ export function useTournamentActions({
       setWorkspaceView("tournaments");
       setSuccessMessage("Draft bracket created.");
       await loadWorkspace();
+      return data.item;
     } catch (error) {
       setErrorMessage(error.message || "Failed to create bracket.");
+      return null;
     } finally {
       endAction("create-tournament");
     }
@@ -118,7 +124,8 @@ export function useTournamentActions({
         sharingMode: "private",
         playStyle: "fixed_bracket",
         resultMode: "winner_only",
-        tieBreakMode: "higher_seed_wins"
+        tieBreakMode: "higher_seed_wins",
+        advancementMode: "vote_winner"
       });
 
       setTournamentInlineDrafts((current) => ({
@@ -135,58 +142,6 @@ export function useTournamentActions({
       return null;
     } finally {
       endAction("create-tournament");
-    }
-  }
-
-  async function handleTournamentSubmit(event) {
-    event.preventDefault();
-    const isParallelMode = isParallelResultMode(tournamentForm.resultMode);
-    const actionKey = isParallelMode ? "create-parallel-tournament" : "create-tournament";
-
-    if (isActionPending(actionKey)) {
-      return;
-    }
-
-    beginAction(actionKey);
-    setErrorMessage("");
-    setSuccessMessage("");
-
-    try {
-      const payload = {
-        ...tournamentForm,
-        ...(isParallelMode
-          ? {
-              resultMode: tournamentForm.resultMode,
-              tieBreakMode: tournamentForm.tieBreakMode
-            }
-          : {
-              playStyle: tournamentForm.playStyle,
-              resultMode: tournamentForm.resultMode
-            }),
-        description: null
-      };
-      const data = isParallelMode ? await createParallelTournament(payload) : await createTournament(payload);
-
-      setTournamentForm(emptyTournamentForm);
-      setIsTournamentModalOpen(false);
-      if (isParallelMode) {
-        setWorkspaceView("tournaments");
-        setTournamentStageView("draft");
-        setExpandedDraftTournamentId(data.item.id);
-        setEditingTournamentTitleId(null);
-        setSuccessMessage("Draft bracket created.");
-        await loadWorkspace();
-        return;
-      }
-
-      setSuccessMessage("Draft bracket created.");
-      await loadWorkspace();
-    } catch (error) {
-      setErrorMessage(
-        error.message || (isParallelMode ? "Failed to create parallel bracket." : "Failed to create bracket.")
-      );
-    } finally {
-      endAction(actionKey);
     }
   }
 
@@ -464,8 +419,10 @@ export function useTournamentActions({
 
     try {
       const data = await closeCurrentTournamentRound(tournamentId);
-
-      router.replace(`/results/${tournamentId}/progress`);
+      if (data.item) {
+        replaceTournamentInWorkspace(tournamentId, data.item);
+      }
+      await refreshTournamentMatches(tournamentId);
       setSuccessMessage(
         data.item?.status === "complete"
           ? "Bracket complete. Review progress and reveal rounds when ready."
@@ -479,15 +436,37 @@ export function useTournamentActions({
     }
   }
 
+  async function handleSetManualMatchWinner(tournamentId, matchId, winnerEntryId) {
+    const actionKey = `set-match-winner:${matchId}`;
+    if (isActionPending(actionKey)) {
+      return;
+    }
+
+    beginAction(actionKey);
+    setErrorMessage("");
+    setSuccessMessage("");
+
+    try {
+      const data = await setTournamentMatchWinner(matchId, winnerEntryId);
+      replaceTournamentMatchInWorkspace(tournamentId, data.item);
+      setSuccessMessage("Winner saved.");
+      await loadWorkspace();
+    } catch (error) {
+      setErrorMessage(error.message || "Failed to update match winner.");
+    } finally {
+      endAction(actionKey);
+    }
+  }
+
   return {
     createDraftBracket,
     createDraftBracketFromPool,
     handleArchiveTournament,
     handleCloseCurrentRound,
     handleRerunTournament,
+    handleSetManualMatchWinner,
     handleStartTournament,
     handleSyncTournamentWithPool,
-    handleTournamentSubmit,
     updateTournamentInline
   };
 }

@@ -226,6 +226,74 @@ optgroup {
   color: #111111;
 }
 
+.bookmarklet-chip {
+  display: inline-flex;
+  align-items: center;
+  min-width: 18rem;
+  max-width: 100%;
+  border: 1px solid var(--accent-3);
+  padding: 0.9rem 1.15rem 0.9rem 3rem;
+  background: rgba(52, 211, 196, 0.08);
+  color: var(--ink);
+  cursor: grab;
+  font-family: "Arial Narrow", Arial, Helvetica, sans-serif;
+  font-size: 0.95rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+  transition:
+    border-color 150ms ease,
+    background-color 150ms ease,
+    color 150ms ease,
+    transform 150ms ease;
+  position: relative;
+}
+
+.bookmarklet-chip:hover,
+.bookmarklet-chip:focus-visible {
+  border-color: var(--accent-2);
+  background: rgba(52, 211, 196, 0.14);
+  transform: translateY(-1px);
+}
+
+.bookmarklet-chip:active {
+  cursor: grabbing;
+}
+
+.bookmarklet-chip::before {
+  content: "⋮⋮";
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--accent-2);
+  font-size: 1.1rem;
+  letter-spacing: 0.06em;
+  line-height: 1;
+}
+
+.bookmarklet-chip-kicker {
+  color: var(--accent-2);
+  font-family: "Arial Narrow", Arial, Helvetica, sans-serif;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.bookmarklet-chip-helper,
+.bookmarklet-chip-message {
+  max-width: 28rem;
+  color: var(--muted);
+  font-size: 0.8125rem;
+  line-height: 1.55;
+}
+
+.bookmarklet-chip-message {
+  color: var(--accent-2);
+}
+
 .ui-button-muted {
   border-color: var(--line);
   color: var(--muted);
@@ -354,6 +422,7 @@ optgroup {
 .home-use-cases-grid {
   display: flex;
   justify-content: flex-start;
+  gap: 0.9rem;
   margin-top: 1.35rem;
 }
 
@@ -2078,6 +2147,105 @@ optgroup {
   font-weight: 900;
   letter-spacing: 0.16em;
   text-transform: uppercase;
+}
+
+.results-scoreboard {
+  margin-bottom: 1.5rem;
+}
+
+.results-scoreboard-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.results-scoreboard-note {
+  margin-top: 0.45rem;
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.55;
+}
+
+.results-scoreboard-name {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.results-scoring-pick {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.45rem;
+}
+
+.results-scoreboard-subtle {
+  color: var(--muted);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.results-scoreboard-row-active td {
+  color: var(--accent-2);
+}
+
+.results-scoreboard-stat {
+  color: var(--accent-2);
+  font-family: "Arial Narrow", Arial, Helvetica, sans-serif;
+  font-size: 1rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.results-table.results-scoring-table thead th {
+  font-size: 0.95rem;
+  letter-spacing: 0.12em;
+}
+
+.results-table.results-scoring-table thead th + th,
+.results-table.results-scoring-table tbody td + td {
+  border-left: 1px solid rgba(86, 80, 72, 0.9);
+}
+
+.results-table.results-scoring-table thead th + th {
+  padding-left: 1.25rem;
+}
+
+.results-table.results-scoring-table tbody td + td {
+  padding-left: 1.25rem;
+}
+
+.results-table.results-scoring-table tbody td {
+  padding: 1rem 0;
+  font-size: 1.16rem;
+  line-height: 1.45;
+}
+
+.results-table.results-scoring-table tbody td button,
+.results-table.results-scoring-table tbody td span {
+  font-size: inherit;
+}
+
+.results-table.results-scoring-table .results-scoring-round-column {
+  width: 4.5rem;
+  padding-right: 1.25rem;
+  white-space: nowrap;
+}
+
+.results-table.results-scoring-table thead .results-scoring-round-column {
+  padding-right: 1.25rem;
+}
+
+.results-table.results-scoring-table tbody .results-scoring-round-column {
+  padding-right: 1.25rem;
+}
+
+.results-table.results-scoring-table .results-scoreboard-subtle {
+  font-size: 1rem;
+  letter-spacing: 0.06em;
 }
 
 .results-ranking-list {

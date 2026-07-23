@@ -72,6 +72,24 @@ function formatRoundLabel(match, tournament) {
   return totalRounds ? `Round ${match.roundNumber} of ${totalRounds}` : `Round ${match.roundNumber}`;
 }
 
+function formatVoteHeader(match, tournament) {
+  const roundLabel = usesOpenEndedRankingMode(tournament.resultMode)
+    ? `Ranking ${match.rankingTargetRank} / Round ${match.rankingRoundNumber}`
+    : usesSwissResultMode(tournament.resultMode)
+      ? (() => {
+          const totalRounds = getTournamentRoundCount(tournament);
+          return totalRounds
+            ? `Swiss Round ${match.roundNumber} of ${totalRounds}`
+            : `Swiss Round ${match.roundNumber}`;
+        })()
+      : (() => {
+          const totalRounds = getTournamentRoundCount(tournament);
+          return totalRounds ? `Round ${match.roundNumber} of ${totalRounds}` : `Round ${match.roundNumber}`;
+        })();
+
+  return match.subBracketName ? `${roundLabel} / ${match.subBracketName}` : roundLabel;
+}
+
 function buildCreateReturnUrl(tournamentId, stage = "active") {
   return `/create?stage=${stage}&tournament=${tournamentId}`;
 }
@@ -617,7 +635,7 @@ export function VoteScreenPanels({
           <div className="vote-modal-shell vote-match-modal-shell">
             <div className="vote-match-modal-header">
               <div>
-                <p className="vote-kicker">{formatRoundLabel(focusedMatch, focusedTournament)}</p>
+                <p className="vote-kicker">{formatVoteHeader(focusedMatch, focusedTournament)}</p>
                 <h2 className="vote-match-modal-title display-face">{focusedTournament.title}</h2>
                 {currentRoundProgress.total > 0 ? (
                   <div className="vote-match-progress">

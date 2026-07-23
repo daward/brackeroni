@@ -1,5 +1,6 @@
 ﻿"use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { BackdropRemoteImage } from "@/components/resilient-remote-image";
 import {
@@ -8,16 +9,97 @@ import {
   usesSwissResultMode
 } from "@/lib/bracket-modes";
 
+function normalizeSeedingStructure(seedingStructure = {}) {
+  const subBrackets = Array.isArray(seedingStructure?.subBrackets)
+    ? [...seedingStructure.subBrackets]
+        .filter((subBracket) => typeof subBracket?.id === "string" && subBracket.id)
+        .sort((left, right) => (left.index ?? 0) - (right.index ?? 0))
+    : [];
+  const subBracketIds = new Set(subBrackets.map((subBracket) => subBracket.id));
+  const entryBrackets = Object.fromEntries(
+    Object.entries(seedingStructure?.entryBrackets || {}).filter(([entryId, bracketId]) => (
+      typeof entryId === "string" &&
+      typeof bracketId === "string" &&
+      subBracketIds.has(bracketId)
+    ))
+  );
+
+  return {
+    subBrackets,
+    entryBrackets
+  };
+}
+
+function buildEntrySeedDisplay(entries, seedingStructure = {}) {
+  const normalized = normalizeSeedingStructure(seedingStructure);
+  const subBracketNameById = new Map(
+    normalized.subBrackets.map((subBracket) => [subBracket.id, subBracket.name || ""])
+  );
+  const groups = new Map();
+
+  for (const entry of entries || []) {
+    const bracketId = normalized.entryBrackets[entry.id] || "__root__";
+    const bucket = groups.get(bracketId) || [];
+    bucket.push(entry);
+    groups.set(bracketId, bucket);
+  }
+
+  const displayByEntryId = new Map();
+
+  for (const [bracketId, groupEntries] of groups.entries()) {
+    const sortedEntries = [...groupEntries].sort((left, right) => {
+      if ((left.seed ?? 0) !== (right.seed ?? 0)) {
+        return (left.seed ?? 0) - (right.seed ?? 0);
+      }
+
+      return (left.subSeed ?? 0) - (right.subSeed ?? 0);
+    });
+    const localSeedBySeed = new Map();
+    let nextLocalSeed = 1;
+
+    for (const entry of sortedEntries) {
+      if (!localSeedBySeed.has(entry.seed)) {
+        localSeedBySeed.set(entry.seed, nextLocalSeed);
+        nextLocalSeed += 1;
+      }
+
+      const localSeed = localSeedBySeed.get(entry.seed);
+      const subBracketName = bracketId === "__root__" ? null : subBracketNameById.get(bracketId) || null;
+      displayByEntryId.set(entry.id, {
+        localSeed,
+        subBracketName,
+        label: subBracketName ? `Seed ${localSeed} / ${subBracketName}` : `Seed ${localSeed}`
+      });
+    }
+  }
+
+  return displayByEntryId;
+}
+
 function formatRoundLabel(match, tournament) {
-  if (usesOpenEndedRankingMode(tournament.resultMode)) {
-    return `Ranking ${match.rankingTargetRank}: Round ${match.rankingRoundNumber}`;
+  const roundLabel = usesOpenEndedRankingMode(tournament.resultMode)
+    ? `Ranking ${match.rankingTargetRank}: Round ${match.rankingRoundNumber}`
+    : usesSwissResultMode(tournament.resultMode)
+      ? `Swiss Round ${match.roundNumber}`
+      : `Round ${match.roundNumber}`;
+
+  return match.subBracketName ? `${roundLabel} / ${match.subBracketName}` : roundLabel;
+}
+
+function formatSeedLabel(seedDisplayByEntryId, entryId, fallbackSeed) {
+  return seedDisplayByEntryId.get(entryId)?.label || `Seed ${fallbackSeed}`;
+}
+
+function formatOpponentSeedLabel(match, entryId, seedDisplayByEntryId) {
+  const isLeft = match.leftEntryId === entryId;
+  const opponentEntryId = isLeft ? match.rightEntryId : match.leftEntryId;
+  const opponentSeed = isLeft ? match.rightSeed : match.leftSeed;
+
+  if (!opponentEntryId) {
+    return opponentSeed ? `Seed ${opponentSeed}` : null;
   }
 
-  if (usesSwissResultMode(tournament.resultMode)) {
-    return `Swiss Round ${match.roundNumber}`;
-  }
-
-  return `Round ${match.roundNumber}`;
+  return formatSeedLabel(seedDisplayByEntryId, opponentEntryId, opponentSeed);
 }
 
 function isContestedMatch(match) {
@@ -105,16 +187,16 @@ function describeUserVote(match, entryId) {
     : { label: "You voted against it", className: "results-history-vote-against" };
 }
 
-function describeHistoryOpponent(match, entryId) {
+function describeHistoryOpponent(match, entryId, seedDisplayByEntryId) {
   const isLeft = match.leftEntryId === entryId;
   const opponentName = isLeft ? match.rightName : match.leftName;
-  const opponentSeed = isLeft ? match.rightSeed : match.leftSeed;
+  const opponentSeedLabel = formatOpponentSeedLabel(match, entryId, seedDisplayByEntryId);
 
   if (!opponentName) {
     return "Advanced on a bye.";
   }
 
-  return `Against ${opponentName}${opponentSeed ? ` (Seed ${opponentSeed})` : ""}.`;
+  return `Against ${opponentName}${opponentSeedLabel ? ` (${opponentSeedLabel})` : ""}.`;
 }
 
 function getOpponentImageUrl(match, entryId) {
@@ -137,8 +219,13 @@ function getDisplayRank(entry, orderedEntries, fallbackIndex = 0) {
   const orderedIndex = orderedEntries.findIndex((candidate) => candidate.id === entry?.id);
   return (orderedIndex >= 0 ? orderedIndex : fallbackIndex) + 1;
 }
-
-function ResultEntryDetails({ tournament, orderedEntries, selectedEntry, selectedEntryHistory }) {
+function ResultEntryDetails({
+  tournament,
+  orderedEntries,
+  selectedEntry,
+  selectedEntryHistory,
+  seedDisplayByEntryId
+}) {
   if (!selectedEntry) {
     return <p className="results-empty-copy">No result details available.</p>;
   }
@@ -161,7 +248,8 @@ function ResultEntryDetails({ tournament, orderedEntries, selectedEntry, selecte
           <p className="results-kicker">Candidate Details</p>
           <h2 className="results-details-title">{selectedEntry.candidateName}</h2>
           <p className="results-details-meta">
-            Rank {getDisplayRank(selectedEntry, orderedEntries)} | Seed {selectedEntry.seed} | {" "}
+            Rank {getDisplayRank(selectedEntry, orderedEntries)} |{" "}
+            {formatSeedLabel(seedDisplayByEntryId, selectedEntry.id, selectedEntry.seed)} | {" "}
             {formatRecord(selectedEntryHistory, selectedEntry.id)}
           </p>
         </div>
@@ -175,7 +263,11 @@ function ResultEntryDetails({ tournament, orderedEntries, selectedEntry, selecte
           ) : (
             selectedEntryHistory.map((match) => {
               const voteNote = describeUserVote(match, selectedEntry.id);
-              const opponentLabel = describeHistoryOpponent(match, selectedEntry.id);
+              const opponentLabel = describeHistoryOpponent(
+                match,
+                selectedEntry.id,
+                seedDisplayByEntryId
+              );
               const opponentImageUrl = getOpponentImageUrl(match, selectedEntry.id);
 
               return (
@@ -225,6 +317,10 @@ export function TournamentResultsPage({
   headerNotice = null
 }) {
   const orderedEntries = orderResultEntries(tournament.entries ?? [], matches ?? [], tournament);
+  const seedDisplayByEntryId = buildEntrySeedDisplay(
+    tournament.entries ?? [],
+    tournament.seedingStructure || {}
+  );
   const [selectedEntryId, setSelectedEntryId] = useState(orderedEntries[0]?.id ?? null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const selectedEntry =
@@ -257,6 +353,16 @@ export function TournamentResultsPage({
                 {formatResultModeLabel(tournament.resultMode)} | {orderedEntries.length} ranked
                 entries
               </p>
+              {!tournament.parentParallelTournamentId ? (
+                <div className="mt-4">
+                  <Link
+                    href={`/results/${tournament.id}/scores`}
+                    className="ui-button ui-button-accent"
+                  >
+                    View Scoring
+                  </Link>
+                </div>
+              ) : null}
               {headerNotice ? <div className="mt-4">{headerNotice}</div> : null}
             </div>
             {headerAction ? <div className="results-header-action">{headerAction}</div> : null}
@@ -294,7 +400,9 @@ export function TournamentResultsPage({
                   ) : null}
                   <div className="results-ranking-copy">
                     <p className="results-ranking-name">{entry.candidateName}</p>
-                    <p className="results-ranking-seed">Seed {entry.seed}</p>
+                    <p className="results-ranking-seed">
+                      {formatSeedLabel(seedDisplayByEntryId, entry.id, entry.seed)}
+                    </p>
                   </div>
                 </button>
               ))}
@@ -307,6 +415,7 @@ export function TournamentResultsPage({
               orderedEntries={orderedEntries}
               selectedEntry={selectedEntry}
               selectedEntryHistory={selectedEntryHistory}
+              seedDisplayByEntryId={seedDisplayByEntryId}
             />
           </aside>
         </div>
@@ -332,6 +441,7 @@ export function TournamentResultsPage({
               orderedEntries={orderedEntries}
               selectedEntry={selectedEntry}
               selectedEntryHistory={selectedEntryHistory}
+              seedDisplayByEntryId={seedDisplayByEntryId}
             />
           </div>
         </div>

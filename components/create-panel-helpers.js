@@ -181,6 +181,8 @@ export function formatBracketRuleLabel(value) {
   const staticLabels = {
     fixed_bracket: "Fixed Bracket",
     reseed: "Reseed",
+    vote_winner: "Vote Winner",
+    manual_winner: "Manual Winner",
     higher_seed_wins: "Higher Seed Wins",
     signed_in_only: "Signed In Only",
     with_friends: "Friends"

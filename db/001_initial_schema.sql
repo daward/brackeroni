@@ -68,6 +68,7 @@ create table tournament (
   tie_break_mode tie_break_mode not null,
   status tournament_status not null default 'draft',
   round_closure_mode round_closure_mode not null,
+  seeding_structure jsonb not null default '{}'::jsonb,
   scheduled_close_at timestamptz,
   started_at timestamptz,
   completed_at timestamptz,
@@ -91,11 +92,12 @@ create table tournament_entry (
   tournament_id uuid not null references tournament(id) on delete cascade,
   candidate_id uuid not null references candidate(id) on delete restrict,
   seed integer not null,
+  subseed integer not null default 0 check (subseed >= 0),
   final_rank integer,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   unique (tournament_id, candidate_id),
-  unique (tournament_id, seed)
+  unique (tournament_id, seed, subseed)
 );
 
 create index tournament_entry_tournament_id_idx on tournament_entry (tournament_id);

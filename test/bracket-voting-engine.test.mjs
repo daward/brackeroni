@@ -138,6 +138,143 @@ test("initial round pairs top seeds and assigns byes to the strongest seeds", ()
   });
 });
 
+test("initial round pairs entries inside sub-brackets", () => {
+  const matches = buildInitialRound(
+    [
+      { id: "east-1", seed: 1, subSeed: 0 },
+      { id: "east-2", seed: 2, subSeed: 0 },
+      { id: "west-1", seed: 3, subSeed: 0 },
+      { id: "west-2", seed: 4, subSeed: 0 }
+    ],
+    {
+      subBrackets: [
+        { id: "east", index: 0, name: "East" },
+        { id: "west", index: 1, name: "West" }
+      ],
+      entryBrackets: {
+        "east-1": "east",
+        "east-2": "east",
+        "west-1": "west",
+        "west-2": "west"
+      }
+    }
+  );
+
+  assert.equal(matches.length, 2);
+  assert.deepEqual(matches[0], {
+    leftEntryId: "east-1",
+    rightEntryId: "east-2",
+    leftSeed: 1,
+    rightSeed: 2,
+    leftSlotType: "entry",
+    rightSlotType: "entry",
+    status: "open",
+    resolutionSource: null,
+    winnerEntryId: null,
+    pairKey: "group-east-round-1-seed-1-2"
+  });
+  assert.deepEqual(matches[1], {
+    leftEntryId: "west-1",
+    rightEntryId: "west-2",
+    leftSeed: 1,
+    rightSeed: 2,
+    leftSlotType: "entry",
+    rightSlotType: "entry",
+    status: "open",
+    resolutionSource: null,
+    winnerEntryId: null,
+    pairKey: "group-west-round-1-seed-1-2"
+  });
+});
+
+test("next round keeps single surviving sub-brackets on bye until cross-bracket phase", () => {
+  const matches = buildNextRound(
+    [
+      { id: "east-winner", seed: 1, subSeed: 0 },
+      { id: "west-1", seed: 3, subSeed: 0 },
+      { id: "west-2", seed: 4, subSeed: 0 }
+    ],
+    {
+      playStyle: "reseed",
+      roundNumber: 2,
+      seedingStructure: {
+        subBrackets: [
+          { id: "east", index: 0, name: "East" },
+          { id: "west", index: 1, name: "West" }
+        ],
+        entryBrackets: {
+          "east-winner": "east",
+          "west-1": "west",
+          "west-2": "west"
+        }
+      }
+    }
+  );
+
+  assert.equal(matches.length, 2);
+  assert.deepEqual(matches[0], {
+    leftEntryId: "east-winner",
+    rightEntryId: null,
+    leftSeed: 1,
+    rightSeed: null,
+    leftSlotType: "entry",
+    rightSlotType: "bye",
+    status: "auto_resolved",
+    resolutionSource: "bye",
+    winnerEntryId: "east-winner",
+    pairKey: "group-east-round-2-seed-1-bye"
+  });
+  assert.deepEqual(matches[1], {
+    leftEntryId: "west-1",
+    rightEntryId: "west-2",
+    leftSeed: 1,
+    rightSeed: 2,
+    leftSlotType: "entry",
+    rightSlotType: "entry",
+    status: "open",
+    resolutionSource: null,
+    winnerEntryId: null,
+    pairKey: "group-west-round-2-seed-1-2"
+  });
+});
+
+test("next round crosses sub-bracket winners once each bracket has one entry left", () => {
+  const matches = buildNextRound(
+    [
+      { id: "east-winner", seed: 1, subSeed: 0 },
+      { id: "west-winner", seed: 3, subSeed: 0 }
+    ],
+    {
+      playStyle: "fixed_bracket",
+      roundNumber: 3,
+      seedingStructure: {
+        subBrackets: [
+          { id: "east", index: 0, name: "East" },
+          { id: "west", index: 1, name: "West" }
+        ],
+        entryBrackets: {
+          "east-winner": "east",
+          "west-winner": "west"
+        }
+      }
+    }
+  );
+
+  assert.equal(matches.length, 1);
+  assert.deepEqual(matches[0], {
+    leftEntryId: "east-winner",
+    rightEntryId: "west-winner",
+    leftSeed: 1,
+    rightSeed: 2,
+    leftSlotType: "entry",
+    rightSlotType: "entry",
+    status: "open",
+    resolutionSource: null,
+    winnerEntryId: null,
+    pairKey: "cross-round-3-slot-1-1-2"
+  });
+});
+
 test("Swiss rounds avoid rematches and rotate byes", () => {
   const matches = buildSwissRound(
     [

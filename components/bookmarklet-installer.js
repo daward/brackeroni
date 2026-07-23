@@ -1180,7 +1180,10 @@ export function BookmarkletInstaller({
   origin,
   poolId = null,
   poolName = null,
-  showInstructions = true
+  showInstructions = true,
+  copyTextClassName = "text-sm leading-7",
+  showIntroCopy = true,
+  showCopyButton = true
 }) {
   const bookmarkletHref = useMemo(
     () => buildBookmarkletHref(origin, poolId, poolName),
@@ -1188,6 +1191,7 @@ export function BookmarkletInstaller({
   );
   const linkRef = useRef(null);
   const [copyMessage, setCopyMessage] = useState("");
+  const [bookmarkletMessage, setBookmarkletMessage] = useState("");
 
   useEffect(() => {
     if (!linkRef.current) {
@@ -1206,33 +1210,52 @@ export function BookmarkletInstaller({
     }
   }
 
+  function handleBookmarkletClick(event) {
+    event.preventDefault();
+    setBookmarkletMessage(
+      "This is a bookmarklet. Drag it to your bookmarks bar, then click it while viewing the page you want to import."
+    );
+  }
+
   return (
     <div className="space-y-5">
       <div className="space-y-3">
-        {poolId ? (
-          <p className="text-sm leading-7 text-[var(--accent-3)]">
+        {showIntroCopy && poolId ? (
+          <p className={`${copyTextClassName} text-[var(--accent-3)]`}>
             This bookmarklet will append non-duplicate candidates into{" "}
             <span className="font-bold text-[var(--ink)]">{poolName || "the selected pool"}</span>.
           </p>
         ) : null}
-        <p className="text-sm leading-7 text-[var(--muted)]">
+        {showIntroCopy ? (
+          <p className={`${copyTextClassName} text-[var(--muted)]`}>
           Drag this link to your bookmarks bar. Then open any page, optionally highlight the
           relevant text, and click the bookmark to send the page into Brackeroni's import flow.
-        </p>
+          </p>
+        ) : null}
+        <p className="bookmarklet-chip-kicker">Drag this to your bookmarks bar</p>
         <a
           ref={linkRef}
           href="/tools/import"
-          className="ui-button ui-button-accent-fill"
+          className="bookmarklet-chip"
           draggable="true"
+          title="Drag me to your bookmarks bar"
+          onClick={handleBookmarkletClick}
         >
-          Import To Brackeroni
+          Import to Brackeroni
         </a>
-        <div className="flex flex-wrap items-center gap-3">
-          <button type="button" onClick={handleCopy} className="ui-button ui-button-muted">
-            Copy Bookmarklet Code
-          </button>
-          {copyMessage ? <p className="text-xs leading-5 text-[var(--muted)]">{copyMessage}</p> : null}
-        </div>
+        {bookmarkletMessage ? (
+          <p className="bookmarklet-chip-message" role="status">
+            {bookmarkletMessage}
+          </p>
+        ) : null}
+        {showCopyButton ? (
+          <div className="flex flex-wrap items-center gap-3">
+            <button type="button" onClick={handleCopy} className="ui-button ui-button-muted">
+              Copy Bookmarklet Code
+            </button>
+            {copyMessage ? <p className="text-xs leading-5 text-[var(--muted)]">{copyMessage}</p> : null}
+          </div>
+        ) : null}
       </div>
       {showInstructions ? (
         <div className="space-y-3 border border-[var(--line)] bg-[var(--panel-2)] p-4">

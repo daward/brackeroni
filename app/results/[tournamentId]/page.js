@@ -19,7 +19,7 @@ export async function generateMetadata({ params }) {
   };
 }
 
-export default async function ResultsPage({ params }) {
+export default async function TournamentResultsRoute({ params }) {
   const { tournamentId } = await params;
   const user = await getOptionalCurrentUser();
   const cookieStore = await cookies();

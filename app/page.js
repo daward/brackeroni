@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plane } from "lucide-react";
+import { CirclePlay, Plane, Trophy } from "lucide-react";
 import { FeaturedHomePools } from "@/components/featured-home-pools";
 import { FeaturedHomeVoteSection } from "@/components/featured-home-matchups";
 import { getOptionalCurrentUser } from "@/lib/auth/current-user";
@@ -134,11 +134,29 @@ export default async function HomePage() {
         <div className="home-use-cases-grid">
           <Link href="/use-cases/trip-decisions" className="home-use-case-card">
             <div className="home-use-case-card-copy">
-              <p className="home-use-case-card-title display-face">Trip Decisions</p>
+              <p className="home-use-case-card-title display-face">Travel Decisions</p>
               <p className="home-use-case-card-meta">Group travel picks</p>
             </div>
             <div className="home-use-case-card-icon" aria-hidden="true">
               <Plane className="home-use-case-card-icon-svg" strokeWidth={2.1} />
+            </div>
+          </Link>
+          <Link href="/use-cases/engage-with-your-audience" className="home-use-case-card">
+            <div className="home-use-case-card-copy">
+              <p className="home-use-case-card-title display-face">Engage With Your Audience</p>
+              <p className="home-use-case-card-meta">Retrospectives and viewer voting</p>
+            </div>
+            <div className="home-use-case-card-icon" aria-hidden="true">
+              <CirclePlay className="home-use-case-card-icon-svg" strokeWidth={2.1} />
+            </div>
+          </Link>
+          <Link href="/use-cases/bracket-brackets" className="home-use-case-card">
+            <div className="home-use-case-card-copy">
+              <p className="home-use-case-card-title display-face">Bracket Brackets</p>
+              <p className="home-use-case-card-meta">Play along with live tournaments</p>
+            </div>
+            <div className="home-use-case-card-icon" aria-hidden="true">
+              <Trophy className="home-use-case-card-icon-svg" strokeWidth={2.1} />
             </div>
           </Link>
         </div>
