@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { BracketOutcomeHeader } from "@/components/bracket-outcome-header";
 import { BackdropRemoteImage } from "@/components/resilient-remote-image";
 import {
   formatResultModeLabel,
@@ -468,44 +469,38 @@ export function ParallelResultsPage({
   return (
     <div className="results-page results-page-parallel">
       <section className="results-shell">
-        <header className="results-header">
-          <div className="results-header-row">
-            <div className="results-header-copy">
-              <p className="results-kicker">Bracket Results</p>
-              <h1 className="results-title">{tournament.title}</h1>
-              <p className="results-meta">
-                {formatResultModeLabel(tournament.resultMode)} | {aggregateEntries.length} ranked
-                entries | {progressLabel}
-              </p>
-              <p className="results-meta">
-                {hasOpenBallots
-                  ? "Voting is still in progress. These aggregate ranks update as more personal brackets finish."
-                  : "All ballots are complete. These are the final aggregate ranks."}
-              </p>
-            </div>
-            {participants.length > 0 || headerAction ? (
-              <div className="results-header-action">
-                <div className="flex items-center gap-3">
-                  {participants.length > 0 ? (
-                    <select
-                      value={selectedParticipantId}
-                      onChange={(event) => setSelectedParticipantId(event.target.value)}
-                      className="ui-field ui-field-panel ui-field-select min-w-[15rem]"
-                    >
-                      <option value="aggregate">Final Results</option>
-                      {participants.map((participant) => (
-                        <option key={participant.id} value={participant.id}>
-                          {participant.name || participant.email || "Anonymous voter"}
-                        </option>
-                      ))}
-                    </select>
-                  ) : null}
-                  {headerAction}
-                </div>
+        <BracketOutcomeHeader
+          title={tournament.title}
+          meta={`${formatResultModeLabel(tournament.resultMode)} | ${aggregateEntries.length} ranked entries | ${progressLabel}`}
+          headerNotice={
+            <p className="results-meta">
+              {hasOpenBallots
+                ? "Voting is still in progress. These aggregate ranks update as more personal brackets finish."
+                : "All ballots are complete. These are the final aggregate ranks."}
+            </p>
+          }
+          headerAction={
+            participants.length > 0 || headerAction ? (
+              <div className="results-scoring-header-control">
+                {participants.length > 0 ? (
+                  <select
+                    value={selectedParticipantId}
+                    onChange={(event) => setSelectedParticipantId(event.target.value)}
+                    className="ui-field ui-field-select results-scoring-header-select"
+                  >
+                    <option value="aggregate">Final Results</option>
+                    {participants.map((participant) => (
+                      <option key={participant.id} value={participant.id}>
+                        {participant.name || participant.email || "Anonymous voter"}
+                      </option>
+                    ))}
+                  </select>
+                ) : null}
+                {headerAction}
               </div>
-            ) : null}
-          </div>
-        </header>
+            ) : null
+          }
+        />
 
         <div className="results-grid">
           <section className="results-ranking-rail">

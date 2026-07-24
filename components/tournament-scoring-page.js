@@ -1,7 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { useMemo, useState } from "react";
+import { BracketOutcomeHeader } from "@/components/bracket-outcome-header";
 import {
   formatResultModeLabel,
   usesOpenEndedRankingMode,
@@ -30,6 +30,7 @@ function AggregateScoreTable({ scores, selectedVoterKey, onSelectVoter, scoringE
       <table className="results-table results-scoring-table">
         <thead>
           <tr>
+            <th className="results-scoring-rank-column">#</th>
             <th>Voter</th>
             {scoringEnabled ? <th>Score</th> : null}
             <th>Win %</th>
@@ -37,11 +38,12 @@ function AggregateScoreTable({ scores, selectedVoterKey, onSelectVoter, scoringE
           </tr>
         </thead>
         <tbody>
-          {scores.map((score) => (
+          {scores.map((score, index) => (
             <tr
               key={score.voterKey}
               className={selectedVoterKey === score.voterKey ? "results-scoreboard-row-active" : undefined}
             >
+              <td className="results-scoring-rank-column">{index + 1}</td>
               <td>
                 <button
                   type="button"
@@ -140,7 +142,9 @@ export function TournamentScoringPage({
   voterScores,
   voteHistoryByVoterKey,
   canInspectAllVoterScores,
-  scoringEnabled
+  scoringEnabled,
+  outcomeNav = null,
+  headerAction = null
 }) {
   const visibleScores = useMemo(
     () => (canInspectAllVoterScores ? voterScores : voterScores.filter((score) => score.isCurrentViewer)),
@@ -157,39 +161,30 @@ export function TournamentScoringPage({
   return (
     <div className="results-page">
       <section className="results-shell">
-        <header className="results-header">
-          <div className="results-header-row">
-            <div className="results-header-copy">
-              <p className="results-kicker">Bracket Scoring</p>
-              <h1 className="results-title">{tournament.title}</h1>
-              <p className="results-meta">
-                {formatResultModeLabel(tournament.resultMode)} |{" "}
-                {scoringEnabled ? "round squared scoring" : "win percentage only"}
-              </p>
+        <BracketOutcomeHeader
+          title={tournament.title}
+          meta={`${formatResultModeLabel(tournament.resultMode)} | ${scoringEnabled ? "round squared scoring" : "win percentage only"}`}
+          outcomeNav={outcomeNav}
+          headerAction={
+            <div className="results-scoring-header-control">
+              {canInspectAllVoterScores && visibleScores.length > 0 ? (
+                <select
+                  value={selectedView}
+                  onChange={(event) => setSelectedView(event.target.value)}
+                  className="ui-field ui-field-select results-scoring-header-select"
+                >
+                  <option value="aggregate">Leaderboard</option>
+                  {visibleScores.map((score) => (
+                    <option key={score.voterKey} value={score.voterKey}>
+                      {score.name || score.email || "Anonymous voter"}
+                    </option>
+                  ))}
+                </select>
+              ) : null}
+              {headerAction}
             </div>
-            <div className="results-header-action">
-              <div className="flex items-center gap-3">
-                {canInspectAllVoterScores && visibleScores.length > 0 ? (
-                  <select
-                    value={selectedView}
-                    onChange={(event) => setSelectedView(event.target.value)}
-                    className="ui-field ui-field-panel ui-field-select min-w-[15rem]"
-                  >
-                    <option value="aggregate">Aggregate Scoring</option>
-                    {visibleScores.map((score) => (
-                      <option key={score.voterKey} value={score.voterKey}>
-                        {score.name || score.email || "Anonymous voter"}
-                      </option>
-                    ))}
-                  </select>
-                ) : null}
-                <Link href={`/results/${tournament.id}`} className="ui-button ui-button-primary">
-                  View Results
-                </Link>
-              </div>
-            </div>
-          </div>
-        </header>
+          }
+        />
 
         {!showingAggregate && selectedScore ? (
           <div className="mt-6">
@@ -199,7 +194,7 @@ export function TournamentScoringPage({
 
         <div className="mt-6">
           <h2 className="results-section-title">
-            {showingAggregate ? "Aggregate Scoring" : "Pick History"}
+            {showingAggregate ? "Leaderboard" : "Pick History"}
           </h2>
           {showingAggregate ? (
             visibleScores.length > 0 ? (

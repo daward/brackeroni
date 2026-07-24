@@ -465,28 +465,8 @@ export function VoteScreenPanels({
     router.replace(buildVoteUrl({ tournamentId: tournament.id, returnTo: initialReturnTo }));
   }
 
-  async function openResultsModal(tournament) {
-    if (tournament.kind === "parallel_parent") {
-      router.push(buildResultsUrl(tournament));
-      return;
-    }
-
-    setError("");
-    setMessage("");
-    setResultsTournament(tournament);
-    setResultsMatches([]);
-    setResultsLoading(true);
-
-    try {
-      const { matches, tournament: refreshedTournament } = await getTournamentWithMatches(tournament.id);
-      setResultsTournament(refreshedTournament);
-      setResultsMatches(matches);
-    } catch (error) {
-      setError(error.message || "Failed to load bracket results.");
-      setResultsTournament(null);
-    } finally {
-      setResultsLoading(false);
-    }
+  function openResultsModal(tournament) {
+    router.push(buildResultsUrl(tournament));
   }
 
   function closeResultsView() {

@@ -2113,6 +2113,143 @@ optgroup {
   padding-top: 0.2rem;
 }
 
+.results-scoring-header-control {
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  margin-top: 4.9rem;
+}
+
+.results-scoring-header-select {
+  min-width: 15rem;
+  border-color: rgba(86, 80, 72, 0.9);
+  background:
+    linear-gradient(180deg, rgba(63, 57, 51, 0.82), rgba(45, 41, 37, 0.96)),
+    var(--panel-2);
+  color: var(--ink);
+  box-shadow: inset 0 -1px 0 rgba(255, 211, 77, 0.18);
+}
+
+.results-scoring-header-select:hover,
+.results-scoring-header-select:focus {
+  border-color: var(--accent-2);
+  background:
+    linear-gradient(180deg, rgba(71, 65, 58, 0.88), rgba(49, 44, 39, 0.98)),
+    var(--panel-2);
+}
+
+.results-outcome-nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.9rem 1.25rem;
+}
+
+.results-outcome-nav-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1.4rem;
+}
+
+.results-outcome-nav-link {
+  position: relative;
+  border: 0;
+  background: transparent;
+  padding: 0 0 0.45rem;
+  color: var(--muted);
+  font-size: 0.82rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  transition: color 150ms ease;
+}
+
+.results-outcome-nav-link:hover,
+.results-outcome-nav-link:focus-visible {
+  color: var(--ink);
+}
+
+.results-outcome-nav-link-active {
+  color: var(--ink);
+}
+
+.results-outcome-nav-link-disabled {
+  color: rgba(214, 206, 190, 0.46);
+  cursor: pointer;
+}
+
+.results-outcome-nav-link-disabled:hover,
+.results-outcome-nav-link-disabled:focus-visible {
+  color: rgba(214, 206, 190, 0.66);
+}
+
+.results-outcome-nav-link-active::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: var(--accent-2);
+}
+
+.results-outcome-nav-extra {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+}
+
+.results-linked-views {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.85rem 1.25rem;
+  border: 1px solid var(--line);
+  background: var(--panel-2);
+  padding: 0.9rem 1rem;
+}
+
+.results-linked-views-copy {
+  color: var(--muted);
+  font-size: 0.84rem;
+  line-height: 1.5;
+}
+
+.results-linked-views-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.results-linked-views-tab {
+  border: 1px solid rgba(86, 80, 72, 0.9);
+  padding: 0.45rem 0.75rem;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  transition:
+    color 150ms ease,
+    border-color 150ms ease,
+    background-color 150ms ease;
+}
+
+.results-linked-views-tab:hover,
+.results-linked-views-tab:focus-visible {
+  color: var(--ink);
+  border-color: var(--accent-2);
+}
+
+.results-linked-views-tab-active {
+  color: var(--ink);
+  border-color: rgba(255, 211, 77, 0.55);
+  background: rgba(255, 211, 77, 0.08);
+}
+
 .results-header::after {
   content: "";
   position: absolute;
@@ -2134,7 +2271,7 @@ optgroup {
 }
 
 .results-kicker {
-  color: var(--accent-3);
+  color: var(--muted);
   font-size: 0.6875rem;
   letter-spacing: 0.22em;
   text-transform: uppercase;
@@ -2287,12 +2424,31 @@ optgroup {
   white-space: nowrap;
 }
 
+.results-table.results-scoring-table .results-scoring-rank-column {
+  width: 3.25rem;
+  padding-right: 1.25rem;
+  color: var(--accent-2);
+  font-size: 1.5rem;
+  font-weight: 900;
+  line-height: 1;
+  white-space: nowrap;
+}
+
 .results-table.results-scoring-table thead .results-scoring-round-column {
   padding-right: 1.25rem;
 }
 
 .results-table.results-scoring-table tbody .results-scoring-round-column {
   padding-right: 1.25rem;
+}
+
+.results-table.results-scoring-table thead .results-scoring-rank-column {
+  padding-right: 1.25rem;
+}
+
+.results-table.results-scoring-table tbody .results-scoring-rank-column {
+  padding-right: 1.25rem;
+  vertical-align: middle;
 }
 
 .results-table.results-scoring-table .results-scoreboard-subtle {
@@ -2406,23 +2562,32 @@ optgroup {
   align-items: center;
   gap: 0.9rem;
   width: 100%;
-  padding: 1rem 0.2rem;
-  border: 0;
+  padding: 1rem 0.85rem;
+  border: 1px solid transparent;
   border-bottom: 1px solid rgba(86, 80, 72, 0.9);
   background: transparent;
   text-align: left;
   transition:
     color 150ms ease,
-    background-color 150ms ease;
+    background-color 150ms ease,
+    border-color 150ms ease,
+    box-shadow 150ms ease;
 }
 
 .results-ranking-item-active {
   color: var(--ink);
+  border-color: rgba(255, 211, 77, 0.38);
+  border-bottom-color: rgba(255, 211, 77, 0.38);
+  background: linear-gradient(90deg, rgba(255, 211, 77, 0.09), rgba(255, 211, 77, 0.03) 72%, rgba(255, 211, 77, 0.01));
+  box-shadow:
+    inset 3px 0 0 var(--accent-2),
+    0 0 0 1px rgba(255, 211, 77, 0.06);
 }
 
 .results-ranking-item-idle:hover,
 .results-ranking-item-idle:focus-visible {
   background: rgba(255, 255, 255, 0.02);
+  border-color: rgba(86, 80, 72, 0.5);
 }
 
 .results-ranking-rank {
@@ -2793,12 +2958,15 @@ optgroup {
     top: 1rem;
     max-height: calc(100vh - 4.5rem);
     overflow-y: auto;
+    scrollbar-gutter: stable;
     padding-left: 2rem;
+    padding-right: 1rem;
     border-left: 1px solid rgba(86, 80, 72, 0.9);
   }
 
   .results-page-parallel .results-details-rail {
     padding-left: 1.4rem;
+    padding-right: 1rem;
   }
 
   .results-drawer-overlay {

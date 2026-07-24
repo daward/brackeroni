@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { BracketOutcomeHeader } from "@/components/bracket-outcome-header";
 import { BackdropRemoteImage } from "@/components/resilient-remote-image";
 import {
   formatResultModeLabel,
@@ -177,14 +178,29 @@ function describeHistoryResult(match, entryId) {
   return match.winnerEntryId === entryId ? "Won" : "Lost";
 }
 
-function describeUserVote(match, entryId) {
+function describeUserVote(match) {
   if (!match.userVoteEntryId) {
     return null;
   }
 
-  return match.userVoteEntryId === entryId
-    ? { label: "You voted for this pick", className: "results-history-vote-for" }
-    : { label: "You voted against it", className: "results-history-vote-against" };
+  const pickedName =
+    match.userVoteEntryId === match.leftEntryId
+      ? match.leftName
+      : match.userVoteEntryId === match.rightEntryId
+        ? match.rightName
+        : null;
+
+  if (!pickedName) {
+    return null;
+  }
+
+  return {
+    label: `You picked ${pickedName}`,
+    className:
+      match.userVoteEntryId === match.winnerEntryId
+        ? "results-history-vote-for"
+        : "results-history-vote-against"
+  };
 }
 
 function describeHistoryOpponent(match, entryId, seedDisplayByEntryId) {
@@ -262,7 +278,7 @@ function ResultEntryDetails({
             <p className="results-empty-copy">No played matches to show yet.</p>
           ) : (
             selectedEntryHistory.map((match) => {
-              const voteNote = describeUserVote(match, selectedEntry.id);
+              const voteNote = describeUserVote(match);
               const opponentLabel = describeHistoryOpponent(
                 match,
                 selectedEntry.id,
@@ -313,6 +329,7 @@ function ResultEntryDetails({
 export function TournamentResultsPage({
   tournament,
   matches,
+  outcomeNav = null,
   headerAction = null,
   headerNotice = null
 }) {
@@ -344,30 +361,13 @@ export function TournamentResultsPage({
   return (
     <div className="results-page">
       <section className="results-shell">
-        <header className="results-header">
-          <div className="results-header-row">
-            <div className="results-header-copy">
-              <p className="results-kicker">Bracket Results</p>
-              <h1 className="results-title">{tournament.title}</h1>
-              <p className="results-meta">
-                {formatResultModeLabel(tournament.resultMode)} | {orderedEntries.length} ranked
-                entries
-              </p>
-              {!tournament.parentParallelTournamentId ? (
-                <div className="mt-4">
-                  <Link
-                    href={`/results/${tournament.id}/scores`}
-                    className="ui-button ui-button-accent"
-                  >
-                    View Scoring
-                  </Link>
-                </div>
-              ) : null}
-              {headerNotice ? <div className="mt-4">{headerNotice}</div> : null}
-            </div>
-            {headerAction ? <div className="results-header-action">{headerAction}</div> : null}
-          </div>
-        </header>
+        <BracketOutcomeHeader
+          title={tournament.title}
+          meta={`${formatResultModeLabel(tournament.resultMode)} | ${orderedEntries.length} ranked entries`}
+          outcomeNav={outcomeNav}
+          headerAction={headerAction}
+          headerNotice={headerNotice}
+        />
 
         <div className="results-grid">
           <section className="results-ranking-rail">

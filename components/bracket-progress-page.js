@@ -1,7 +1,6 @@
 "use client";
-
-import Link from "next/link";
 import { useMemo, useState, useTransition } from "react";
+import { BracketOutcomeHeader } from "@/components/bracket-outcome-header";
 import { BackdropRemoteImage } from "@/components/resilient-remote-image";
 import { revealTournamentRound } from "@/lib/client-api/create-workspace";
 import {
@@ -204,8 +203,8 @@ function formatPercent(value) {
 function buildCreatorPrompt({ tournament, round, stats }) {
   const bracketUrl =
     typeof window === "undefined"
-      ? `/results/${tournament.id}/progress`
-      : `${window.location.origin}/results/${tournament.id}/progress`;
+      ? `/results/${tournament.id}?view=rounds`
+      : `${window.location.origin}/results/${tournament.id}?view=rounds`;
   const lines = [
     `${formatRoundTitle(round, tournament)} is in the books for ${tournament.title}.`,
     stats.biggestUpset
@@ -646,21 +645,16 @@ function RoundProgressCard({
       id={`round-${round.id}`}
       className="scroll-mt-6 border-y border-[var(--line)] bg-transparent py-6"
     >
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <p className="results-kicker">{round.status}</p>
-          <h2 className="results-title text-4xl">
-            {isFinalResults ? "Final Results" : formatRoundTitle(round, tournament)}
-          </h2>
-          <p className="results-meta">
-            {round.matchCount} matchups | {getRoundStats(matches).totalVotes} votes
-            {isHidden ? " | Hidden from participants" : ""}
-            {round.revealedAt ? " | Revealed" : ""}
-          </p>
-        </div>
-        <Link href={`/results/${tournament.id}`} className="ui-button ui-button-muted">
-          Results
-        </Link>
+      <div>
+        <p className="results-kicker">{round.status}</p>
+        <h2 className="results-title text-4xl">
+          {isFinalResults ? "Final Results" : formatRoundTitle(round, tournament)}
+        </h2>
+        <p className="results-meta">
+          {round.matchCount} matchups | {getRoundStats(matches).totalVotes} votes
+          {isHidden ? " | Hidden from participants" : ""}
+          {round.revealedAt ? " | Revealed" : ""}
+        </p>
       </div>
 
       <div className="mt-6 grid gap-x-8 gap-y-2 md:grid-cols-2 xl:grid-cols-4">
@@ -773,7 +767,14 @@ function RoundProgressCard({
   );
 }
 
-export function BracketProgressPage({ tournament, rounds, matches, isCreator }) {
+export function BracketProgressPage({
+  tournament,
+  rounds,
+  matches,
+  isCreator,
+  outcomeNav = null,
+  headerAction = null
+}) {
   const [localRounds, setLocalRounds] = useState(rounds);
   const [shareCard, setShareCard] = useState(null);
   const orderedRounds = useMemo(
@@ -812,25 +813,12 @@ export function BracketProgressPage({ tournament, rounds, matches, isCreator }) 
   return (
     <div className="results-page">
       <section className="results-shell">
-        <header className="results-header !pb-4">
-          <div className="results-header-row">
-            <div className="results-header-copy">
-              <p className="results-kicker">Bracket Progress</p>
-              <h1 className="display-face mt-2 max-w-4xl text-2xl font-black leading-tight text-[var(--ink)] md:text-3xl">
-                {tournament.title}
-              </h1>
-              <p className="results-meta mt-3">
-                {formatResultModeLabel(tournament.resultMode)} | Creator sees all rounds. Participants
-                only see revealed progress.
-              </p>
-            </div>
-            <div className="results-header-action">
-              <Link href={`/results/${tournament.id}`} className="ui-button ui-button-muted">
-                Final Results
-              </Link>
-            </div>
-          </div>
-        </header>
+        <BracketOutcomeHeader
+          title={tournament.title}
+          meta={`${formatResultModeLabel(tournament.resultMode)} | Creator sees all rounds. Participants only see revealed rounds.`}
+          outcomeNav={outcomeNav}
+          headerAction={headerAction}
+        />
 
         <div className="grid gap-8 lg:grid-cols-[13rem_minmax(0,1fr)] lg:items-start">
           <aside className="lg:sticky lg:top-4">

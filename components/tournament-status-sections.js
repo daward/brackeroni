@@ -531,16 +531,8 @@ export function ActiveParallelTournamentSection({
   };
   const parallelResultsAction = {
     key: `parallel-results:${tournament.id}`,
-    href: parallelResultsHref,
     label: "Results",
-    className: "ui-button ui-button-accent"
-  };
-  const parallelProgressAction = {
-    key: `parallel-progress:${tournament.id}`,
-    href: tournament.viewerTournamentId
-      ? `/results/${tournament.viewerTournamentId}/progress`
-      : `/results/${tournament.id}/progress`,
-    label: "Progress",
+    href: parallelResultsHref,
     className: "ui-button ui-button-accent"
   };
   const parallelShareAction = canCopyBracketLink(tournament)
@@ -571,7 +563,6 @@ export function ActiveParallelTournamentSection({
   const parallelActions = [
     parallelVoteAction,
     parallelResultsAction,
-    parallelProgressAction,
     parallelCloseAction,
     parallelShareAction
   ];
@@ -704,15 +695,18 @@ export function ActiveStandardTournamentSection({
       };
   const standardResultsAction = {
     key: `results:${tournament.id}`,
-    href: `/results/${tournament.id}`,
     label: "Results",
-    className: "ui-button ui-button-accent"
-  };
-  const standardProgressAction = {
-    key: `progress:${tournament.id}`,
-    href: `/results/${tournament.id}/progress`,
-    label: "Progress",
-    className: "ui-button ui-button-accent"
+    ...(tournament.status === "complete"
+      ? {
+          href: `/results/${tournament.id}`,
+          className: "ui-button ui-button-accent"
+        }
+      : {
+          disabled: true,
+          disabledReason:
+            "Bracket results are only available after the bracket closes. Use Rounds while voting is still in progress.",
+          className: "ui-button ui-button-muted"
+        })
   };
   const standardCloseAction = {
     key: `close-round:${tournament.id}`,
@@ -765,7 +759,6 @@ export function ActiveStandardTournamentSection({
   const standardActions = [
     standardVoteAction,
     standardResultsAction,
-    standardProgressAction,
     standardCloseAction,
     standardShareAction
   ];
@@ -875,17 +868,9 @@ export function CompletedTournamentSection({
           {
             key: `complete-results:${tournament.id}`,
             href: resultsHref,
-            label: "View Results",
+            label: "Results",
             className: "ui-button ui-button-accent"
           },
-          tournament.kind !== "parallel_parent"
-            ? {
-                key: `complete-progress:${tournament.id}`,
-                href: `/results/${tournament.id}/progress`,
-                label: "Progress",
-                className: "ui-button ui-button-accent"
-              }
-            : null,
           {
             key: `complete-rerun:${tournament.id}`,
             label: isActionPending(`rerun-tournament:${tournament.id}`) ? "Creating" : "Run Again",
