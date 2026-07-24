@@ -7,6 +7,45 @@ import { getFeaturedParallelTeaserMatchups } from "@/lib/data/parallel-tournamen
 import { listPublicPools } from "@/lib/data/pools";
 import { getFeaturedPublicMatchupsForHomepage } from "@/lib/data/tournaments";
 
+function HomeUseCasesRail({ className = "" }) {
+  return (
+    <section className={`home-use-cases-section home-use-cases-section-compact ${className}`.trim()}>
+      <div className="home-use-cases-header">
+        <h2 className="home-use-cases-title display-face">Ways to Use Brackeroni</h2>
+      </div>
+      <div className="home-use-cases-grid">
+        <Link href="/use-cases/trip-decisions" className="home-use-case-card">
+          <div className="home-use-case-card-copy">
+            <p className="home-use-case-card-title display-face">Travel Decisions</p>
+            <p className="home-use-case-card-meta">Group travel picks</p>
+          </div>
+          <div className="home-use-case-card-icon" aria-hidden="true">
+            <Plane className="home-use-case-card-icon-svg" strokeWidth={2.1} />
+          </div>
+        </Link>
+        <Link href="/use-cases/engage-with-your-audience" className="home-use-case-card">
+          <div className="home-use-case-card-copy">
+            <p className="home-use-case-card-title display-face">Engage With Your Audience</p>
+            <p className="home-use-case-card-meta">Retrospectives and viewer voting</p>
+          </div>
+          <div className="home-use-case-card-icon" aria-hidden="true">
+            <CirclePlay className="home-use-case-card-icon-svg" strokeWidth={2.1} />
+          </div>
+        </Link>
+        <Link href="/use-cases/bracket-brackets" className="home-use-case-card">
+          <div className="home-use-case-card-copy">
+            <p className="home-use-case-card-title display-face">Bracket Brackets</p>
+            <p className="home-use-case-card-meta">Shared and solo picks</p>
+          </div>
+          <div className="home-use-case-card-icon" aria-hidden="true">
+            <Trophy className="home-use-case-card-icon-svg" strokeWidth={2.1} />
+          </div>
+        </Link>
+      </div>
+    </section>
+  );
+}
+
 export default async function HomePage() {
   const user = await getOptionalCurrentUser();
   const [featuredPublicMatchups, featuredParallelMatchups, publicPools] = await Promise.all([
@@ -63,18 +102,8 @@ export default async function HomePage() {
               </p>
             </div>
           </div>
-          <div className="home-hero-card home-import-panel">
-            <Link href="/tools/import" className="home-import-link">
-              <p className="ui-section-kicker">Import a Pool</p>
-              <p className="home-import-title display-face">
-                Turn any guide, ranking, or events page into a pool.
-              </p>
-              <p className="home-import-copy">
-                Found a travel guide, best-of list, weekend calendar, or activity page? Pull it
-                into Brackeroni, then vote it down to a winner, shortlist, or group favorite.
-              </p>
-              <p className="home-import-action">Start Importing</p>
-            </Link>
+          <div className="home-hero-card home-use-cases-panel">
+            <HomeUseCasesRail className="home-use-cases-desktop" />
           </div>
         </div>
       </section>
@@ -99,6 +128,8 @@ export default async function HomePage() {
           </div>
           <FeaturedHomeVoteSection items={combinedFeaturedMatchups} />
         </section>
+
+        <HomeUseCasesRail className="home-use-cases-mobile" />
 
         <section className="home-pool-rail">
           <div className="home-pool-rail-inner">
@@ -127,39 +158,18 @@ export default async function HomePage() {
         </section>
       </div>
 
-      <section className="home-use-cases-section">
-        <div className="home-use-cases-header">
-          <h2 className="home-use-cases-title display-face">Explore ways to use Brackeroni</h2>
-        </div>
-        <div className="home-use-cases-grid">
-          <Link href="/use-cases/trip-decisions" className="home-use-case-card">
-            <div className="home-use-case-card-copy">
-              <p className="home-use-case-card-title display-face">Travel Decisions</p>
-              <p className="home-use-case-card-meta">Group travel picks</p>
-            </div>
-            <div className="home-use-case-card-icon" aria-hidden="true">
-              <Plane className="home-use-case-card-icon-svg" strokeWidth={2.1} />
-            </div>
-          </Link>
-          <Link href="/use-cases/engage-with-your-audience" className="home-use-case-card">
-            <div className="home-use-case-card-copy">
-              <p className="home-use-case-card-title display-face">Engage With Your Audience</p>
-              <p className="home-use-case-card-meta">Retrospectives and viewer voting</p>
-            </div>
-            <div className="home-use-case-card-icon" aria-hidden="true">
-              <CirclePlay className="home-use-case-card-icon-svg" strokeWidth={2.1} />
-            </div>
-          </Link>
-          <Link href="/use-cases/bracket-brackets" className="home-use-case-card">
-            <div className="home-use-case-card-copy">
-              <p className="home-use-case-card-title display-face">Bracket Brackets</p>
-              <p className="home-use-case-card-meta">Play along with live tournaments</p>
-            </div>
-            <div className="home-use-case-card-icon" aria-hidden="true">
-              <Trophy className="home-use-case-card-icon-svg" strokeWidth={2.1} />
-            </div>
-          </Link>
-        </div>
+      <section className="home-import-panel">
+        <Link href="/tools/import" className="home-import-link">
+          <p className="ui-section-kicker">Import a Pool</p>
+          <p className="home-import-title display-face">
+            Turn any guide, ranking, or events page into a pool.
+          </p>
+          <p className="home-import-copy">
+            Found a travel guide, best-of list, weekend calendar, or activity page? Pull it into
+            Brackeroni, then vote it down to a winner, shortlist, or group favorite.
+          </p>
+          <p className="home-import-action">Start Importing</p>
+        </Link>
       </section>
     </div>
   );
