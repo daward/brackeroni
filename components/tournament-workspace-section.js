@@ -804,7 +804,7 @@ export function TournamentWorkspaceSection({
             type="button"
             onClick={onOpenBracketWizard}
             disabled={isActionPending("create-tournament")}
-            className="ui-button ui-button-compact ui-button-primary ml-auto max-sm:!hidden"
+            className="ui-button ui-button-compact ui-button-primary ml-auto max-md:!hidden"
           >
             Add Bracket
           </button>
@@ -819,7 +819,7 @@ export function TournamentWorkspaceSection({
           onClick={onOpenBracketWizard}
           disabled={isActionPending("create-tournament")}
           aria-label="Add bracket"
-          className="ui-button ui-button-primary fixed bottom-6 right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full p-0 text-3xl leading-none shadow-[0_12px_28px_rgba(0,0,0,0.35)] sm:hidden"
+          className="ui-button ui-button-primary fixed bottom-6 right-6 z-40 !hidden h-14 w-14 items-center justify-center rounded-full p-0 text-3xl leading-none shadow-[0_12px_28px_rgba(0,0,0,0.35)] max-md:!flex"
         >
           <span aria-hidden="true">+</span>
         </button>
