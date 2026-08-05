@@ -1,8 +1,9 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
+import { BracketCreationWizard } from "@/components/bracket-creation-wizard";
 import { SeedingModal } from "@/components/seeding-modal";
 import { PoolWorkspaceSection } from "@/components/pool-workspace-section";
 import {
@@ -19,6 +20,7 @@ import { useSeedingActions } from "@/components/use-seeding-actions";
 import { useTournamentActions } from "@/components/use-tournament-actions";
 import { useTournamentSharingActions } from "@/components/use-tournament-sharing-actions";
 import {
+  createPool,
   favoritePool,
 } from "@/lib/client-api/create-workspace";
 
@@ -48,6 +50,8 @@ export function CreatePanels() {
   const [expandedPoolId, setExpandedPoolId] = useState(null);
   const [isPoolModalOpen, setIsPoolModalOpen] = useState(false);
   const [isPoolImportModalOpen, setIsPoolImportModalOpen] = useState(false);
+  const [isBracketWizardOpen, setIsBracketWizardOpen] = useState(false);
+  const [isBracketWizardCreating, setIsBracketWizardCreating] = useState(false);
   const [editingPool, setEditingPool] = useState(null);
   const [poolEditForm, setPoolEditForm] = useState(emptyPoolForm);
   const [candidateEditor, setCandidateEditor] = useState(null);
@@ -79,7 +83,9 @@ export function CreatePanels() {
   const actionSearchParamsHandledRef = useRef({
     favoritePoolId: null,
     makeBracketFromPoolId: null,
-    newBracketPreset: null
+    newBracketPreset: null,
+    openSeedingTournamentId: null,
+    newPoolForBracket: null
   });
   const poolSearchScrollHandledRef = useRef(null);
 
@@ -304,6 +310,7 @@ export function CreatePanels() {
     createDraftBracketFromPool,
     handleArchiveTournament,
     handleCloseCurrentRound,
+    handleOpenNextRound,
     handleRerunTournament,
     handleSetManualMatchWinner,
     handleStartTournament,
@@ -600,6 +607,24 @@ export function CreatePanels() {
   }, [workspaceView, pools, searchParams]);
 
   useEffect(() => {
+    const shouldCreatePoolForBracket = searchParams?.get("newPoolForBracket");
+
+    if (!shouldCreatePoolForBracket || actionSearchParamsHandledRef.current.newPoolForBracket === shouldCreatePoolForBracket) {
+      return;
+    }
+
+    actionSearchParamsHandledRef.current.newPoolForBracket = shouldCreatePoolForBracket;
+    startTransition(async () => {
+      const pool = await createPoolRecord({ name: "Untitled Pool", switchToPools: true });
+      if (!pool?.id) {
+        actionSearchParamsHandledRef.current.newPoolForBracket = null;
+        return;
+      }
+      router.replace(`/create?view=pools&pool=${pool.id}&fromBracketSetup=1`);
+    });
+  }, [createPoolRecord, router, searchParams, startTransition]);
+
+  useEffect(() => {
     const requestedFavoritePoolId = searchParams?.get("favoritePool");
 
     if (!requestedFavoritePoolId) {
@@ -711,24 +736,113 @@ export function CreatePanels() {
     await openSeedingEditor(tournament);
   }
 
+  useEffect(() => {
+    const tournamentId = searchParams?.get("openSeeding");
+    if (!tournamentId) {
+      return;
+    }
+
+    if (actionSearchParamsHandledRef.current.openSeedingTournamentId === tournamentId) {
+      return;
+    }
+
+    const tournament = tournaments.find((item) => item.id === tournamentId);
+    if (!tournament) {
+      return;
+    }
+
+    actionSearchParamsHandledRef.current.openSeedingTournamentId = tournamentId;
+    openSeedingEditor(tournament)
+      .then(() => router.replace(`/create?view=tournaments&stage=draft&tournament=${tournamentId}`))
+      .catch((error) => {
+        actionSearchParamsHandledRef.current.openSeedingTournamentId = null;
+        setErrorMessage(error.message || "Failed to open seeding.");
+      });
+  }, [openSeedingEditor, router, searchParams, tournaments]);
+
+  async function handleCreateBracketFromWizard({
+    title,
+    source,
+    playStyle,
+    resultMode,
+    advancementMode,
+    tieBreakMode,
+    seedingMode,
+    audienceMode
+  }) {
+    if (isBracketWizardCreating) {
+      return null;
+    }
+
+    setIsBracketWizardCreating(true);
+
+    try {
+      const pool = source.type === "existing"
+        ? source.pool
+        : (await createPool({
+            name: source.name,
+            description: null,
+            visibility: "private",
+            source: {
+              type: "items",
+              items: source.candidates.map(({ name, description, imageUrl, tags }) => ({
+                name,
+                description,
+                imageUrl,
+                tags
+              }))
+            }
+          })).item;
+
+      const audience = audienceMode === "friends"
+        ? { sharingMode: "with_friends", visibility: "private", votingAccess: "signed_in_only" }
+        : audienceMode === "public"
+          ? { sharingMode: "private", visibility: "public_listed", votingAccess: "anyone" }
+          : { sharingMode: "private", visibility: "private", votingAccess: "signed_in_only" };
+      const bracket = await createDraftBracket({
+        title: title || `${pool.name} Bracket`,
+        sourcePoolId: pool.id,
+        playStyle,
+        resultMode,
+        advancementMode,
+        tieBreakMode,
+        ...audience
+      });
+
+      if (bracket) {
+        setIsBracketWizardOpen(false);
+        if (seedingMode === "custom") {
+          await openSeedingEditor(bracket);
+        }
+      }
+
+      return bracket;
+    } catch (error) {
+      setErrorMessage(error.message || "Failed to create bracket.");
+      return null;
+    } finally {
+      setIsBracketWizardCreating(false);
+    }
+  }
+
   return (
     <div className="space-y-6">
       <FlashMessages errorMessage={errorMessage} successMessage={successMessage} />
 
-      <section className="border border-[var(--line)] bg-[var(--panel)]">
-        <div className="grid gap-px border-b border-[var(--line)] bg-[var(--line)] md:grid-cols-2">
+      <section className="border-b border-[var(--line-strong)]">
+        <div className="flex gap-6 sm:gap-10">
           <button
             type="button"
             onClick={() => setWorkspaceView("tournaments", { history: "push" })}
-            className={`px-5 py-4 text-left transition ${
+            className={`border-b-2 py-3 text-left transition ${
               workspaceView === "tournaments"
-                ? "border-l-4 border-[var(--accent-2)] bg-[var(--panel)] md:border-b-2 md:border-l-0"
-                : "border-l-4 border-transparent bg-[var(--panel)] hover:bg-[var(--panel-2)] md:border-b-2"
+                ? "border-[var(--accent-2)]"
+                : "border-transparent hover:border-[var(--line-strong)]"
             }`}
           >
-            <p className="display-face text-lg font-black uppercase">Brackets ({tournaments.length})</p>
+            <p className="display-face text-base font-black uppercase sm:text-lg">Brackets ({tournaments.length})</p>
             <p
-              className="mt-2 text-xs uppercase tracking-[0.14em] text-[var(--muted)]"
+              className="mt-1 hidden text-xs uppercase tracking-[0.14em] text-[var(--muted)] sm:block"
             >
               Build brackets and manage rounds
             </p>
@@ -736,15 +850,15 @@ export function CreatePanels() {
           <button
             type="button"
             onClick={() => setWorkspaceView("pools", { history: "push" })}
-            className={`px-5 py-4 text-left transition ${
+            className={`border-b-2 py-3 text-left transition ${
               workspaceView === "pools"
-                ? "border-l-4 border-[var(--accent-2)] bg-[var(--panel)] md:border-b-2 md:border-l-0"
-                : "border-l-4 border-transparent bg-[var(--panel)] hover:bg-[var(--panel-2)] md:border-b-2"
+                ? "border-[var(--accent-2)]"
+                : "border-transparent hover:border-[var(--line-strong)]"
             }`}
           >
-            <p className="display-face text-lg font-black uppercase">Pools ({pools.length})</p>
+            <p className="display-face text-base font-black uppercase sm:text-lg">Pools ({pools.length})</p>
             <p
-              className="mt-2 text-xs uppercase tracking-[0.14em] text-[var(--muted)]"
+              className="mt-1 hidden text-xs uppercase tracking-[0.14em] text-[var(--muted)] sm:block"
             >
               Build and edit candidate sets
             </p>
@@ -769,6 +883,7 @@ export function CreatePanels() {
           onCreatePool={() => createPoolRecord()}
           onOpenImport={() => setIsPoolImportModalOpen(true)}
           onCreateBracketFromPool={createDraftBracketFromPool}
+          onUsePoolForBracket={searchParams?.get("fromBracketSetup") === "1" ? (pool) => router.push(`/create/bracket/new?poolId=${pool.id}`) : null}
           onSavePool={savePoolInline}
           onPatchPoolDraft={(poolId, patch) =>
             setPoolInlineDrafts((current) => ({
@@ -831,7 +946,7 @@ export function CreatePanels() {
           imageSuggestionLoading={imageSuggestionLoading}
           emptyCandidateForm={emptyCandidateForm}
           isActionPending={isActionPending}
-          createDraftBracket={createDraftBracket}
+          onOpenBracketWizard={() => router.push("/create/bracket/new")}
           createPoolRecord={createPoolRecord}
           handleSyncTournamentWithPool={handleSyncTournamentWithPool}
           openSeedingEditor={handleOpenSeedingEditor}
@@ -850,9 +965,19 @@ export function CreatePanels() {
           handleArchiveTournament={handleArchiveTournament}
           updateTournamentInline={updateTournamentInline}
           handleCloseCurrentRound={handleCloseCurrentRound}
+          handleOpenNextRound={handleOpenNextRound}
           handleRerunTournament={handleRerunTournament}
           handleSetManualMatchWinner={handleSetManualMatchWinner}
           tournamentMatches={tournamentMatches}
+        />
+      ) : null}
+
+      {isBracketWizardOpen ? (
+        <BracketCreationWizard
+          pools={pools}
+          creating={isBracketWizardCreating}
+          onCancel={() => setIsBracketWizardOpen(false)}
+          onCreate={handleCreateBracketFromWizard}
         />
       ) : null}
 

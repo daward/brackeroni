@@ -109,6 +109,15 @@ test("updateSubBracketName updates the targeted canonical sub-bracket", () => {
   assert.deepEqual(renamed.subBrackets, [{ id: "group-z", index: 0, name: "West" }]);
 });
 
+test("normalizeSeedingStructure preserves an empty bracket name while it is being edited", () => {
+  const normalized = normalizeSeedingStructure({
+    subBrackets: [{ id: "group-z", index: 0, name: "" }],
+    entryBrackets: {}
+  });
+
+  assert.deepEqual(normalized.subBrackets, [{ id: "group-z", index: 0, name: "" }]);
+});
+
 test("normalizeSeedingStructure drops invalid bracket assignments while preserving defined brackets", () => {
   const entries = [entry("e1", 1), entry("e2", 2)];
   const structure = {

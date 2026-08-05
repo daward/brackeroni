@@ -1,8 +1,9 @@
 "use client";
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { BracketOutcomeHeader } from "@/components/bracket-outcome-header";
 import { BackdropRemoteImage } from "@/components/resilient-remote-image";
-import { revealTournamentRound } from "@/lib/client-api/create-workspace";
+import { openNextTournamentRound, revealTournamentRound } from "@/lib/client-api/create-workspace";
 import {
   formatResultModeLabel,
   usesOpenEndedRankingMode,
@@ -349,46 +350,103 @@ function downloadTextFile({ filename, text, type }) {
   URL.revokeObjectURL(url);
 }
 
-function RoundRevealControls({ tournament, round, stats, canReveal, onReveal }) {
+function RoundRevealControls({ tournament, round, canReveal, onReveal, isFinalRound }) {
   const [message, setMessage] = useState("");
   const [isPending, startTransition] = useTransition();
+  const router = useRouter();
   const isRevealable = canReveal && round.status === "closed" && !round.revealedAt;
+  const isPublicBracket = ["public_listed", "public_unlisted"].includes(tournament.visibility);
+  const actionLabel = isFinalRound ? "Reveal Final Results" : "Open Next Round";
 
   function handleReveal() {
     startTransition(async () => {
       setMessage("");
       try {
+        if (isPublicBracket) {
+          await openNextTournamentRound(tournament.id);
+          router.refresh();
+          return;
+        }
+
         const data = await revealTournamentRound(round.id);
         onReveal(data.item);
         setMessage("Round revealed.");
       } catch (error) {
-        setMessage(error.message || "Failed to reveal round.");
+        setMessage(error.message || (isPublicBracket ? "Failed to open the next round." : "Failed to reveal round."));
       }
     });
-  }
-
-  async function handleCopyPrompt() {
-    const prompt = buildCreatorPrompt({ tournament, round, stats });
-    await navigator.clipboard.writeText(prompt);
-    setMessage("Creator prompt copied.");
   }
 
   return (
     <div className="flex flex-wrap items-center gap-3">
       {isRevealable ? (
-        <button
-          type="button"
-          onClick={handleReveal}
-          disabled={isPending}
-          className="ui-button ui-button-primary"
-        >
-          {isPending ? "Revealing" : "Reveal Round"}
-        </button>
+        <div>
+          <button
+            type="button"
+            onClick={handleReveal}
+            disabled={isPending}
+            className="ui-button ui-button-primary"
+          >
+            {isPending ? (isPublicBracket ? "Opening" : "Revealing") : isPublicBracket ? actionLabel : "Reveal Round"}
+          </button>
+          {isPublicBracket ? (
+            <p className="mt-2 max-w-md text-xs leading-5 text-[var(--muted)]">
+              {isFinalRound
+                ? "Makes the final result visible to everyone."
+                : "Makes these results visible and opens voting for the next round."}
+            </p>
+          ) : null}
+        </div>
       ) : null}
-      <button type="button" onClick={handleCopyPrompt} className="ui-button ui-button-muted">
-        Copy Creator Prompt
-      </button>
       {message ? <p className="text-sm text-[var(--muted)]">{message}</p> : null}
+    </div>
+  );
+}
+function RoundMoreActions({ tournament, round, stats, onOpenShareCard, isFinalResults }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [message, setMessage] = useState("");
+
+  async function handleCopyPrompt() {
+    await navigator.clipboard.writeText(buildCreatorPrompt({ tournament, round, stats }));
+    setMessage("Creator prompt copied.");
+    setIsOpen(false);
+  }
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => setIsOpen((current) => !current)}
+        className="ui-button ui-button-muted inline-flex h-12 items-center gap-2 px-4 text-sm"
+        aria-label="More round actions"
+        aria-haspopup="menu"
+        aria-expanded={isOpen}
+      >
+        <span aria-hidden="true" className="flex flex-col gap-1">
+          <span className="h-1 w-1 rounded-full bg-current" />
+          <span className="h-1 w-1 rounded-full bg-current" />
+          <span className="h-1 w-1 rounded-full bg-current" />
+        </span>
+        <span>More</span>
+      </button>
+      {isOpen ? (
+        <div role="menu" className="absolute right-0 top-[calc(100%+0.5rem)] z-20 w-56 border border-[var(--line-strong)] bg-[var(--panel)] p-2 shadow-[0_12px_28px_rgba(0,0,0,0.3)]">
+          <button type="button" onClick={handleCopyPrompt} className="block w-full px-3 py-3 text-left text-sm text-[var(--muted)] hover:bg-[rgba(255,255,255,0.04)] hover:text-[var(--ink)]">
+            Copy creator prompt
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              onOpenShareCard({ tournament, round, stats, isFinalResults });
+              setIsOpen(false);
+            }}
+            className="block w-full px-3 py-3 text-left text-sm text-[var(--accent-3)] hover:bg-[rgba(255,255,255,0.04)]"
+          >
+            Share card
+          </button>
+        </div>
+      ) : null}
+      {message ? <p className="absolute right-0 top-[calc(100%+0.5rem)] z-20 w-48 border border-[var(--line)] bg-[var(--panel)] px-3 py-2 text-xs text-[var(--muted)]">{message}</p> : null}
     </div>
   );
 }
@@ -625,6 +683,7 @@ function RoundProgressCard({
   statMatches = matches,
   allMatches = statMatches,
   isFinalResults = false,
+  isSuperseded = false,
   isCreator,
   onOpenShareCard,
   onReveal
@@ -638,26 +697,105 @@ function RoundProgressCard({
     ? getSwissEntryStatsThroughRound(allMatches, round.roundNumber)
     : null;
   const finalEntries = isRankingFinalResults ? orderFinalEntries(tournament.entries).slice(0, 12) : [];
-  const isHidden = round.status === "closed" && !round.revealedAt;
+  const isEffectivelyRevealed = Boolean(round.revealedAt || isSuperseded);
+  const isHidden = round.status === "closed" && !isEffectivelyRevealed;
+  const [activeStatSlide, setActiveStatSlide] = useState(0);
+
+  function handleStatRailScroll(event) {
+    const { scrollLeft, clientWidth } = event.currentTarget;
+
+    if (!clientWidth) {
+      return;
+    }
+
+    setActiveStatSlide(Math.round(scrollLeft / clientWidth));
+  }
 
   return (
     <article
       id={`round-${round.id}`}
-      className="scroll-mt-6 border-y border-[var(--line)] bg-transparent py-6"
+      className="scroll-mt-20 border-y border-[var(--line)] bg-transparent py-6 lg:scroll-mt-6"
     >
       <div>
         <p className="results-kicker">{round.status}</p>
-        <h2 className="results-title text-4xl">
-          {isFinalResults ? "Final Results" : formatRoundTitle(round, tournament)}
-        </h2>
-        <p className="results-meta">
+        {isFinalResults ? (
+          <h2 className="results-title text-3xl sm:text-4xl">Final Results</h2>
+        ) : null}
+        <p className="results-meta max-w-full leading-6 sm:leading-normal">
           {round.matchCount} matchups | {getRoundStats(matches).totalVotes} votes
           {isHidden ? " | Hidden from participants" : ""}
-          {round.revealedAt ? " | Revealed" : ""}
+          {isEffectivelyRevealed ? " | Revealed" : ""}
         </p>
       </div>
 
-      <div className="mt-6 grid gap-x-8 gap-y-2 md:grid-cols-2 xl:grid-cols-4">
+      <div className="progress-stat-carousel mt-6 md:hidden">
+        <div className="progress-stat-carousel-rail ui-scroll-subtle" onScroll={handleStatRailScroll}>
+            <div className="progress-stat-carousel-slide">
+              <RoundStatCard
+                label="Most Votes"
+                value={stats.voteLeader ? stats.voteLeader.name : "No votes yet"}
+                tieCount={stats.voteLeaderTieCount}
+                tone="blue"
+                detail={
+                  stats.voteLeader
+                    ? `${stats.voteLeader.votes} votes | Seed ${stats.voteLeader.seed}`
+                    : null
+                }
+              />
+            </div>
+            <div className="progress-stat-carousel-slide">
+              <RoundStatCard
+                label="Closest Match"
+                value={stats.closestMatch ? stats.closestMatch.winnerName : "No closed match yet"}
+                tieCount={stats.closestMatchTieCount}
+                tone="yellow"
+                detail={
+                  stats.closestMatch
+                    ? `Beat ${stats.closestMatch.loserName} by ${stats.closestMatch.margin} votes`
+                    : null
+                }
+              />
+            </div>
+            <div className="progress-stat-carousel-slide">
+              <RoundStatCard
+                label="Biggest Blowout"
+                value={stats.biggestBlowout ? stats.biggestBlowout.winnerName : "No closed match yet"}
+                tieCount={stats.biggestBlowoutTieCount}
+                tone="blue"
+                detail={
+                  stats.biggestBlowout
+                    ? `${formatPercent(stats.biggestBlowout.winnerPercent)} over ${stats.biggestBlowout.loserName}`
+                    : null
+                }
+              />
+            </div>
+            <div className="progress-stat-carousel-slide">
+              <RoundStatCard
+                label="Biggest Upset"
+                value={stats.biggestUpset ? stats.biggestUpset.winnerName : "No seed upset"}
+                tieCount={stats.biggestUpsetTieCount}
+                tone="yellow"
+                detail={
+                  stats.biggestUpset
+                    ? `Seed ${stats.biggestUpset.winnerSeed} beat seed ${stats.biggestUpset.loserSeed}`
+                    : null
+                }
+              />
+            </div>
+        </div>
+        <div className="progress-stat-carousel-dots">
+            {[0, 1, 2, 3].map((index) => (
+              <span
+                key={index}
+                className={`progress-stat-carousel-dot ${
+                  activeStatSlide === index ? "progress-stat-carousel-dot-active" : ""
+                }`.trim()}
+              />
+            ))}
+        </div>
+      </div>
+
+      <div className="mt-6 hidden gap-x-8 gap-y-2 md:grid md:grid-cols-2 xl:grid-cols-4">
         <RoundStatCard
           label="Most Votes"
           value={stats.voteLeader ? stats.voteLeader.name : "No votes yet"}
@@ -720,47 +858,33 @@ function RoundProgressCard({
               <p className="text-sm text-[var(--muted)]">No final ranking is available yet.</p>
             ) : (
               finalEntries.map((entry, index) => (
-                <RankingTile
-                  key={entry.id}
-                  entry={entry}
-                  fallbackRank={index + 1}
-                  swissStats={swissStats}
-                />
+                <RankingTile key={entry.id} entry={entry} fallbackRank={index + 1} swissStats={swissStats} />
               ))
             )
           ) : roundWinners.length === 0 ? (
             <p className="text-sm text-[var(--muted)]">No winners recorded for this round yet.</p>
           ) : (
-            roundWinners.map((match) => (
-              <WinnerTile key={match.id} match={match} swissStats={swissStats} />
-            ))
+            roundWinners.map((match) => <WinnerTile key={match.id} match={match} swissStats={swissStats} />)
           )}
         </div>
       </div>
 
       {isCreator ? (
-        <div className="mt-4 flex flex-wrap items-center gap-3">
+          <div className="mt-4 flex min-w-0 items-center gap-3">
           <RoundRevealControls
             tournament={tournament}
             round={round}
-            stats={stats}
-            canReveal={isCreator}
+            canReveal={isCreator && !isEffectivelyRevealed}
+            isFinalRound={!usesOpenEndedRankingMode(tournament.resultMode) && round.matchCount === 1}
             onReveal={onReveal}
           />
-          <button
-            type="button"
-            onClick={() =>
-              onOpenShareCard({
-                tournament,
-                round,
-                stats,
-                isFinalResults
-              })
-            }
-            className="ui-button ui-button-accent"
-          >
-            Share Card
-          </button>
+          <RoundMoreActions
+            tournament={tournament}
+            round={round}
+            stats={stats}
+            isFinalResults={isFinalResults}
+            onOpenShareCard={onOpenShareCard}
+          />
         </div>
       ) : null}
     </article>
@@ -777,6 +901,13 @@ export function BracketProgressPage({
 }) {
   const [localRounds, setLocalRounds] = useState(rounds);
   const [shareCard, setShareCard] = useState(null);
+  const [activeRoundId, setActiveRoundId] = useState(() =>
+    [...rounds].sort((left, right) => right.roundNumber - left.roundNumber)[0]?.id ?? null
+  );
+  const roundRailItemRefs = useRef(new Map());
+  const roundRailAnchorRef = useRef(null);
+  const isRoundNavigationRef = useRef(false);
+  const [isRoundRailPinned, setIsRoundRailPinned] = useState(false);
   const orderedRounds = useMemo(
     () => [...localRounds].sort((left, right) => right.roundNumber - left.roundNumber),
     [localRounds]
@@ -797,6 +928,82 @@ export function BracketProgressPage({
     return grouped;
   }, [matches]);
 
+useEffect(() => {
+    const updateRailMode = () => {
+      const anchor = roundRailAnchorRef.current;
+      setIsRoundRailPinned(Boolean(anchor && window.innerWidth < 1024 && anchor.getBoundingClientRect().top <= 0));
+    };
+
+    updateRailMode();
+    window.addEventListener("scroll", updateRailMode, { passive: true });
+    window.addEventListener("resize", updateRailMode);
+    return () => {
+      window.removeEventListener("scroll", updateRailMode);
+      window.removeEventListener("resize", updateRailMode);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!orderedRounds.length) return undefined;
+
+    const railClearance = 112;
+    let animationFrame = null;
+    const updateActiveRound = () => {
+      animationFrame = null;
+      if (isRoundNavigationRef.current) return;
+      const roundPositions = orderedRounds
+        .map((round) => ({ round, element: document.getElementById(`round-${round.id}`) }))
+        .filter(({ element }) => element);
+      const containingRound = roundPositions.find(({ element }) => {
+        const bounds = element.getBoundingClientRect();
+        return bounds.top <= railClearance && bounds.bottom > railClearance;
+      });
+      const latestPassedRound = [...roundPositions]
+        .reverse()
+        .find(({ element }) => element.getBoundingClientRect().top <= railClearance);
+
+      setActiveRoundId((current) => containingRound?.round.id ?? latestPassedRound?.round.id ?? current ?? orderedRounds[0].id);
+    };
+    const requestUpdate = () => {
+      if (animationFrame === null) animationFrame = window.requestAnimationFrame(updateActiveRound);
+    };
+
+    const unlockRoundTracking = () => {
+      if (!isRoundNavigationRef.current) return;
+      isRoundNavigationRef.current = false;
+      requestUpdate();
+    };
+
+    updateActiveRound();
+    document.addEventListener("scroll", requestUpdate, { capture: true, passive: true });
+    document.addEventListener("touchstart", unlockRoundTracking, { capture: true, passive: true });
+    window.addEventListener("wheel", unlockRoundTracking, { passive: true });
+    window.addEventListener("keydown", unlockRoundTracking);
+    window.addEventListener("resize", requestUpdate);
+    return () => {
+      document.removeEventListener("scroll", requestUpdate, true);
+      document.removeEventListener("touchstart", unlockRoundTracking, true);
+      window.removeEventListener("wheel", unlockRoundTracking);
+      window.removeEventListener("keydown", unlockRoundTracking);
+      window.removeEventListener("resize", requestUpdate);
+      if (animationFrame !== null) window.cancelAnimationFrame(animationFrame);
+    };
+  }, [orderedRounds]);
+
+  useEffect(() => {
+    roundRailItemRefs.current.get(activeRoundId)?.scrollIntoView({
+      behavior: "smooth",
+      block: "nearest",
+      inline: "center"
+    });
+  }, [activeRoundId]);
+
+  function handleRoundNavigation(event, roundId) {
+    event.preventDefault();
+    isRoundNavigationRef.current = true;
+    setActiveRoundId(roundId);
+    document.getElementById(`round-${roundId}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
   function handleReveal(revealedRound) {
     setLocalRounds((current) =>
       current.map((round) =>
@@ -820,23 +1027,42 @@ export function BracketProgressPage({
           headerAction={headerAction}
         />
 
-        <div className="grid gap-8 lg:grid-cols-[13rem_minmax(0,1fr)] lg:items-start">
-          <aside className="lg:sticky lg:top-4">
-            <div className="border-y border-[var(--line)] py-4">
+        <div className="grid grid-cols-[minmax(0,1fr)] gap-8 lg:grid-cols-[13rem_minmax(0,1fr)] lg:items-start">
+          <aside className="contents lg:sticky lg:top-4 lg:block">
+            <div className="hidden border-t border-[var(--line)] pt-4 lg:block lg:border-y lg:py-4">
               <p className="results-section-title">Rounds</p>
-              <nav className="mt-3 flex gap-2 overflow-x-auto pb-2 lg:flex-col lg:overflow-visible lg:pb-0">
+            </div>
+            <div ref={roundRailAnchorRef} className="h-20 lg:h-auto">
+              <div
+                className={`${isRoundRailPinned ? "fixed inset-x-0 top-0 z-40" : "relative -mx-4"} isolate py-2 lg:static lg:mx-0 lg:mt-3 lg:py-0`}
+                style={{
+                background: "linear-gradient(180deg, rgba(255, 90, 54, 0.07), transparent 18rem), linear-gradient(90deg, rgba(52, 211, 196, 0.07), transparent 24rem), linear-gradient(180deg, var(--page-bg-2) 0%, var(--page-bg) 100%)",
+                backgroundAttachment: "fixed"
+              }}
+            >
+              <nav className="rounds-navigation-rail flex gap-2 overflow-x-auto px-4 lg:flex-col lg:overflow-visible lg:px-0">
                 {orderedRounds.map((round) => (
                   <a
                     key={round.id}
+                    ref={(element) => {
+                      if (element) roundRailItemRefs.current.set(round.id, element);
+                      else roundRailItemRefs.current.delete(round.id);
+                    }}
                     href={`#round-${round.id}`}
-                    className="min-w-max border border-[var(--line)] px-3 py-2 text-left transition hover:border-[var(--accent-2)] hover:text-[var(--accent-2)] lg:min-w-0"
+                    onClick={(event) => handleRoundNavigation(event, round.id)}
+                    aria-current={activeRoundId === round.id ? "true" : undefined}
+                    className={`min-w-max shrink-0 border px-3 py-2 text-left transition lg:min-w-0 ${
+                      activeRoundId === round.id
+                        ? "border-[var(--accent-3)] bg-[rgba(52,211,196,0.08)] text-[var(--ink)]"
+                        : "border-[var(--line)] hover:border-[var(--accent-2)] hover:text-[var(--accent-2)]"
+                    }`}
                   >
-                    <span className="display-face block text-lg font-black">
+                    <span className="display-face block text-base font-black leading-tight sm:text-lg">
                       {tournament.status === "complete" && round.roundNumber === finalRoundNumber
                         ? "Final Results"
                         : formatRoundTitle(round, tournament)}
                     </span>
-                    <span className="mt-1 block text-[11px] uppercase tracking-[0.16em] text-[var(--muted)]">
+                    <span className="mt-1 block text-[10px] uppercase tracking-[0.14em] text-[var(--muted)] sm:text-[11px] sm:tracking-[0.16em]">
                       {round.status}
                       {round.revealedAt ? " / revealed" : ""}
                     </span>
@@ -844,9 +1070,10 @@ export function BracketProgressPage({
                 ))}
               </nav>
             </div>
+            </div>
           </aside>
 
-          <div className="space-y-4">
+          <div className="min-w-0 space-y-4">
           {orderedRounds.length === 0 ? (
             <p className="text-sm text-[var(--muted)]">No round progress is available yet.</p>
           ) : (
@@ -865,6 +1092,7 @@ export function BracketProgressPage({
                 isFinalResults={
                   tournament.status === "complete" && round.roundNumber === finalRoundNumber
                 }
+                isSuperseded={round.roundNumber < finalRoundNumber}
                 isCreator={isCreator}
                 onOpenShareCard={setShareCard}
                 onReveal={handleReveal}

@@ -60,6 +60,7 @@ export function CandidateManagerPanel({
   isCreatePending,
   isSavePending,
   removingCandidateId = null,
+  candidateEditorDescription = "Update the candidate and keep the full list in place behind the drawer.",
   listHeading = "In This Pool",
   listEmptyMessage = "No candidates in this pool yet."
 }) {
@@ -388,9 +389,11 @@ export function CandidateManagerPanel({
                 <p className="display-face text-xs font-black uppercase tracking-[0.18em] text-[var(--accent-2)]">
                   {isEditingCandidate ? "Edit Candidate" : "Create Candidate"}
                 </p>
-                <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-                  Update the candidate and keep the full list in place behind the drawer.
-                </p>
+                {candidateEditorDescription ? (
+                  <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+                    {candidateEditorDescription}
+                  </p>
+                ) : null}
               </div>
               <button
                 type="button"
@@ -433,7 +436,7 @@ export function CandidateManagerPanel({
                     placeholder="Tags (comma-separated)"
                     className="ui-field ui-field-panel"
                   />
-                  <div className="flex flex-wrap gap-3">
+                  <div className="flex flex-nowrap gap-3">
                     <button
                       type="button"
                       onClick={onSubmit}

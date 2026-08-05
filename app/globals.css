@@ -144,6 +144,88 @@ optgroup {
   color: #111111;
 }
 
+.bracket-setup-page {
+  width: 100%;
+}
+
+.bracket-setup-shell {
+  width: 100%;
+  max-width: 72rem;
+}
+
+.bracket-setup-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid var(--line-strong);
+  padding: 0.75rem 0 1rem;
+}
+
+.bracket-setup-steps {
+  display: flex;
+  margin-top: 1rem;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.bracket-setup-content {
+  max-width: 64rem;
+  padding: 2rem 0;
+}
+
+.bracket-setup-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  max-width: 64rem;
+  border-top: 1px solid var(--line-strong);
+  padding: 1rem 0 0;
+}
+
+.pool-management-panel {
+  border-top: 1px solid var(--line-strong);
+  border-bottom: 1px solid var(--line-strong);
+}
+
+@media (max-width: 640px) {
+  .bracket-setup-header {
+    padding-top: 0.25rem;
+  }
+
+  .bracket-setup-steps {
+    overflow-x: auto;
+  }
+
+  .bracket-setup-steps button {
+    min-width: max-content;
+    padding-inline: 0.75rem;
+  }
+
+  .bracket-setup-content {
+    padding-block: 1.5rem;
+  }
+}
+
+.main-nav-control {
+  border: 1px solid var(--line-strong);
+  background: rgba(246, 242, 232, 0.08);
+  color: var(--ink);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  transition:
+    border-color 150ms ease,
+    background-color 150ms ease,
+    color 150ms ease;
+}
+
+.main-nav-control:hover,
+.main-nav-control:focus-visible {
+  border-color: var(--accent-3);
+  background: rgba(52, 211, 196, 0.1);
+  color: var(--ink);
+}
+
 .cta-link,
 .cta-link:hover,
 .cta-link:focus-visible {
@@ -187,6 +269,19 @@ optgroup {
 .ui-button-primary:focus-visible {
   border-color: var(--accent-3);
   background: var(--accent-3);
+  color: #111111;
+}
+
+.ui-button-current {
+  border-color: var(--accent-2);
+  background: var(--accent-2);
+  color: #111111;
+}
+
+.ui-button-current:hover,
+.ui-button-current:focus-visible {
+  border-color: var(--accent-2);
+  background: var(--accent-2);
   color: #111111;
 }
 
@@ -341,6 +436,10 @@ optgroup {
 .ui-field-select:focus {
   border-color: var(--accent-2);
   font-family: "Arial";
+}
+
+.live-bracket-picker-trigger:focus {
+  border-color: var(--accent-2);
 }
 
 .ui-field-select {
@@ -2130,6 +2229,28 @@ optgroup {
   box-shadow: inset 0 -1px 0 rgba(255, 211, 77, 0.18);
 }
 
+@media (max-width: 47.999rem) {
+  .results-header-row {
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+
+  .results-header-action,
+  .results-scoring-header-control {
+    width: 100%;
+    margin-top: 0;
+    padding-top: 0;
+  }
+
+  .results-scoring-header-control {
+    justify-content: stretch;
+  }
+
+  .results-scoring-header-select {
+    width: 100%;
+    min-width: 0;
+  }
+}
 .results-scoring-header-select:hover,
 .results-scoring-header-select:focus {
   border-color: var(--accent-2);
@@ -2387,6 +2508,75 @@ optgroup {
   font-weight: 900;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+}
+
+.rounds-navigation-rail {
+  scrollbar-width: none;
+}
+
+
+.rounds-navigation-rail::-webkit-scrollbar {
+  display: none;
+}
+.progress-stat-carousel {
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.progress-stat-carousel-rail {
+  display: flex;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  overscroll-behavior-x: contain;
+  touch-action: pan-x;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.progress-stat-carousel-rail::-webkit-scrollbar {
+  display: none;
+}
+
+.progress-stat-carousel-slide {
+  display: flex;
+  flex: 0 0 100%;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+}
+
+.progress-stat-carousel-slide > * {
+  width: 100%;
+  height: 100%;
+}
+
+.progress-stat-carousel-dots {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  margin-top: 0.65rem;
+}
+
+.progress-stat-carousel-dot {
+  width: 0.34rem;
+  height: 0.34rem;
+  border-radius: 999px;
+  background: rgba(228, 220, 201, 0.38);
+  transition:
+    background-color 150ms ease,
+    transform 150ms ease;
+}
+
+.progress-stat-carousel-dot-active {
+  background: var(--accent-3);
+  transform: scale(1.15);
 }
 
 .results-table.results-scoring-table thead th {

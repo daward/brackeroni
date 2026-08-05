@@ -53,12 +53,12 @@ function StatusActionRow({ actions }) {
   const openReasonAction = actions.find(
     (action) => action?.disabled && action.key === openReasonKey
   );
-  const actionSlotClassName = "shrink-0";
+  const actionSlotClassName = "min-w-0 lg:w-auto";
   const actionButtonClassName = "h-[3.25rem]";
 
   return (
     <>
-      <div className="mt-4 flex flex-wrap gap-3">
+      <div className="mt-4 grid grid-cols-2 gap-3 lg:flex lg:flex-wrap">
         {actions.map((action) => {
           if (!action) {
             return null;
@@ -80,7 +80,7 @@ function StatusActionRow({ actions }) {
                 aria-haspopup="dialog"
                 aria-label={action.disabledReason || action.label}
                 onClick={() => setOpenReasonKey(action.key)}
-                className={`${action.className || "ui-button ui-button-muted"} ${actionSlotClassName} ${actionButtonClassName} justify-center`}
+                className={`${action.className || "ui-button ui-button-muted"} ${actionSlotClassName} ${actionButtonClassName} w-full justify-center lg:w-auto`}
               >
                 {action.label}
               </button>
@@ -92,7 +92,7 @@ function StatusActionRow({ actions }) {
               <a
                 key={action.key}
                 href={action.href}
-                className={`${action.className} ${actionSlotClassName} ${actionButtonClassName} justify-center`}
+                className={`${action.className} ${actionSlotClassName} ${actionButtonClassName} w-full justify-center lg:w-auto`}
               >
                 {action.label}
               </a>
@@ -105,7 +105,7 @@ function StatusActionRow({ actions }) {
               type="button"
               onClick={action.onClick}
               disabled={action.disabled}
-              className={`${action.className} ${actionSlotClassName} ${actionButtonClassName} justify-center`}
+              className={`${action.className} ${actionSlotClassName} ${actionButtonClassName} w-full justify-center lg:w-auto`}
             >
               {action.label}
             </button>
@@ -629,12 +629,15 @@ export function ActiveStandardTournamentSection({
   formatBracketRuleLabel,
   isActionPending,
   onCloseCurrentRound,
+  onOpenNextRound,
   onCopyShareLink,
   onSetManualMatchWinner,
   onRerunTournament,
   onArchiveTournament
 }) {
   const usesManualAdvancement = tournament.advancementMode === "manual_winner";
+  const isPublicBracket = ["public_listed", "public_unlisted"].includes(tournament.visibility);
+  const awaitingNextRound = isPublicBracket && tournament.hasHiddenClosedRounds;
   const currentRoundMatches = (activeRoundMatches || []).filter((match) => match.status === "open");
   const completedManualResults = currentRoundMatches.filter((match) => match.winnerEntryId).length;
   const unresolvedManualCount = currentRoundMatches.filter((match) => !match.winnerEntryId).length;
@@ -724,10 +727,26 @@ export function ActiveStandardTournamentSection({
         body={
           usesManualAdvancement
             ? "This will close voting for the current bracket state and keep the winners you entered as the advancing entries."
-            : "This will close voting for the current round and open the next round with the advancing winners."
+            : isPublicBracket
+              ? "This freezes the vote totals. You will open the next round when you are ready to reveal these results."
+              : "This will close voting for the current round and open the next round with the advancing winners."
         }
         confirmLabel="Close Voting"
         onConfirm={() => onCloseCurrentRound(tournament.id)}
+      />
+    )
+  };
+  const openNextRoundAction = {
+    key: `open-next-round:${tournament.id}`,
+    render: () => (
+      <CloseVotingButton
+        label="Open Next Round"
+        className="ui-button ui-button-primary w-full"
+        disabled={isActionPending(`open-next-round:${tournament.id}`)}
+        title="Open the next round?"
+        body="This makes the closed round visible and opens voting for the advancing winners."
+        confirmLabel="Open Next Round"
+        onConfirm={() => onOpenNextRound(tournament.id)}
       />
     )
   };
@@ -756,12 +775,9 @@ export function ActiveStandardTournamentSection({
             : "A share link is not available for this bracket yet.",
         className: "ui-button ui-button-muted"
       };
-  const standardActions = [
-    standardVoteAction,
-    standardResultsAction,
-    standardCloseAction,
-    standardShareAction
-  ];
+  const standardActions = awaitingNextRound
+    ? [standardVoteAction, openNextRoundAction, standardShareAction]
+    : [standardVoteAction, standardResultsAction, standardCloseAction, standardShareAction];
 
   return (
     <div className="space-y-4">

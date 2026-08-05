@@ -6,6 +6,7 @@ import {
   archiveParallelTournament,
   archiveTournament,
   closeCurrentTournamentRound,
+  openNextTournamentRound,
   createParallelTournament,
   createTournament,
   deleteTournament,
@@ -436,6 +437,30 @@ export function useTournamentActions({
     }
   }
 
+  async function handleOpenNextRound(tournamentId) {
+    const actionKey = `open-next-round:${tournamentId}`;
+    if (isActionPending(actionKey)) {
+      return;
+    }
+
+    beginAction(actionKey);
+    setErrorMessage("");
+    setSuccessMessage("");
+
+    try {
+      const data = await openNextTournamentRound(tournamentId);
+      if (data.item) {
+        replaceTournamentInWorkspace(tournamentId, data.item);
+      }
+      await refreshTournamentMatches(tournamentId);
+      setSuccessMessage(data.item?.status === "complete" ? "Final results revealed." : "Results revealed and the next round is open.");
+      await loadWorkspace();
+    } catch (error) {
+      setErrorMessage(error.message || "Failed to open the next round.");
+    } finally {
+      endAction(actionKey);
+    }
+  }
   async function handleSetManualMatchWinner(tournamentId, matchId, winnerEntryId) {
     const actionKey = `set-match-winner:${matchId}`;
     if (isActionPending(actionKey)) {
@@ -463,6 +488,7 @@ export function useTournamentActions({
     createDraftBracketFromPool,
     handleArchiveTournament,
     handleCloseCurrentRound,
+    handleOpenNextRound,
     handleRerunTournament,
     handleSetManualMatchWinner,
     handleStartTournament,

@@ -42,7 +42,7 @@ export function AuthControls({ user, googleConfigured, isDevShimActive, isAdmin 
       onClick={() => signIn("google", { callbackUrl })}
       disabled={!googleConfigured}
       title={googleConfigured ? "Sign in with Google" : "Configure Google OAuth to sign in."}
-      className="nav-link display-face appearance-none border border-[var(--line)] bg-[var(--panel)] px-4 py-3 text-sm font-bold uppercase tracking-[0.18em] transition hover:border-[var(--accent-2)] hover:bg-[var(--accent-2)] disabled:cursor-not-allowed disabled:opacity-60"
+      className="main-nav-control display-face appearance-none px-4 py-3 text-sm font-bold uppercase tracking-[0.18em] disabled:cursor-not-allowed disabled:opacity-60"
     >
       Sign In
     </button>
@@ -85,7 +85,7 @@ function AccountMenu({ user, isDevShimActive, isAdmin }) {
       <button
         type="button"
         onClick={() => setIsOpen((current) => !current)}
-        className="nav-link inline-flex items-center justify-center border border-[var(--line)] bg-[var(--panel)] px-3 py-2.5 transition hover:border-[var(--accent-2)] hover:bg-[var(--accent-2)]"
+        className="main-nav-control inline-flex items-center justify-center px-3 py-2.5"
         aria-haspopup="menu"
         aria-expanded={isOpen}
       >

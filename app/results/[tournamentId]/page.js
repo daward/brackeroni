@@ -152,6 +152,19 @@ export default async function TournamentResultsRoute({ params, searchParams }) {
       />
     );
   } catch (standardError) {
+    if (standardError?.message === "NOT_FOUND") {
+      console.warn("[results] Tournament unavailable", {
+        tournamentId,
+        requestedView,
+        hasAuthenticatedUser: Boolean(user?.id),
+        hasAnonymousVoterToken: Boolean(anonymousVoterToken)
+      });
+    }
+
+    if (standardError?.message !== "NOT_FOUND") {
+      throw standardError;
+    }
+
     try {
       const parallelResults = await getParallelTournamentAggregateResults({
         parallelTournamentId: tournamentId,

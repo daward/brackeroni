@@ -35,8 +35,8 @@ Overall style should be flat, sharp, and a little playful. This is not a corpora
 
 The palette should stay dark with sharp contrast and clear color jobs.
 
-1. Yellow is for primary action and high-importance calls to act.
-2. Cyan is for active state, current state, selection, focus, and information accents.
+1. Yellow is for the one primary action and the currently selected top-level/stage tab.
+2. Cyan is for secondary actions, focus, selection within content, and information accents.
 3. White or warm off-white is for the main content voice.
 4. Muted gray-brown tones are for supporting labels and structural copy.
 5. Red should be rare and should usually mean negative outcome or voted-against state.
@@ -116,6 +116,29 @@ Avoid all-caps for:
 2. Accordions are preferred over long repeated stacks when the user already understands the section labels.
 3. Carousels should behave like normal swipeable mobile rails, not faux carousels with awkward desktop controls.
 4. Indicators for swipeable content should be subtle and familiar. Dots are usually better than clumsy arrows.
+
+### Approved create-workspace reference
+
+Treat the current mobile Brackets workspace as the reference composition for management/list pages.
+
+1. The wordmark and page content share the same left gutter. Do not add a second inset inside the header.
+2. On mobile, desktop navigation collapses to an icon-only hamburger in the top-right; do not add a separate full-width "Menu" control.
+3. Brackets and Pools are compact text tabs with an underline, not stacked black navigation cards. Supporting descriptions are hidden on mobile.
+4. Drafts, Live, and Completed remain compact rectangular stage tabs. The selected stage is filled yellow; inactive stages are quiet outlined controls.
+5. Lists live directly on the open charcoal canvas. Individual rows are separated by rules, not wrapped in dark cards or a large empty black slab.
+6. Each row has a small cyan-outline continuation action and quieter outlined secondary actions. Do not repeat filled-yellow row actions.
+7. A single create action on a list page is an icon-only, yellow floating action button in the bottom-right on mobile. Its desktop counterpart may live in the relevant tab/action row, but it must not appear as a duplicate on mobile.
+8. Before shipping a mobile management page, check: shared gutter, no redundant navigation controls, one yellow hierarchy signal per local group, and no unexplained filled panels.
+
+## Workflow Pages
+
+Multi-step creation and editing flows are pages, not modals stretched to fit a route.
+
+1. Use the normal page canvas and page hierarchy; do not center a bordered dialog inside it.
+2. A route must have destination-aware navigation such as “Back to Brackets.” Never label route navigation “Close.”
+3. Keep step navigation, content, and actions in the normal reading flow. Sticky actions are acceptable when they improve mobile reachability, but modal-style fixed shells are not.
+4. Reuse the established type roles, rules, spacing, and button hierarchy before adding a new pattern.
+5. Before handing off UI work, check the desktop and mobile composition against this document. If a new pattern is needed, document why rather than silently introducing it.
 
 # Imagery
 

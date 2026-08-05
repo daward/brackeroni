@@ -73,7 +73,7 @@ export function normalizeSeedingStructure(structure = {}, entries = null) {
         id: subBracket.id,
         index,
         name:
-          typeof subBracket.name === "string" && subBracket.name.length > 0
+          typeof subBracket.name === "string"
             ? subBracket.name
             : `Sub-bracket ${index + 1}`
       });

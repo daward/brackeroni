@@ -26,7 +26,7 @@ function formatWinPercentage(value) {
 
 function AggregateScoreTable({ scores, selectedVoterKey, onSelectVoter, scoringEnabled }) {
   return (
-    <div className="results-table-wrap">
+    <div className="results-table-wrap hidden md:block">
       <table className="results-table results-scoring-table">
         <thead>
           <tr>
@@ -71,13 +71,55 @@ function AggregateScoreTable({ scores, selectedVoterKey, onSelectVoter, scoringE
   );
 }
 
+function AggregateScoreList({ scores, selectedVoterKey, onSelectVoter, scoringEnabled }) {
+  return (
+    <ol className="divide-y divide-[var(--line)] md:hidden">
+      {scores.map((score, index) => (
+        <li key={score.voterKey}>
+          <button
+            type="button"
+            onClick={() => onSelectVoter(score.voterKey)}
+            className={`grid w-full grid-cols-[2rem_minmax(0,1fr)_auto] items-center gap-3 py-4 text-left ${selectedVoterKey === score.voterKey ? "text-[var(--accent-2)]" : ""}`}
+          >
+            <span className="display-face text-xl font-black text-[var(--accent-2)]">{index + 1}</span>
+            <span className="min-w-0">
+              <span className="display-face block truncate text-lg font-black text-[var(--ink)]">{score.name || "Anonymous voter"}</span>
+              {score.email ? <span className="mt-1 block truncate text-xs uppercase tracking-[0.08em] text-[var(--muted)]">{score.email}</span> : null}
+            </span>
+            <span className="text-right">
+              {scoringEnabled ? <span className="display-face block text-lg font-black text-[var(--ink)]">{score.score}</span> : null}
+              <span className="block text-xs uppercase tracking-[0.1em] text-[var(--muted)]">{formatWinPercentage(score.winPercentage)} · {score.correctPicks}-{score.incorrectPicks}</span>
+            </span>
+          </button>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+function VoterHistoryList({ tournament, votes, scoringEnabled }) {
+  if (!votes.length) return <p className="results-empty-copy md:hidden">No scored picks are visible here yet.</p>;
+
+  return (
+    <ol className="divide-y divide-[var(--line)] md:hidden">
+      {votes.map((vote) => (
+        <li key={vote.matchId} className="py-4">
+          <p className="results-kicker">Round {formatRoundLabel(vote, tournament)}</p>
+          <p className="display-face mt-2 text-lg font-black">{vote.selectedName}</p>
+          <p className="mt-1 text-sm text-[var(--muted)]">over {vote.opponentName || "bye"}</p>
+          <p className="mt-2 text-sm text-[var(--accent-3)]">{vote.correct ? "Correct" : `Lost to ${vote.winnerName}`}{scoringEnabled ? ` · ${vote.pointsEarned} points` : ""}</p>
+        </li>
+      ))}
+    </ol>
+  );
+}
 function VoterHistoryTable({ tournament, votes, scoringEnabled }) {
   if (!votes.length) {
     return <p className="results-empty-copy">No scored picks are visible here yet.</p>;
   }
 
   return (
-    <div className="results-table-wrap">
+    <div className="results-table-wrap hidden md:block">
       <table className="results-table results-scoring-table">
         <thead>
           <tr>
@@ -198,21 +240,28 @@ export function TournamentScoringPage({
           </h2>
           {showingAggregate ? (
             visibleScores.length > 0 ? (
-              <AggregateScoreTable
-                scores={visibleScores}
-                selectedVoterKey={selectedScore?.voterKey ?? null}
-                onSelectVoter={(voterKey) => setSelectedView(voterKey)}
-                scoringEnabled={scoringEnabled}
-              />
+              <>
+                <AggregateScoreList
+                  scores={visibleScores}
+                  selectedVoterKey={selectedScore?.voterKey ?? null}
+                  onSelectVoter={(voterKey) => setSelectedView(voterKey)}
+                  scoringEnabled={scoringEnabled}
+                />
+                <AggregateScoreTable
+                  scores={visibleScores}
+                  selectedVoterKey={selectedScore?.voterKey ?? null}
+                  onSelectVoter={(voterKey) => setSelectedView(voterKey)}
+                  scoringEnabled={scoringEnabled}
+                />
+              </>
             ) : (
               <p className="results-empty-copy">No scoring data is visible here yet.</p>
             )
           ) : (
-            <VoterHistoryTable
-              tournament={tournament}
-              votes={selectedVotes}
-              scoringEnabled={scoringEnabled}
-            />
+            <>
+              <VoterHistoryList tournament={tournament} votes={selectedVotes} scoringEnabled={scoringEnabled} />
+              <VoterHistoryTable tournament={tournament} votes={selectedVotes} scoringEnabled={scoringEnabled} />
+            </>
           )}
         </div>
       </section>

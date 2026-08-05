@@ -270,11 +270,12 @@ export function sortManagedPools(items) {
   });
 }
 
-export function InlineTitleField({ autoFocus = false, value, onChange, onBlur, onKeyDown }) {
+export function InlineTitleField({ autoFocus = false, value, placeholder = "", onChange, onBlur, onKeyDown }) {
   return (
     <input
       autoFocus={autoFocus}
       value={value}
+      placeholder={placeholder}
       onChange={onChange}
       onBlur={onBlur}
       onKeyDown={onKeyDown}

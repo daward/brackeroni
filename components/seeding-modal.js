@@ -28,7 +28,6 @@ export function SeedingModal({
   onTogglePlayInAtIndex,
   onToggleSubBracket
 }) {
-  const [hoveredEntryId, setHoveredEntryId] = useState(null);
   const [backdropPointerDown, setBackdropPointerDown] = useState(false);
   const [moveMenuEntryId, setMoveMenuEntryId] = useState(null);
 
@@ -101,7 +100,7 @@ export function SeedingModal({
                 </button>
               </div>
               <p className="text-sm leading-6 text-[var(--muted)]">
-                Drag entries into seed order. Hover a normal seed to create a play-in. Remove one side to leave an empty play-in slot, or remove both sides to collapse it.
+                Drag entries into seed order. Use Play-in to pair a normal seed with the next entry. Remove one side to leave an empty play-in slot, or remove both sides to collapse it.
               </p>
               <div className="space-y-3">
                 {groups.map((group) => {
@@ -171,22 +170,20 @@ export function SeedingModal({
                                 }
                               }}
                               onDragEnd={onDragEnd}
-                              onMouseEnter={() => setHoveredEntryId(entry.id)}
-                              onMouseLeave={() => setHoveredEntryId((current) => (current === entry.id ? null : current))}
                               onDragOver={(event) => event.preventDefault()}
                               onDrop={(event) => {
                                 event.preventDefault();
                                 event.stopPropagation();
                                 onMoveEntryIntoGroup(draggingEntryId, group, index);
                               }}
-                              className={`group flex items-center gap-3 border px-3 py-3 transition ${
+                              className={`group flex items-center gap-2 border px-2 py-2 transition md:gap-3 md:px-3 md:py-3 ${
                                 draggingEntryId === entry.id
                                   ? "border-[var(--accent-3)] bg-[var(--panel-3)]"
                                   : "border-[var(--line)] bg-[var(--panel-2)] hover:border-[var(--accent-2)]"
                               } ${entry.isEmptySlot ? "cursor-default border-dashed" : "cursor-move"}`}
                             >
-                              <div className="flex w-16 flex-col">
-                                <span className="display-face text-lg font-black uppercase text-[var(--accent-2)]">
+                              <div className="flex w-10 shrink-0 flex-col md:w-16">
+                                <span className="display-face text-base font-black uppercase text-[var(--accent-2)] md:text-lg">
                                   {displaySeed ?? ""}
                                 </span>
                                 {isLocalPlayInSlot ? (
@@ -199,7 +196,7 @@ export function SeedingModal({
                                 <ResilientRemoteImage
                                   src={entry.candidateImageUrl}
                                   alt={entry.candidateName}
-                                  className="h-12 w-12 rounded-sm object-cover"
+                                  className="h-10 w-10 shrink-0 rounded-sm object-cover md:h-12 md:w-12"
                                 />
                               ) : null}
                               <div className="min-w-0 flex-1">
@@ -207,7 +204,7 @@ export function SeedingModal({
                                   {entry.candidateName}
                                 </p>
                                 {entry.candidateDescription ? (
-                                  <p className="mt-1 line-clamp-2 text-xs leading-5 text-[var(--muted)]">
+                                  <p className="mt-1 hidden line-clamp-2 text-xs leading-5 text-[var(--muted)] md:block">
                                     {entry.candidateDescription}
                                   </p>
                                 ) : null}
@@ -217,7 +214,7 @@ export function SeedingModal({
                                   </p>
                                 ) : null}
                               </div>
-                              <div className="flex items-center gap-2">
+                              <div className="flex shrink-0 items-center">
                                 <div className="relative">
                                   <button
                                     type="button"
@@ -226,17 +223,60 @@ export function SeedingModal({
                                       event.stopPropagation();
                                       setMoveMenuEntryId((current) => (current === entry.id ? null : entry.id));
                                     }}
-                                    className={`ui-button ui-button-muted min-h-[40px] px-3 py-2 text-[10px] ${
-                                      hoveredEntryId === entry.id || moveMenuEntryId === entry.id
-                                        ? "opacity-100"
-                                        : "opacity-0 group-hover:opacity-100"
-                                    }`}
+                                    className="ui-button ui-button-muted flex h-10 w-10 items-center justify-center p-0 text-base leading-none tracking-normal"
+                                    aria-label={`Actions for ${entry.candidateName}`}
+                                    aria-haspopup="menu"
+                                    aria-expanded={moveMenuEntryId === entry.id}
                                   >
-                                    Move to...
+                                    <span aria-hidden="true">&#8942;</span>
                                   </button>
                                   {moveMenuEntryId === entry.id ? (
-                                    <div className="absolute right-0 top-full z-20 mt-2 w-52 border border-[var(--line)] bg-[var(--panel)] p-2 shadow-[0_10px_30px_rgba(0,0,0,0.35)]">
+                                    <div
+                                      role="menu"
+                                      className="absolute right-0 top-full z-20 mt-2 w-52 border border-[var(--line)] bg-[var(--panel)] p-2 shadow-[0_10px_30px_rgba(0,0,0,0.35)]"
+                                    >
                                       <div className="space-y-1">
+                                        {isLocalPlayInSlot ? (
+                                          <button
+                                            type="button"
+                                            onClick={(event) => {
+                                              event.preventDefault();
+                                              event.stopPropagation();
+                                              const partner =
+                                                pairDirection === "previous"
+                                                  ? group.entries[rowIndex - 1]
+                                                  : group.entries[rowIndex + 1];
+
+                                              if (partner?.entry?.id) {
+                                                onRemoveFromPlayInAtIndex(entry.id, partner.entry.id);
+                                                setMoveMenuEntryId(null);
+                                              }
+                                            }}
+                                            className="block w-full px-3 py-2 text-left text-xs uppercase tracking-[0.12em] text-[var(--accent-2)] transition hover:bg-[var(--panel-3)]"
+                                          >
+                                            Remove from play-in
+                                          </button>
+                                        ) : canStartPlayIn ? (
+                                          <button
+                                            type="button"
+                                            onClick={(event) => {
+                                              event.preventDefault();
+                                              event.stopPropagation();
+                                              const partner = group.entries[rowIndex + 1];
+
+                                              if (partner?.entry?.id) {
+                                                onTogglePlayInAtIndex(entry.id, partner.entry.id);
+                                                setMoveMenuEntryId(null);
+                                              }
+                                            }}
+                                            className="block w-full px-3 py-2 text-left text-xs uppercase tracking-[0.12em] text-[var(--accent-2)] transition hover:bg-[var(--panel-3)]"
+                                          >
+                                            Create play-in
+                                          </button>
+                                        ) : null}
+                                        {isLocalPlayInSlot || canStartPlayIn ? (
+                                          <div className="my-1 border-t border-[var(--line)]" />
+                                        ) : null}
                                         {moveTargets.map((target) => (
                                           <button
                                             key={`${entry.id}-${target.id}`}
@@ -272,46 +312,6 @@ export function SeedingModal({
                                     </div>
                                   ) : null}
                                 </div>
-                                {isLocalPlayInSlot ? (
-                                  <button
-                                    type="button"
-                                    onClick={(event) => {
-                                      event.preventDefault();
-                                      event.stopPropagation();
-                                      const partner =
-                                        pairDirection === "previous"
-                                          ? group.entries[rowIndex - 1]
-                                          : group.entries[rowIndex + 1];
-
-                                      if (partner?.entry?.id) {
-                                        onRemoveFromPlayInAtIndex(entry.id, partner.entry.id);
-                                      }
-                                    }}
-                                    className={`ui-button ui-button-muted min-h-[40px] px-3 py-2 text-[10px] ${
-                                      hoveredEntryId === entry.id ? "opacity-100" : "opacity-0 group-hover:opacity-100"
-                                    }`}
-                                  >
-                                    Remove
-                                  </button>
-                                ) : canStartPlayIn ? (
-                                  <button
-                                    type="button"
-                                    onClick={(event) => {
-                                      event.preventDefault();
-                                      event.stopPropagation();
-                                      const partner = group.entries[rowIndex + 1];
-
-                                      if (partner?.entry?.id) {
-                                        onTogglePlayInAtIndex(entry.id, partner.entry.id);
-                                      }
-                                    }}
-                                    className={`ui-button ui-button-muted min-h-[40px] px-3 py-2 text-[10px] ${
-                                      hoveredEntryId === entry.id ? "opacity-100" : "opacity-0 group-hover:opacity-100"
-                                    }`}
-                                  >
-                                    Play-in
-                                  </button>
-                                ) : null}
                               </div>
                             </div>
                           ))}

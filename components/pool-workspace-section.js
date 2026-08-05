@@ -1,6 +1,7 @@
 "use client";
 
 import { CandidateManagerPanel, CandidatePreviewChips } from "@/components/candidate-manager-panel";
+import { PoolManagementPanel } from "@/components/pool-management-panel";
 import { describePoolVisibility, InlineTitleField } from "@/components/create-panel-helpers";
 import { SectionCard } from "@/components/section-card";
 
@@ -20,6 +21,7 @@ export function PoolWorkspaceSection({
   onCreatePool,
   onOpenImport,
   onCreateBracketFromPool,
+  onUsePoolForBracket,
   onSavePool,
   onPatchPoolDraft,
   onSetExpandedPoolId,
@@ -102,7 +104,21 @@ export function PoolWorkspaceSection({
                   } ${isMutedPool ? "opacity-45" : "opacity-100"}`}
                 >
                   {isExpanded ? (
-                    <>
+                    <PoolManagementPanel
+                      pool={pool}
+                      draft={inlinePoolDraft}
+                      readOnly={poolIsReadOnly}
+                      onDraftChange={(patch) => onPatchPoolDraft(pool.id, patch)}
+                      actionRail={
+                        <>
+                          {onUsePoolForBracket ? <button type="button" onClick={() => onUsePoolForBracket(pool)} className="ui-button ui-button-primary ui-button-stack">Use for Bracket</button> : null}
+                          <button type="button" onClick={() => onCreateBracketFromPool(pool)} disabled={isActionPending("create-tournament")} className="ui-button ui-button-primary ui-button-stack">{isActionPending("create-tournament") ? "Creating" : "Start Bracket"}</button>
+                          <button type="button" onClick={() => onSavePool(pool.id)} disabled={poolIsReadOnly || isActionPending(`update-pool:${pool.id}`)} className="ui-button ui-button-accent ui-button-stack">{isActionPending(`update-pool:${pool.id}`) ? "Saving" : "Save Pool"}</button>
+                          <button type="button" onClick={() => onSetExpandedPoolId(null)} className="ui-button ui-button-muted ui-button-stack">Collapse</button>
+                        </>
+                      }
+                    >
+                      {false ? (
                       <div className="flex items-start justify-between gap-6">
                         <div className="flex-1">
                           <InlineTitleField
@@ -163,6 +179,15 @@ export function PoolWorkspaceSection({
                           ) : null}
                         </div>
                         <div className="flex w-36 flex-col items-stretch gap-2">
+                          {onUsePoolForBracket ? (
+                            <button
+                              type="button"
+                              onClick={() => onUsePoolForBracket(pool)}
+                              className="ui-button ui-button-primary ui-button-stack"
+                            >
+                              Use for Bracket
+                            </button>
+                          ) : null}
                           <button
                             type="button"
                             onClick={() => onCreateBracketFromPool(pool)}
@@ -223,6 +248,7 @@ export function PoolWorkspaceSection({
                           </button>
                         </div>
                       </div>
+                      ) : null}
                       <CandidateManagerPanel
                         poolId={pool.id}
                         candidateDraft={candidateDraft}
@@ -266,7 +292,7 @@ export function PoolWorkspaceSection({
                         listHeading="In This Pool"
                         listEmptyMessage="No candidates in this pool yet."
                       />
-                    </>
+                    </PoolManagementPanel>
                   ) : (
                     <button
                       type="button"
