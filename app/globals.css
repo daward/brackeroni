@@ -148,29 +148,32 @@ optgroup {
   width: 100%;
 }
 
+@media (min-width: 768px) {
+  .bracket-setup-page {
+    padding-inline: 1.5rem;
+  }
+}
+
 .bracket-setup-shell {
   width: 100%;
-  max-width: 72rem;
 }
 
 .bracket-setup-header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  border-bottom: 1px solid var(--line-strong);
-  padding: 0.75rem 0 1rem;
+  padding: 0.75rem 0;
 }
 
 .bracket-setup-steps {
   display: flex;
-  margin-top: 1rem;
   border-top: 1px solid var(--line);
   border-bottom: 1px solid var(--line);
 }
 
 .bracket-setup-content {
-  max-width: 64rem;
+  width: 100%;
   padding: 2rem 0;
 }
 
@@ -179,7 +182,7 @@ optgroup {
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
-  max-width: 64rem;
+  width: 100%;
   border-top: 1px solid var(--line-strong);
   padding: 1rem 0 0;
 }

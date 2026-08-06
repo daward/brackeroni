@@ -840,9 +840,9 @@ export function CreatePanels() {
                 : "border-transparent hover:border-[var(--line-strong)]"
             }`}
           >
-            <p className="display-face text-base font-black uppercase sm:text-lg">Brackets ({tournaments.length})</p>
+            <p className="display-face text-lg font-black uppercase sm:text-xl">Brackets ({tournaments.length})</p>
             <p
-              className="mt-1 hidden text-xs uppercase tracking-[0.14em] text-[var(--muted)] sm:block"
+              className="mt-2 hidden text-sm uppercase tracking-[0.14em] text-[var(--muted)] sm:block"
             >
               Build brackets and manage rounds
             </p>
@@ -856,9 +856,9 @@ export function CreatePanels() {
                 : "border-transparent hover:border-[var(--line-strong)]"
             }`}
           >
-            <p className="display-face text-base font-black uppercase sm:text-lg">Pools ({pools.length})</p>
+            <p className="display-face text-lg font-black uppercase sm:text-xl">Pools ({pools.length})</p>
             <p
-              className="mt-1 hidden text-xs uppercase tracking-[0.14em] text-[var(--muted)] sm:block"
+              className="mt-2 hidden text-sm uppercase tracking-[0.14em] text-[var(--muted)] sm:block"
             >
               Build and edit candidate sets
             </p>
@@ -882,7 +882,7 @@ export function CreatePanels() {
           isActionPending={isActionPending}
           onCreatePool={() => createPoolRecord()}
           onOpenImport={() => setIsPoolImportModalOpen(true)}
-          onCreateBracketFromPool={createDraftBracketFromPool}
+          onCreateBracketFromPool={(pool) => router.push(`/create/bracket/new?poolId=${pool.id}&step=structure`)}
           onUsePoolForBracket={searchParams?.get("fromBracketSetup") === "1" ? (pool) => router.push(`/create/bracket/new?poolId=${pool.id}`) : null}
           onSavePool={savePoolInline}
           onPatchPoolDraft={(poolId, patch) =>

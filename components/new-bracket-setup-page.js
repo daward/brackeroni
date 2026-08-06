@@ -3,7 +3,15 @@
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { BracketCreationWizard } from "@/components/bracket-creation-wizard";
-import { createPool, createTournament, listPools, listTournaments, updateTournament } from "@/lib/client-api/create-workspace";
+import {
+  createParallelTournament,
+  createPool,
+  createTournament,
+  listPools,
+  listTournaments,
+  updateTournament
+} from "@/lib/client-api/create-workspace";
+import { isParallelResultMode } from "@/lib/bracket-modes";
 
 export function NewBracketSetupPage() {
   const router = useRouter();
@@ -57,11 +65,24 @@ export function NewBracketSetupPage() {
         tieBreakMode,
         ...audience
       };
-      const data = draft
-        ? await updateTournament(draft.id, payload)
-        : await createTournament(payload);
+      const isParallelBracket = isParallelResultMode(resultMode);
+      const data = isParallelBracket
+        ? await createParallelTournament({
+            title: payload.title,
+            description: payload.description,
+            sourcePoolId: payload.sourcePoolId,
+            sharingMode: payload.sharingMode,
+            visibility: payload.visibility,
+            votingAccess: payload.votingAccess,
+            playStyle,
+            resultMode,
+            tieBreakMode
+          })
+        : draft
+          ? await updateTournament(draft.id, payload)
+          : await createTournament(payload);
       const params = new URLSearchParams({ view: "tournaments", stage: "draft", tournament: data.item.id });
-      if (seedingMode === "custom") params.set("openSeeding", data.item.id);
+      if (!isParallelBracket && seedingMode === "custom") params.set("openSeeding", data.item.id);
       router.push(`/create?${params.toString()}`);
       return data.item;
     } catch {
@@ -81,7 +102,18 @@ export function NewBracketSetupPage() {
     advancementMode: draft.advancementMode,
     tieBreakMode: draft.tieBreakMode,
     audienceMode: draft.visibility === "public_listed" ? "public" : draft.sharingMode === "with_friends" ? "friends" : "private"
-  } : null;
+  } : {
+    resultMode: ["winner_only", "full_ranking", "partial_ranking", "fast_full_rank", "parallel_full_ranking"].includes(searchParams?.get("resultMode") || "")
+      ? searchParams.get("resultMode")
+      : "winner_only",
+    advancementMode: searchParams?.get("advancementMode") === "manual_winner" ? "manual_winner" : "vote_winner",
+    playStyle: searchParams?.get("playStyle") === "reseed" ? "reseed" : "fixed_bracket",
+    audienceMode: searchParams?.get("audienceMode") === "public"
+      ? "public"
+      : searchParams?.get("audienceMode") === "friends"
+        ? "friends"
+        : "private"
+  };
 
-  return <BracketCreationWizard pools={pools} initialPoolId={searchParams?.get("poolId") || ""} initialConfig={initialConfig} creating={creating} onCancel={() => router.push("/create?view=tournaments&stage=draft")} onCreate={handleCreate} fullPage />;
+  return <BracketCreationWizard pools={pools} initialPoolId={searchParams?.get("poolId") || ""} initialConfig={initialConfig} initialStep={searchParams?.get("step") === "structure" ? 1 : 0} creating={creating} onCancel={() => router.push("/create?view=tournaments&stage=draft")} onCreate={handleCreate} fullPage />;
 }

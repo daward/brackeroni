@@ -68,7 +68,7 @@ export default function BracketBracketsUseCasePage() {
       stepsFooter={
         <div className="space-y-3">
           <a
-            href="/create?newBracket=1&sharingMode=with_friends&visibility=private&resultMode=full_ranking&advancementMode=manual_winner"
+            href="/create/bracket/new?audienceMode=friends&resultMode=full_ranking&advancementMode=manual_winner"
             className="ui-button ui-button-accent"
           >
             Start your bracket

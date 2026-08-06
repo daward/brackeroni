@@ -1,9 +1,8 @@
 "use client";
 
-import { CandidateManagerPanel, CandidatePreviewChips } from "@/components/candidate-manager-panel";
+import { CandidateManagerPanel } from "@/components/candidate-manager-panel";
 import { PoolManagementPanel } from "@/components/pool-management-panel";
 import { describePoolVisibility, InlineTitleField } from "@/components/create-panel-helpers";
-import { SectionCard } from "@/components/section-card";
 
 export function PoolWorkspaceSection({
   pools,
@@ -48,30 +47,30 @@ export function PoolWorkspaceSection({
 }) {
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap justify-start gap-3">
+      {expandedPoolId ? (
         <button
           type="button"
-          onClick={onCreatePool}
-          disabled={isActionPending("create-pool")}
-          className="ui-button ui-button-compact ui-button-primary"
+          onClick={() => { onSetExpandedPoolId(null); onSetOpenPoolActionsMenuId(null); onSetOpenPoolMergeMenuId(null); }}
+          className="ui-button ui-button-muted"
         >
-          Add Pool
+          Back to pools
         </button>
-        <button
-          type="button"
-          onClick={onOpenImport}
-          disabled={isActionPending("import-pool")}
-          className="ui-button ui-button-compact ui-button-muted"
-        >
-          {isActionPending("import-pool") ? "Importing" : "Import Pool"}
-        </button>
-      </div>
-      <SectionCard>
-        <div className="space-y-0">
-          {pools.length === 0 ? (
-            <p className="text-sm text-[var(--muted)]">No pools yet.</p>
-          ) : (
-            pools.map((pool) => {
+      ) : null}      <div className={expandedPoolId ? "" : "grid items-stretch gap-4 md:grid-cols-2 xl:grid-cols-3"}>
+        {!expandedPoolId ? (
+          <button
+            type="button"
+            onClick={onCreatePool}
+            disabled={isActionPending("create-pool")}
+            className="group flex h-full min-h-44 w-full flex-col items-start justify-start gap-5 border border-[var(--accent-2)] p-5 text-left transition hover:bg-[rgba(255,216,77,0.07)] disabled:opacity-60"
+          >
+            <span className="display-face text-4xl font-black leading-none text-[var(--accent-2)]">+</span>
+            <span>
+              <span className="display-face block text-xl font-black uppercase leading-tight text-[var(--ink)]">Add a pool</span>
+              <span className="ui-copy mt-2 block text-sm leading-6 text-[var(--muted)]">Start a new candidate set.</span>
+            </span>
+          </button>
+        ) : null}          {pools.length > 0 ? (
+            pools.filter((pool) => !expandedPoolId || pool.id === expandedPoolId).map((pool) => {
               const isExpanded = expandedPoolId === pool.id;
               const shouldDimOtherPools = Boolean(expandedPoolId);
               const isMutedPool = shouldDimOtherPools && !isExpanded;
@@ -99,9 +98,7 @@ export function PoolWorkspaceSection({
                   ref={(node) => {
                     poolCardRefs.current[pool.id] = node;
                   }}
-                  className={`border-b border-[var(--line)] bg-[var(--panel-2)] transition-opacity duration-150 last:border-b-0 ${
-                    isExpanded ? "p-5" : "p-0"
-                  } ${isMutedPool ? "opacity-45" : "opacity-100"}`}
+                  className={`${isExpanded ? "bg-transparent p-0" : "border border-[var(--line)] bg-[rgba(255,255,255,0.025)]"} transition-opacity duration-150 ${isMutedPool ? "opacity-45" : "opacity-100"}`}
                 >
                   {isExpanded ? (
                     <PoolManagementPanel
@@ -112,9 +109,38 @@ export function PoolWorkspaceSection({
                       actionRail={
                         <>
                           {onUsePoolForBracket ? <button type="button" onClick={() => onUsePoolForBracket(pool)} className="ui-button ui-button-primary ui-button-stack">Use for Bracket</button> : null}
-                          <button type="button" onClick={() => onCreateBracketFromPool(pool)} disabled={isActionPending("create-tournament")} className="ui-button ui-button-primary ui-button-stack">{isActionPending("create-tournament") ? "Creating" : "Start Bracket"}</button>
+                          <button type="button" onClick={() => onCreateBracketFromPool(pool)} disabled={isActionPending("create-tournament")} className="ui-button ui-button-primary ui-button-stack">Set up bracket</button>
                           <button type="button" onClick={() => onSavePool(pool.id)} disabled={poolIsReadOnly || isActionPending(`update-pool:${pool.id}`)} className="ui-button ui-button-accent ui-button-stack">{isActionPending(`update-pool:${pool.id}`) ? "Saving" : "Save Pool"}</button>
-                          <button type="button" onClick={() => onSetExpandedPoolId(null)} className="ui-button ui-button-muted ui-button-stack">Collapse</button>
+                          <div className="relative">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                onSetOpenPoolActionsMenuId(openPoolActionsMenuId === pool.id ? null : pool.id);
+                                onSetOpenPoolMergeMenuId(null);
+                              }}
+                              className="ui-button ui-button-muted ui-button-stack w-full"
+                            >
+                              {openPoolActionsMenuId === pool.id ? "Close actions" : "Actions"}
+                            </button>
+                            {openPoolActionsMenuId === pool.id ? (
+                              <PoolActionsMenu
+                                pool={pool}
+                                pools={pools}
+                                poolIsReadOnly={poolIsReadOnly}
+                                missingPoolImageCount={missingPoolImageCount}
+                                sourceLinkedCandidateCount={sourceLinkedCandidateCount}
+                                openPoolMergeMenuId={openPoolMergeMenuId}
+                                isActionPending={isActionPending}
+                                onCopyPoolLink={onCopyPoolLink}
+                                onAutoFillMissingImages={onAutoFillMissingImages}
+                                onEnrichPoolCandidatesFromSourceUrls={onEnrichPoolCandidatesFromSourceUrls}
+                                onSetOpenPoolMergeMenuId={onSetOpenPoolMergeMenuId}
+                                onMergePool={onMergePool}
+                                onArchivePool={onArchivePool}
+                              />
+                            ) : null}
+                          </div>
+                          
                         </>
                       }
                     >
@@ -136,7 +162,7 @@ export function PoolWorkspaceSection({
                           </p>
                           <p className="mt-1 text-xs uppercase tracking-[0.14em] text-[var(--muted)]">
                             {describePoolVisibility(pool.visibility)}
-                            {poolIsReadOnly ? " • locked" : ""}
+                            {poolIsReadOnly ? " â€¢ locked" : ""}
                           </p>
                           {pool.importSourceUrl ? (
                             <p className="mt-2 text-xs leading-5 text-[var(--muted)]">
@@ -194,7 +220,7 @@ export function PoolWorkspaceSection({
                             disabled={isActionPending("create-tournament")}
                             className="ui-button ui-button-primary ui-button-stack"
                           >
-                            {isActionPending("create-tournament") ? "Creating" : "Start Bracket"}
+                            Set up bracket
                           </button>
                           <button
                             type="button"
@@ -297,10 +323,10 @@ export function PoolWorkspaceSection({
                     <button
                       type="button"
                       onClick={() => onSetExpandedPoolId(pool.id)}
-                      className="group grid w-full gap-4 border border-transparent p-5 text-left transition hover:border-[var(--accent-3)] hover:bg-[rgba(63,221,213,0.05)] focus-visible:border-[var(--accent-3)] focus-visible:bg-[rgba(63,221,213,0.05)] xl:grid-cols-[0.4fr_0.6fr] xl:items-start"
+                      className="group block h-full w-full p-5 text-left transition hover:bg-[rgba(52,211,196,0.055)] focus-visible:bg-[rgba(52,211,196,0.055)]"
                     >
                       <div>
-                        <h3 className="display-face text-2xl font-black transition group-hover:text-[var(--accent-3)] group-focus-visible:text-[var(--accent-3)]">
+                        <h3 className="display-face text-xl font-black leading-tight transition group-hover:text-[var(--accent-3)] group-focus-visible:text-[var(--accent-3)]">
                           {pool.name}
                         </h3>
                         <p className="mt-2 text-sm uppercase tracking-[0.14em] text-[var(--accent-3)] transition group-hover:text-[var(--accent-2)] group-focus-visible:text-[var(--accent-2)]">
@@ -309,31 +335,19 @@ export function PoolWorkspaceSection({
                         <p className="mt-1 text-[11px] uppercase tracking-[0.14em] text-[var(--muted)]">
                           {describePoolVisibility(pool.visibility)}
                         </p>
-                        {pool.importSourceUrl ? (
-                          <p className="mt-2 text-xs leading-5 text-[var(--muted)]">
-                            Imported from{" "}
-                            <span className="text-[var(--ink)]">
-                              {pool.importSourceTitle || pool.importSourceUrl}
-                            </span>
-                          </p>
-                        ) : null}
                         {pool.description ? (
                           <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
                             {pool.description}
                           </p>
                         ) : null}
                       </div>
-                      <div className="xl:self-start xl:pt-0">
-                        <CandidatePreviewChips candidates={previewCandidates} />
-                      </div>
                     </button>
                   )}
                 </div>
               );
             })
-          )}
+          ) : null}
         </div>
-      </SectionCard>
     </div>
   );
 }

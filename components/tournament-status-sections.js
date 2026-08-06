@@ -6,25 +6,25 @@ import { TournamentActionGroup, TournamentMetaRow } from "@/components/tournamen
 function LiveAccordion({ title, defaultOpen = false, children }) {
   return (
     <details
-      className="border border-[var(--line-strong)] bg-[rgba(255,255,255,0.045)]"
+      className="border border-[var(--line-strong)] bg-[rgba(255,255,255,0.03)]"
       open={defaultOpen}
     >
-      <summary className="cursor-pointer px-4 py-3 text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--accent-3)]">
+      <summary className="display-face cursor-pointer px-5 py-4 text-sm font-black uppercase tracking-[0.18em] text-[var(--accent-3)]">
         {title}
       </summary>
-      <div className="border-t border-[var(--line-strong)] p-4">{children}</div>
+      <div className="border-t border-[var(--line-strong)] p-5">{children}</div>
     </details>
   );
 }
 
 function MutedSection({ title, body }) {
   return (
-    <div className="border border-[var(--line)] bg-[rgba(255,255,255,0.02)] opacity-65">
-      <div className="px-4 py-3 text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--muted)]">
+    <div className="border border-[var(--line)] bg-[rgba(255,255,255,0.015)] opacity-65">
+      <div className="display-face px-5 py-4 text-sm font-black uppercase tracking-[0.18em] text-[var(--muted)]">
         {title}
       </div>
-      <div className="border-t border-[var(--line)] px-4 py-4">
-        <p className="text-sm leading-6 text-[var(--muted)]">{body}</p>
+      <div className="border-t border-[var(--line)] px-5 py-5">
+        <p className="text-base leading-7 text-[var(--muted)]">{body}</p>
       </div>
     </div>
   );
@@ -36,12 +36,12 @@ function LiveSummaryCard({
   actions = null
 }) {
   return (
-    <div className="border border-[var(--line-strong)] bg-[rgba(255,255,255,0.05)] p-4">
+    <div className="border border-[var(--line-strong)] bg-[rgba(255,255,255,0.03)] p-5">
       <div className="min-w-0">
-        <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--accent-3)]">
+        <p className="display-face text-sm font-black uppercase tracking-[0.18em] text-[var(--accent-3)]">
           {kicker}
         </p>
-        <p className="mt-2 text-sm leading-6 text-[var(--ink)]/88">{body}</p>
+        <p className="mt-3 text-base leading-7 text-[var(--ink)]/88">{body}</p>
       </div>
       {actions ? <div className="mt-4 w-full">{actions}</div> : null}
     </div>
@@ -367,7 +367,7 @@ function ParticipationTrackerPanel({
 
 function DetailsPanel({ items }) {
   return (
-    <div className="border border-[var(--line-strong)] bg-[rgba(255,255,255,0.05)] p-4">
+    <div className="border border-[var(--line-strong)] bg-[rgba(255,255,255,0.03)] p-5">
       <TournamentMetaRow
         className="flex flex-wrap gap-2 text-[11px] uppercase tracking-[0.18em] text-[var(--ink)]/80"
         items={items}
@@ -575,7 +575,7 @@ export function ActiveParallelTournamentSection({
   ];
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <LiveSummaryCard
         kicker={`${describeTournamentAudienceMode(tournament)} Bracket Status`}
         body="This bracket is collecting personal rankings from each participant. Use this view to monitor completion and keep the round moving."
@@ -637,6 +637,7 @@ export function ActiveStandardTournamentSection({
 }) {
   const usesManualAdvancement = tournament.advancementMode === "manual_winner";
   const isPublicBracket = ["public_listed", "public_unlisted"].includes(tournament.visibility);
+  const isPrivateBracket = tournament.visibility === "private";
   const awaitingNextRound = isPublicBracket && tournament.hasHiddenClosedRounds;
   const currentRoundMatches = (activeRoundMatches || []).filter((match) => match.status === "open");
   const completedManualResults = currentRoundMatches.filter((match) => match.winnerEntryId).length;
@@ -716,8 +717,8 @@ export function ActiveStandardTournamentSection({
     render: () => (
       <CloseVotingButton
         label="Close Voting"
-        className={standardVoteIsActionable ? "ui-button ui-button-accent w-full" : "ui-button ui-button-primary w-full"}
-        disabled={usesManualAdvancement ? !canCloseManualVoting : isActionPending(`close-round:${tournament.id}`)}
+        className={isPrivateBracket ? "ui-button ui-button-muted w-full" : standardVoteIsActionable ? "ui-button ui-button-accent w-full" : "ui-button ui-button-primary w-full"}
+        disabled={isPrivateBracket || (usesManualAdvancement ? !canCloseManualVoting : isActionPending(`close-round:${tournament.id}`))}
         disabledReason={
           usesManualAdvancement && !canCloseManualVoting
             ? "Pick winners for every open matchup before closing voting."
@@ -780,7 +781,7 @@ export function ActiveStandardTournamentSection({
     : [standardVoteAction, standardResultsAction, standardCloseAction, standardShareAction];
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <LiveSummaryCard
         kicker={`${describeTournamentAudienceMode(tournament)} Bracket Status`}
         body={

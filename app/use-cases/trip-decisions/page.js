@@ -75,7 +75,7 @@ export default async function TripDecisionsUseCasePage() {
           title: "Start the group vote",
           text: "Create a bracket from the pool and share it with your fellow travelers. Parallel mode lets everyone vote through their own matchups.",
           action: {
-            href: "/create?newBracket=1&sharingMode=with_friends&visibility=private&resultMode=parallel_full_ranking",
+            href: "/create/bracket/new?audienceMode=friends&resultMode=parallel_full_ranking",
             label: "Start group vote"
           }
         }

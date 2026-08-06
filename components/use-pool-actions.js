@@ -150,14 +150,13 @@ export function usePoolActions({
           description: createdPool.description || ""
         }
       }));
-      setExpandedPoolId(createdPool.id);
-
       if (switchToPools) {
         setWorkspaceView("pools");
       }
 
       setSuccessMessage(attachedTournamentId ? "New pool created and linked to bracket." : "Pool created.");
       await loadWorkspace();
+      setExpandedPoolId(createdPool.id);
       return createdPool;
     } catch (error) {
       setErrorMessage(error.message || "Failed to create pool.");

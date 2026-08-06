@@ -80,7 +80,7 @@ export default async function EngageWithYourAudienceUseCasePage() {
           title: "Run the weekly bracket",
           text: "Create a bracket with one final winner, open the round for voting, then reveal what advanced in your next episode.",
           action: {
-            href: "/create?newBracket=1&visibility=public_listed&votingAccess=anyone",
+            href: "/create/bracket/new?audienceMode=public&resultMode=winner_only",
             label: "Start audience vote"
           }
         }
