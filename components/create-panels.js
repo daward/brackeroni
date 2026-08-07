@@ -830,11 +830,11 @@ export function CreatePanels() {
       <FlashMessages errorMessage={errorMessage} successMessage={successMessage} />
 
       <section className="border-b border-[var(--line-strong)]">
-        <div className="flex gap-6 sm:gap-10">
+        <div className="grid grid-cols-2">
           <button
             type="button"
             onClick={() => setWorkspaceView("tournaments", { history: "push" })}
-            className={`border-b-2 py-3 text-left transition ${
+            className={`w-full border-b-2 py-3 text-left transition ${
               workspaceView === "tournaments"
                 ? "border-[var(--accent-2)]"
                 : "border-transparent hover:border-[var(--line-strong)]"
@@ -850,7 +850,7 @@ export function CreatePanels() {
           <button
             type="button"
             onClick={() => setWorkspaceView("pools", { history: "push" })}
-            className={`border-b-2 py-3 text-left transition ${
+            className={`w-full border-b-2 py-3 text-left transition ${
               workspaceView === "pools"
                 ? "border-[var(--accent-2)]"
                 : "border-transparent hover:border-[var(--line-strong)]"

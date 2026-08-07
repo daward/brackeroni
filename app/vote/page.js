@@ -47,6 +47,7 @@ function normalizeParallelTournamentForVoteIndex(item) {
     viewerParticipantId: item.viewerParticipantId ?? null,
     viewerParticipantStatus: item.viewerParticipantStatus ?? null,
     viewerTournamentId: item.viewerTournamentId ?? null,
+    winnerImageUrl: item.winnerImageUrl ?? null,
     kind: "parallel_parent",
     matches: []
   };
@@ -203,7 +204,14 @@ export default async function VotePage({ searchParams }) {
   const mergedActiveTournaments = requestedActiveTournament
     ? [
         requestedActiveTournament,
-        ...activeTournaments.filter((tournament) => tournament.id !== requestedActiveTournament.id)
+        ...activeTournaments.filter(
+          (tournament) =>
+            tournament.id !== requestedActiveTournament.id &&
+            // A participant's parallel bracket has the same title as its parent.
+            // Once that participant bracket is open, it replaces the parent in the
+            // vote index instead of appearing as a second, indistinguishable card.
+            tournament.id !== requestedActiveTournament.parentParallelTournamentId
+        )
       ]
     : activeTournaments;
   const lockedFocusedTournament =

@@ -1788,10 +1788,15 @@ optgroup {
   gap: 1rem;
 }
 
-.vote-desktop-grid {
-  display: none;
+.vote-card-grid {
+  display: grid;
+  gap: 1rem;
+  padding: 1rem 0;
+}
+
+.vote-desktop-sections {
+  flex-direction: column;
   gap: 3rem;
-  grid-template-columns: 1.05fr 0.95fr;
 }
 
 .vote-modal-overlay {
@@ -3114,8 +3119,12 @@ optgroup {
     display: none;
   }
 
-  .vote-desktop-grid {
-    display: grid;
+  .vote-desktop-sections {
+    display: flex;
+  }
+
+  .vote-card-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .home-hero {

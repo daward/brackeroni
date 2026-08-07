@@ -227,7 +227,8 @@ export function normalizeParallelBracketItem(item) {
     openVoteCount: 0,
     winnerEntryId: item.winnerEntryId ?? null,
     winnerName: item.winnerName ?? null,
-    winnerSeed: item.winnerSeed ?? null
+    winnerSeed: item.winnerSeed ?? null,
+    winnerImageUrl: item.winnerImageUrl ?? null
   };
 }
 

@@ -45,7 +45,7 @@ export function MainNav({ user, googleConfigured, isDevShimActive, isAdmin = fal
 
   return (
     <header ref={mobileMenuRef} className="relative border-y border-[var(--line)] bg-transparent">
-      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 px-0 py-3 md:items-center md:px-6">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 px-0 py-3 md:items-center">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
           <p className="display-face text-2xl font-black uppercase leading-none sm:text-3xl">
             Brackeroni

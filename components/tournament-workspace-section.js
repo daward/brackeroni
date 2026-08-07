@@ -74,7 +74,7 @@ function LiveBracketRail({
   className = ""
 }) {
   return (
-    <div className={`border-r border-[var(--line-strong)] bg-[rgba(255,255,255,0.015)] p-5 ${className}`}>
+    <div className={`border-r border-[var(--line-strong)] py-5 pr-5 ${className}`}>
       <div className="flex flex-col gap-3">
         {tournaments.map((tournament) => {
           const isSelected = tournament.id === selectedTournamentId;
@@ -237,6 +237,7 @@ export function TournamentWorkspaceSection({
 }) {
   const router = useRouter();
   const [draftCardMenuId, setDraftCardMenuId] = useState(null);
+  const [completedCardMenuId, setCompletedCardMenuId] = useState(null);
   const draftTournaments = tournaments.filter((tournament) => tournament.status === "draft");
   const activeTournaments = tournaments.filter((tournament) => tournament.status === "active");
   const completedTournaments = tournaments.filter((tournament) => tournament.status === "complete");
@@ -713,7 +714,7 @@ export function TournamentWorkspaceSection({
       activeTournaments[0];
 
     return (
-      <div className="border-y border-[var(--line-strong)] bg-[rgba(255,255,255,0.01)] lg:grid lg:grid-cols-[20rem_minmax(0,1fr)] lg:border">
+      <div className="lg:grid lg:grid-cols-[20rem_minmax(0,1fr)]">
         <div className="border-b border-[var(--line-strong)] px-0 py-5 lg:hidden">
           <div className="space-y-2">
             <p className="ui-section-kicker">Viewing live bracket</p>
@@ -734,7 +735,7 @@ export function TournamentWorkspaceSection({
           onSelectTournament={setSelectedLiveTournamentId}
           className="hidden lg:block"
         />
-        <div className="py-8 lg:p-8">
+        <div className="py-6 lg:px-8 lg:pb-8 lg:pt-5">
           {renderActiveTournamentWorkspace(selectedTournament)}
         </div>
       </div>
@@ -808,6 +809,82 @@ export function TournamentWorkspaceSection({
                       disabled={isActionPending(`archive-tournament:${tournament.id}`)}
                       onClick={() => {
                         setDraftCardMenuId(null);
+                        handleArchiveTournament(tournament.id, tournament.title);
+                      }}
+                      className="ui-button ui-button-muted mt-2 w-full justify-start"
+                    >
+                      Archive
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+            );
+          })}
+        </div>
+      );
+    }
+
+    if (tournamentStageView === "complete") {
+      return (
+        <div className="grid items-stretch gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {completedTournaments.map((tournament) => {
+            const completedOn = tournament.completedAt ? formatBracketDate(tournament.completedAt) : null;
+            const resultMode = formatBracketRuleLabel(tournament.resultMode || "winner_only");
+            const winner = tournament.winnerName
+              ? `${tournament.winnerName}${tournament.winnerSeed ? ` (Seed ${tournament.winnerSeed})` : ""}`
+              : "No winner recorded";
+            const menuIsOpen = completedCardMenuId === tournament.id;
+
+            return (
+              <div key={tournament.id} className="relative h-full">
+                <a
+                  href={`/results/${tournament.id}`}
+                  className="group relative isolate flex h-full min-h-52 w-full flex-col overflow-hidden border border-[var(--line)] bg-[var(--panel-2)] text-left transition hover:border-[var(--accent-3)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-3)]"
+                >
+                  {tournament.winnerImageUrl ? (
+                    <img
+                      src={tournament.winnerImageUrl}
+                      alt=""
+                      aria-hidden="true"
+                      className="absolute inset-0 -z-10 h-full w-full object-cover"
+                    />
+                  ) : null}
+                  <div className="mt-auto w-full bg-black/90 px-4 py-3 pr-14">
+                    <h3 className="display-face text-lg font-black leading-tight transition group-hover:text-[var(--accent-3)] group-focus-visible:text-[var(--accent-3)]">
+                      {tournament.title}
+                    </h3>
+                    <p className="display-face mt-1 text-sm font-bold text-[var(--accent-3)]">
+                      Winner · {winner}
+                    </p>
+                  </div>
+                </a>
+                <button
+                  type="button"
+                  aria-label={`Actions for ${tournament.title}`}
+                  aria-expanded={menuIsOpen}
+                  onClick={() => setCompletedCardMenuId((current) => current === tournament.id ? null : tournament.id)}
+                  className="ui-button ui-button-muted absolute right-3 top-3 z-10 !h-10 !w-10 !min-w-0 !p-0 text-2xl leading-none"
+                >
+                  <span aria-hidden="true">⋮</span>
+                </button>
+                {menuIsOpen ? (
+                  <div className="absolute right-3 top-16 z-20 w-48 border border-[var(--line-strong)] bg-[var(--panel)] p-2 shadow-[0_10px_30px_rgba(0,0,0,0.35)]">
+                    <button
+                      type="button"
+                      disabled={isActionPending(`rerun-tournament:${tournament.id}`)}
+                      onClick={() => {
+                        setCompletedCardMenuId(null);
+                        handleRerunTournament(tournament.id);
+                      }}
+                      className="ui-button ui-button-accent w-full justify-start"
+                    >
+                      {isActionPending(`rerun-tournament:${tournament.id}`) ? "Creating" : "Run again"}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={isActionPending(`archive-tournament:${tournament.id}`)}
+                      onClick={() => {
+                        setCompletedCardMenuId(null);
                         handleArchiveTournament(tournament.id, tournament.title);
                       }}
                       className="ui-button ui-button-muted mt-2 w-full justify-start"

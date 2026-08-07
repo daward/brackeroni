@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -585,7 +585,7 @@ export function VoteScreenPanels({
         </section>
       </div>
 
-      <div className="vote-desktop-grid hidden lg:grid">
+      <div className="vote-desktop-sections hidden lg:flex">
         <section className="vote-rail">
           <div className="vote-rail-header">
             <h2 className="vote-rail-title display-face">
@@ -771,60 +771,34 @@ function CandidateVoteCard({
   );
 }
 
-function TournamentListSection({
-  tournaments,
-  emptyTitle,
-  emptySubtitle,
-  onSelectTournament
-}) {
+function TournamentListSection({ tournaments, emptyTitle, emptySubtitle, onSelectTournament }) {
   if (tournaments.length === 0) {
     return (
-      <div className="vote-list-empty-wrap">
-        <div className="vote-list-empty-panel">
-          <p className="vote-list-empty-title display-face">{emptyTitle}</p>
-          {emptySubtitle ? (
-            <p className="vote-list-empty-subtitle">{emptySubtitle}</p>
-          ) : null}
+      <div className="py-4">
+        <div className="border border-[var(--line-strong)] p-5">
+          <p className="display-face text-lg font-black text-[var(--muted)]">{emptyTitle}</p>
+          {emptySubtitle ? <p className="mt-2 text-sm leading-6 text-[var(--muted)]">{emptySubtitle}</p> : null}
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-0">
+    <div className="vote-card-grid">
       {tournaments.map((tournament) => {
         const openMatches = openMatchesForTournament(tournament);
-        const viewerCompletedParallel =
-          tournament.kind === "parallel_parent" &&
-          tournament.viewerParticipantStatus === "complete";
+        const viewerCompletedParallel = tournament.kind === "parallel_parent" && tournament.viewerParticipantStatus === "complete";
+        const canOpen = viewerCompletedParallel || openMatches.length > 0;
 
         return (
-          <div
-            key={tournament.id}
-            className="vote-list-item"
-          >
-            <div className="vote-list-item-header">
-              <div>
-                <h3 className="vote-list-item-title display-face">{tournament.title}</h3>
-                <p className="vote-list-item-meta">
-                  {tournament.sharingMode.replace("_", " ")} | {tournament.entryCount} entries |{" "}
-                  {tournament.kind === "parallel_parent"
-                    ? `${tournament.completedParticipantCount ?? 0}/${tournament.participantCount ?? 0} complete`
-                    : `${openMatches.length} open ${openMatches.length === 1 ? "match" : "matches"}`}{" "}
-                  | Pool:{" "}
-                  {tournament.sourcePoolName || "Unknown pool"}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => onSelectTournament(tournament)}
-                disabled={!viewerCompletedParallel && openMatches.length === 0}
-                className="ui-button ui-button-primary"
-              >
-                {viewerCompletedParallel ? "Results" : "Vote"}
-              </button>
-            </div>
-          </div>
+          <button key={tournament.id} type="button" onClick={() => onSelectTournament(tournament)} disabled={!canOpen} className="group flex min-h-44 w-full flex-col items-start justify-start border border-[var(--line)] bg-[rgba(255,255,255,0.025)] p-5 text-left transition hover:border-[var(--accent-3)] hover:bg-[rgba(45,211,201,0.06)] disabled:cursor-not-allowed disabled:opacity-55">
+            <h3 className="display-face text-xl font-black leading-tight transition group-hover:text-[var(--accent-3)]">{tournament.title}</h3>
+            <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
+              {tournament.kind === "parallel_parent" ? `${tournament.completedParticipantCount ?? 0}/${tournament.participantCount ?? 0} complete` : `${openMatches.length} open ${openMatches.length === 1 ? "match" : "matches"}`}
+              {tournament.sourcePoolName ? ` · ${tournament.sourcePoolName}` : ""}
+            </p>
+            <span className="display-face mt-auto pt-5 text-sm font-black uppercase tracking-[0.14em] text-[var(--accent-2)]">{viewerCompletedParallel ? "View results" : canOpen ? "Vote now" : "Waiting for the next round"}</span>
+          </button>
         );
       })}
     </div>
@@ -832,45 +806,21 @@ function TournamentListSection({
 }
 
 function CompletedListSection({ tournaments, onOpenResults }) {
+  if (tournaments.length === 0) {
+    return <div className="py-4"><div className="border border-[var(--line-strong)] p-5"><p className="display-face text-lg font-black text-[var(--muted)]">No completed brackets</p></div></div>;
+  }
+
   return (
-    <div className="vote-completed-list">
-      {tournaments.length === 0 ? (
-        <div className="vote-list-empty-panel">
-          <p className="vote-list-empty-title display-face">No Completed Brackets</p>
-        </div>
-      ) : (
-        tournaments.map((tournament) => (
-          <button
-            key={tournament.id}
-            type="button"
-            onClick={() => onOpenResults(tournament)}
-            className="vote-completed-item"
-          >
-            <div className="vote-completed-item-body">
-              <div>
-                <h3 className="vote-completed-title display-face">{tournament.title}</h3>
-                {tournament.winnerName ? (
-                  <p className="vote-completed-winner display-face">
-                    Winner: {tournament.winnerName}
-                    {tournament.winnerSeed ? ` (Seed ${tournament.winnerSeed})` : ""}
-                  </p>
-                ) : null}
-              </div>
-              {tournament.winnerImageUrl ? (
-                <BackdropRemoteImage
-                  src={tournament.winnerImageUrl}
-                  alt={tournament.winnerName || tournament.title}
-                  className="vote-completed-image"
-                  imageClassName="object-cover object-center"
-                  undersizedImageClassName="object-contain p-2"
-                  minimumSourceWidth={96}
-                  minimumSourceHeight={96}
-                />
-              ) : null}
-            </div>
-          </button>
-        ))
-      )}
+    <div className="vote-card-grid">
+      {tournaments.map((tournament) => (
+        <button key={tournament.id} type="button" onClick={() => onOpenResults(tournament)} className="group relative isolate flex min-h-52 w-full flex-col overflow-hidden border border-[var(--line)] bg-[var(--panel-2)] text-left transition hover:border-[var(--accent-3)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-3)]">
+          {tournament.winnerImageUrl ? <img src={tournament.winnerImageUrl} alt="" aria-hidden="true" className="absolute inset-0 -z-10 h-full w-full object-cover" /> : null}
+          <div className="mt-auto w-full bg-black/90 px-4 py-3">
+            <h3 className="display-face text-lg font-black leading-tight transition group-hover:text-[var(--accent-3)]">{tournament.title}</h3>
+            {tournament.winnerName ? <p className="display-face mt-1 text-sm font-bold text-[var(--accent-3)]">Winner · {tournament.winnerName}{tournament.winnerSeed ? ` (Seed ${tournament.winnerSeed})` : ""}</p> : null}
+          </div>
+        </button>
+      ))}
     </div>
   );
 }
