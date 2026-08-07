@@ -81,6 +81,46 @@ export function useCreateWorkspaceData({ setErrorMessage, setExpandedPoolId }) {
     });
   }, []);
 
+  const replaceCandidateInWorkspace = useCallback((poolId, nextCandidate) => {
+    if (!poolId || !nextCandidate?.id) {
+      return;
+    }
+
+    setPoolDetails((current) => {
+      const pool = current[poolId];
+
+      if (!pool) {
+        return current;
+      }
+
+      return {
+        ...current,
+        [poolId]: {
+          ...pool,
+          candidates: (pool.candidates || []).map((candidate) =>
+            candidate.id === nextCandidate.id ? { ...candidate, ...nextCandidate } : candidate
+          )
+        }
+      };
+    });
+  }, []);
+
+  const replacePoolInWorkspace = useCallback((nextPool) => {
+    if (!nextPool?.id) {
+      return;
+    }
+
+    setPools((current) =>
+      sortManagedPools(
+        current.map((pool) => (pool.id === nextPool.id ? { ...pool, ...nextPool } : pool))
+      )
+    );
+    setPoolDetails((current) => ({
+      ...current,
+      [nextPool.id]: nextPool
+    }));
+  }, []);
+
   const replaceTournamentInWorkspace = useCallback((tournamentId, nextTournament) => {
     setTournaments((current) =>
       sortManagedBrackets(
@@ -364,6 +404,8 @@ export function useCreateWorkspaceData({ setErrorMessage, setExpandedPoolId }) {
     pools,
     refreshTournamentMatches,
     removeCandidateFromWorkspace,
+    replaceCandidateInWorkspace,
+    replacePoolInWorkspace,
     replaceTournamentMatchInWorkspace,
     replaceTournamentInWorkspace,
     setTournamentShareLink,

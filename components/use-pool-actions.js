@@ -204,8 +204,8 @@ export function usePoolActions({
     });
   }
 
-  async function savePoolInline(poolId) {
-    const draft = poolInlineDrafts[poolId];
+  async function savePoolInline(poolId, draftOverride = null) {
+    const draft = draftOverride || poolInlineDrafts[poolId];
     const pool = pools.find((entry) => entry.id === poolId);
 
     if (!draft || !pool) {

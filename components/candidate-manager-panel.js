@@ -101,35 +101,15 @@ export function CandidateManagerPanel({
               </p>
             ) : null}
           </div>
-          {!readOnly ? (
-            <div className="flex flex-wrap gap-3">
-              <button
-                type="button"
-                onClick={onCreateCandidate}
-                className="ui-button ui-button-accent"
-              >
-                Add Candidate
-              </button>
-              {onImportCandidates ? (
-                <button
-                  type="button"
-                  onClick={onImportCandidates}
-                  className="ui-button ui-button-muted"
-                >
-                  Import Candidates
-                </button>
-              ) : null}
-              {sortedTags.length > 0 ? (
-                <button
-                  type="button"
-                  onClick={() => setIsTagDrawerOpen(true)}
-                  className="ui-button ui-button-muted"
-                >
-                  Manage Tags
-                </button>
-              ) : null}
-            </div>
-          ) : sortedTags.length > 0 ? (
+          {!readOnly && sortedTags.length > 0 ? (
+            <button
+              type="button"
+              onClick={() => setIsTagDrawerOpen(true)}
+              className="ui-button ui-button-muted"
+            >
+              Manage Tags
+            </button>
+          ) : readOnly && sortedTags.length > 0 ? (
             <button
               type="button"
               onClick={() => setIsTagDrawerOpen(true)}
@@ -139,13 +119,41 @@ export function CandidateManagerPanel({
             </button>
           ) : null}
         </div>
-        <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          {visibleCandidates.length === 0 ? (
-            <span className="text-sm text-[var(--muted)]">
-              {resolvedTagFilter
-                ? `No candidates match the "${resolvedTagFilter}" tag.`
-                : listEmptyMessage}
-            </span>
+        <div className="mt-3 grid auto-rows-fr items-stretch gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {!readOnly ? (
+            <button
+              type="button"
+              onClick={onCreateCandidate}
+              className="group flex min-h-[12rem] h-full flex-col items-start justify-between border border-[var(--accent-2)] bg-[rgba(255,216,77,0.035)] p-4 text-left transition hover:bg-[rgba(255,216,77,0.09)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-2)]"
+            >
+              <span className="display-face text-3xl font-black leading-none text-[var(--accent-2)]">+</span>
+              <span>
+                <span className="display-face block text-lg font-black text-[var(--ink)]">Add candidate</span>
+                <span className="ui-copy mt-2 block text-sm leading-6 text-[var(--muted)]">Add one contender to this pool.</span>
+              </span>
+            </button>
+          ) : null}
+          {!readOnly && onImportCandidates ? (
+            <button
+              type="button"
+              onClick={onImportCandidates}
+              className="group flex min-h-[12rem] h-full flex-col items-start justify-between border border-[var(--line-strong)] bg-[rgba(255,255,255,0.02)] p-4 text-left transition hover:border-[var(--accent-3)] hover:bg-[rgba(52,211,196,0.055)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-3)]"
+            >
+              <span className="display-face text-3xl font-black leading-none text-[var(--accent-3)]">↥</span>
+              <span>
+                <span className="display-face block text-lg font-black text-[var(--ink)]">Import a list</span>
+                <span className="ui-copy mt-2 block text-sm leading-6 text-[var(--muted)]">Paste or import a group of contenders.</span>
+              </span>
+            </button>
+          ) : null}
+          {visibleCandidates.length === 0 && (readOnly || resolvedTagFilter) ? (
+            <div className="flex min-h-[12rem] items-end border border-[var(--line)] bg-[rgba(255,255,255,0.02)] p-4">
+              <span className="ui-copy text-sm leading-6 text-[var(--muted)]">
+                {resolvedTagFilter
+                  ? `No candidates match the "${resolvedTagFilter}" tag.`
+                  : listEmptyMessage}
+              </span>
+            </div>
           ) : (
             visibleCandidates.map((candidate) => (
               <div

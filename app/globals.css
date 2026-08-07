@@ -189,7 +189,6 @@ optgroup {
 
 .pool-management-panel {
   border-top: 1px solid var(--line-strong);
-  border-bottom: 1px solid var(--line-strong);
 }
 
 @media (max-width: 640px) {

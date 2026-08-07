@@ -124,6 +124,29 @@ export function CreatePanels() {
     navigateCreateWithParams(nextParams, { history });
   }
 
+  function setExpandedPoolWithUrl(nextPoolId, { history = "push" } = {}) {
+    setExpandedPoolId(nextPoolId);
+
+    const nextParams = new URLSearchParams(searchParams?.toString() || "");
+    nextParams.set("view", "pools");
+    nextParams.delete("favoritePool");
+    nextParams.delete("makeBracketFromPool");
+
+    if (nextPoolId) {
+      nextParams.set("pool", nextPoolId);
+    } else {
+      nextParams.delete("pool");
+    }
+
+    const currentQuery = searchParams?.toString() || "";
+    const nextQuery = nextParams.toString();
+    if (currentQuery === nextQuery) {
+      return;
+    }
+
+    navigateCreateWithParams(nextParams, { history });
+  }
+
   function setTournamentStageView(nextStage, { history = "replace" } = {}) {
     setTournamentStageViewState(nextStage);
     setWorkspaceViewState("tournaments");
@@ -148,6 +171,8 @@ export function CreatePanels() {
     pools,
     refreshTournamentMatches,
     removeCandidateFromWorkspace,
+    replaceCandidateInWorkspace,
+    replacePoolInWorkspace,
     replaceTournamentMatchInWorkspace,
     replaceTournamentInWorkspace,
     setTournamentShareLink,
@@ -157,7 +182,7 @@ export function CreatePanels() {
     tournamentShareLinks
   } = useCreateWorkspaceData({
     setErrorMessage,
-    setExpandedPoolId
+    setExpandedPoolId: setExpandedPoolWithUrl
   });
   const isPending = isTransitionPending || isWorkspacePending;
 
@@ -203,7 +228,9 @@ export function CreatePanels() {
     setImageSuggestionQuery,
     poolDetails,
     removeCandidateFromWorkspace,
-    setExpandedPoolId,
+    replaceCandidateInWorkspace,
+    replacePoolInWorkspace,
+    setExpandedPoolId: setExpandedPoolWithUrl,
     tournaments,
     emptyCandidateForm,
     isActionPending,
@@ -246,7 +273,7 @@ export function CreatePanels() {
     poolEditForm,
     setPoolEditForm,
     expandedPoolId,
-    setExpandedPoolId,
+    setExpandedPoolId: setExpandedPoolWithUrl,
     pools,
     poolInlineDrafts,
     setPoolInlineDrafts,
@@ -646,9 +673,9 @@ export function CreatePanels() {
 
         await loadWorkspace();
         setWorkspaceView("pools");
-        setExpandedPoolId(data.item.id);
+        setExpandedPoolWithUrl(data.item.id, { history: "replace" });
         setSuccessMessage(`Added ${data.item.name} to your pools.`);
-        router.replace(`/create?view=pools&pool=${data.item.id}`);
+
       } catch (error) {
         actionSearchParamsHandledRef.current.favoritePoolId = null;
         setErrorMessage(error.message || "Failed to add pool to favorites.");
@@ -891,7 +918,14 @@ export function CreatePanels() {
               [poolId]: patch
             }))
           }
-          onSetExpandedPoolId={setExpandedPoolId}
+          onCommitPoolDraft={(poolId, draft) => {
+            setPoolInlineDrafts((current) => ({
+              ...current,
+              [poolId]: draft
+            }));
+            return savePoolInline(poolId, draft);
+          }}
+          onSetExpandedPoolId={setExpandedPoolWithUrl}
           onSetOpenPoolActionsMenuId={setOpenPoolActionsMenuId}
           onSetOpenPoolMergeMenuId={setOpenPoolMergeMenuId}
           onCopyPoolLink={handleCopyPoolLink}

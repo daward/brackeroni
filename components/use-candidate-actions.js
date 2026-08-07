@@ -23,7 +23,9 @@ export function useCandidateActions({
   imageSuggestionQuery,
   setImageSuggestionQuery,
   poolDetails,
+  replaceCandidateInWorkspace,
   removeCandidateFromWorkspace,
+  replacePoolInWorkspace,
   setExpandedPoolId,
   tournaments,
   emptyCandidateForm,
@@ -191,7 +193,7 @@ export function useCandidateActions({
     try {
       const draft = candidateDrafts[poolId] || emptyCandidateForm;
 
-      await createCandidateInPool(poolId, {
+      const data = await createCandidateInPool(poolId, {
         name: draft.name,
         description: draft.description || null,
         imageUrl: draft.imageUrl || null,
@@ -216,6 +218,7 @@ export function useCandidateActions({
         [poolId]: ""
       }));
       setExpandedPoolId(poolId);
+      replacePoolInWorkspace(data.item);
       setSuccessMessage("Candidate created inside pool.");
       await loadWorkspace();
     } catch (error) {
@@ -245,7 +248,7 @@ export function useCandidateActions({
       await syncLinkedDraftBrackets(poolId, { sourcePoolId: poolId });
 
       if (candidateEditor?.poolId === poolId && candidateEditor.candidateId === candidate.id) {
-        closeCandidateEditor(poolId);
+      closeCandidateEditor(poolId);
       }
 
       removeCandidateFromWorkspace(poolId, candidate.id);
@@ -283,13 +286,14 @@ export function useCandidateActions({
     try {
       const draft = candidateDrafts[poolId] || emptyCandidateForm;
 
-      await updateCandidateInPool(poolId, candidateEditor.candidateId, {
+      const data = await updateCandidateInPool(poolId, candidateEditor.candidateId, {
         name: draft.name,
         description: draft.description || null,
         imageUrl: draft.imageUrl || null,
         tags: parseCandidateTagText(draft.tagsText)
       });
 
+      replaceCandidateInWorkspace(poolId, data.item);
       closeCandidateEditor(poolId);
       setSuccessMessage("Candidate updated.");
       await loadWorkspace();
