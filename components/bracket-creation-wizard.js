@@ -1,13 +1,16 @@
 "use client";
 
 import { Fragment, useEffect, useState } from "react";
-import { Gauge, Globe2, ListOrdered, LockKeyhole, Medal, Trophy, Users } from "lucide-react";
+import { Gauge, Globe2, ListOrdered, LockKeyhole, Medal, Plus, Trophy, Users } from "lucide-react";
 import { CandidateManagerPanel } from "@/components/candidate-manager-panel";
+import { ContentCard } from "@/components/content-card";
 import { PoolManagementPanel } from "@/components/pool-management-panel";
 import { parseCandidateTagText } from "@/lib/candidate-tags";
-import { suggestImages } from "@/lib/client-api/create-workspace";
+import { getPool, listPools, suggestImages } from "@/lib/client-api/create-workspace";
+import { useInfiniteScroll } from "@/components/use-infinite-scroll";
 
 const STEPS = ["Contenders", "Structure", "Matchups", "Seeding", "Access", "Review"];
+const WIZARD_POOL_PAGE_SIZE = 24;
 
 const RESULT_MODE_DETAILS = {
   winner_only: {
@@ -143,19 +146,19 @@ function VersusChoice({ value, choices, onChange }) {
               <span className="display-face flex h-9 w-9 items-center justify-center rounded-full border border-[var(--accent-2)] bg-[var(--panel-3)] text-xs font-black uppercase text-[var(--accent-2)]">VS</span>
             </div>
           ) : null}
-          <button
+          <ContentCard
+            as="button"
             type="button"
             aria-pressed={value === choice.value}
             onClick={() => onChange(choice.value)}
-            className={`border p-4 text-left transition ${
-              value === choice.value
-                ? "border-[var(--accent-2)] bg-[rgba(255,216,77,0.08)]"
-                : "border-[var(--line)] hover:border-[var(--line-strong)] hover:bg-[rgba(255,255,255,0.02)]"
-            }`}
+            interactive
+            selected={value === choice.value}
+            selectedTone="yellow"
+            className="p-4 text-left"
           >
             <span className="display-face block text-base font-black uppercase leading-tight">{choice.title}</span>
             <span className="mt-2 block text-sm leading-5 text-[var(--muted)]">{choice.description}</span>
-          </button>
+          </ContentCard>
         </Fragment>
       ))}
     </div>
@@ -169,23 +172,22 @@ function ChoiceCards({ value, choices, onChange }) {
         const Icon = choice.icon;
 
         return (
-        <button
+        <ContentCard
+          as="button"
           key={choice.value}
           type="button"
           aria-pressed={value === choice.value}
           onClick={() => onChange(choice.value)}
-          className={`min-h-36 border p-4 text-left transition ${
-            value === choice.value
-              ? "border-[var(--accent-3)] bg-[rgba(52,211,196,0.06)]"
-              : "border-[var(--line)] hover:border-[var(--line-strong)] hover:bg-[rgba(255,255,255,0.02)]"
-          }`}
+          interactive
+          selected={value === choice.value}
+          className="min-h-36 p-4 text-left"
         >
           <span className="flex items-center gap-2">
             {Icon ? <Icon aria-hidden="true" size={18} strokeWidth={2} className="shrink-0 text-[var(--accent-2)]" /> : null}
             <span className="display-face text-base font-black uppercase leading-tight">{choice.title}</span>
           </span>
           <span className="ui-copy mt-3 block text-sm leading-6 text-[var(--muted)]">{choice.description}</span>
-        </button>
+        </ContentCard>
         );
       })}
     </div>
@@ -237,7 +239,7 @@ function ResultModeChoices({ value, onChange }) {
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid items-stretch gap-2 sm:grid-cols-[minmax(0,1fr)_2.75rem_minmax(0,1fr)] sm:gap-3">
         <ResultModeTile
           mode="winner_only"
           title="One winner"
@@ -248,6 +250,9 @@ function ResultModeChoices({ value, onChange }) {
           selected={!isRanking}
           onSelect={onChange}
         />
+        <div className="flex items-center justify-center py-1 sm:py-0">
+          <span className="display-face flex h-9 w-9 items-center justify-center rounded-full border border-[var(--accent-2)] bg-[var(--panel-3)] text-xs font-black uppercase text-[var(--accent-2)]">VS</span>
+        </div>
         <ResultModeTile
           mode="full_ranking"
           title="A ranking"
@@ -306,6 +311,10 @@ export function BracketCreationWizard({ pools, creating, onCancel, onCreate, onC
   const [step, setStep] = useState(initialStep);
   const [sourceMode, setSourceMode] = useState(initialConfig?.sourcePoolId || initialPoolId || pools.length ? "existing" : "new");
   const [sourcePoolId, setSourcePoolId] = useState(initialConfig?.sourcePoolId || initialPoolId || pools[0]?.id || "");
+  const [availablePools, setAvailablePools] = useState(pools);
+  const [poolPage, setPoolPage] = useState(1);
+  const [hasMorePools, setHasMorePools] = useState(pools.length >= WIZARD_POOL_PAGE_SIZE);
+  const [loadingMorePools, setLoadingMorePools] = useState(false);
   const [poolName, setPoolName] = useState("");
   const [candidates, setCandidates] = useState([]);
   const [title, setTitle] = useState(initialConfig?.title || "");
@@ -314,15 +323,97 @@ export function BracketCreationWizard({ pools, creating, onCancel, onCreate, onC
   const [advancementMode, setAdvancementMode] = useState(initialConfig?.advancementMode || "vote_winner");
   const [tieBreakMode, setTieBreakMode] = useState(initialConfig?.tieBreakMode || "higher_seed_wins");
   const [seedingMode, setSeedingMode] = useState("pool_order");
+  const [customSeedEntries, setCustomSeedEntries] = useState([]);
+  const [customSeedLoading, setCustomSeedLoading] = useState(false);
+  const [draggingSeedCandidateId, setDraggingSeedCandidateId] = useState(null);
   const [audienceMode, setAudienceMode] = useState(initialConfig?.audienceMode || "private");
   const [error, setError] = useState("");
-  const selectedPool = pools.find((pool) => pool.id === sourcePoolId) || null;
+  const selectedPool = availablePools.find((pool) => pool.id === sourcePoolId) || null;
   const resultModeDetail = RESULT_MODE_DETAILS[resultMode];
+
+  useEffect(() => {
+    setAvailablePools((current) => {
+      const knownIds = new Set(current.map((pool) => pool.id));
+      const additions = pools.filter((pool) => !knownIds.has(pool.id));
+      return additions.length ? [...current, ...additions] : current;
+    });
+  }, [pools]);
+
+  async function loadMorePools() {
+    if (loadingMorePools || !hasMorePools) return;
+
+    const nextPage = poolPage;
+    setLoadingMorePools(true);
+    try {
+      const data = await listPools({
+        limit: WIZARD_POOL_PAGE_SIZE,
+        offset: nextPage * WIZARD_POOL_PAGE_SIZE
+      });
+      const nextPools = data.items || [];
+      setAvailablePools((current) => {
+        const existingIds = new Set(current.map((pool) => pool.id));
+        return [...current, ...nextPools.filter((pool) => !existingIds.has(pool.id))];
+      });
+      setPoolPage(nextPage + 1);
+      setHasMorePools(Boolean(data.meta?.hasNextPage));
+    } catch {
+      setError("We couldn't load more pools. Please try again.");
+    } finally {
+      setLoadingMorePools(false);
+    }
+  }
+
+  async function chooseSeedingMode(mode) {
+    setSeedingMode(mode);
+    if (mode !== "custom" || customSeedEntries.length) return;
+
+    if (sourceMode === "new") {
+      setCustomSeedEntries(candidates);
+      return;
+    }
+
+    if (!selectedPool) return;
+
+    setCustomSeedLoading(true);
+    try {
+      const data = await getPool(selectedPool.id);
+      setCustomSeedEntries(data.item?.candidates || []);
+    } catch {
+      setError("We couldn't load this pool's contenders for seeding.");
+    } finally {
+      setCustomSeedLoading(false);
+    }
+  }
+
+  function moveCustomSeedEntry(candidateId, targetCandidateId) {
+    if (!candidateId || !targetCandidateId || candidateId === targetCandidateId) return;
+
+    setCustomSeedEntries((current) => {
+      const sourceIndex = current.findIndex((candidate) => candidate.id === candidateId);
+      const targetIndex = current.findIndex((candidate) => candidate.id === targetCandidateId);
+      if (sourceIndex < 0 || targetIndex < 0) return current;
+      const next = [...current];
+      const [moved] = next.splice(sourceIndex, 1);
+      next.splice(targetIndex, 0, moved);
+      return next;
+    });
+  }
+
+  const poolLoadSentinelRef = useInfiniteScroll({
+    enabled: sourceMode === "existing" && hasMorePools,
+    loading: loadingMorePools,
+    pageKey: poolPage,
+    onLoadMore: loadMorePools
+  });
 
   function goNext() {
     if (step === 0) {
       if (sourceMode === "existing" && !selectedPool) {
         setError("Choose a pool to continue.");
+        return;
+      }
+      if (sourceMode === "existing" && (selectedPool?.candidateCount ?? 0) < 2) {
+        setError("Add at least two candidates to this pool before creating a bracket.");
         return;
       }
       if (sourceMode === "new" && !poolName.trim()) {
@@ -334,22 +425,38 @@ export function BracketCreationWizard({ pools, creating, onCancel, onCreate, onC
         return;
       }
     }
+    if (step === 3 && seedingMode === "custom" && customSeedEntries.length < 2) {
+      setError("Wait for the contenders to load before continuing.");
+      return;
+    }
     setError("");
     setStep((current) => Math.min(current + 1, STEPS.length - 1));
   }
 
   async function handleCreate() {
+    if (sourceMode === "existing" && (selectedPool?.candidateCount ?? 0) < 2) {
+      setStep(0);
+      setError("Add at least two candidates to this pool before creating a bracket.");
+      return;
+    }
+    if (sourceMode === "new" && candidates.length < 2) {
+      setStep(0);
+      setError("Add at least two candidates to this pool before creating a bracket.");
+      return;
+    }
+
     setError("");
     const created = await onCreate({
       title: title.trim(),
       source: sourceMode === "existing"
         ? { type: "existing", pool: selectedPool }
-        : { type: "new", name: poolName.trim(), candidates },
+        : { type: "new", name: poolName.trim(), candidates: seedingMode === "custom" ? customSeedEntries : candidates },
       playStyle,
       resultMode,
       advancementMode,
       tieBreakMode,
       seedingMode,
+      seedCandidateIds: sourceMode === "existing" && seedingMode === "custom" ? customSeedEntries.map((candidate) => candidate.id) : null,
       audienceMode
     });
 
@@ -399,50 +506,83 @@ export function BracketCreationWizard({ pools, creating, onCancel, onCreate, onC
 
         <div className={fullPage ? "bracket-setup-content" : "min-h-0 flex-1 overflow-y-auto px-5 py-5"}>
           {step === 0 ? (
-            <div className="space-y-5">
-              <div className="space-y-3">
-                <WizardQuestion>How are you starting?</WizardQuestion>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <button type="button" onClick={() => setSourceMode("existing")} className={`border p-4 text-left transition ${sourceMode === "existing" ? "border-[var(--accent-2)] bg-[rgba(255,216,77,0.07)]" : "border-[var(--line)] hover:border-[var(--line-strong)]"}`}>
-                    <p className="display-face font-black uppercase">Use a pool</p>
-                    <p className="mt-2 text-sm text-[var(--muted)]">Choose from your saved candidate sets.</p>
-                  </button>
-                  <button type="button" onClick={() => onCreatePoolWorkspace ? onCreatePoolWorkspace() : setSourceMode("new")} className={`border p-4 text-left transition ${sourceMode === "new" ? "border-[var(--accent-2)] bg-[rgba(255,216,77,0.07)]" : "border-[var(--line)] hover:border-[var(--line-strong)]"}`}>
-                    <p className="display-face font-black uppercase">Create a pool</p>
-                    <p className="mt-2 text-sm text-[var(--muted)]">Open the full pool builder to import and manage candidates.</p>
-                  </button>
-                </div>
-              </div>
+            <div className="space-y-10">
               {sourceMode === "existing" ? (
-                pools.length ? (
-                  <label className="block space-y-2">
-                    <span className="ui-section-kicker">Pool</span>
-                    <select value={sourcePoolId} onChange={(event) => setSourcePoolId(event.target.value)} className="ui-field ui-field-panel ui-field-select">
-                      {pools.map((pool) => <option key={pool.id} value={pool.id}>{pool.name} ({pool.candidateCount} candidates)</option>)}
-                    </select>
-                  </label>
-                ) : <p className="border border-dashed border-[var(--line)] p-4 text-sm text-[var(--muted)]">You don't have a pool yet. Create one below to get started.</p>
+                  <div className="space-y-3">
+                    <WizardQuestion>Where will your contenders come from?</WizardQuestion>
+                    <p className="ui-copy text-sm leading-6 text-[var(--muted)]">Start with a saved pool, or create a new one for this bracket.</p>
+                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                      <button
+                        type="button"
+                        onClick={() => onCreatePoolWorkspace ? onCreatePoolWorkspace() : setSourceMode("new")}
+                        className="min-h-28 border border-[var(--accent-2)] bg-[rgba(255,216,77,0.07)] p-4 text-left transition hover:bg-[rgba(255,216,77,0.13)]"
+                      >
+                        <Plus aria-hidden="true" size={22} strokeWidth={3} className="text-[var(--accent-2)]" />
+                        <span className="display-face mt-5 block text-base font-black uppercase leading-tight text-[var(--ink)]">Create a new pool</span>
+                        <span className="ui-copy mt-2 block text-sm leading-5 text-[var(--muted)]">Add or import contenders without leaving setup.</span>
+                      </button>
+                      {availablePools.map((pool) => {
+                        const selected = sourcePoolId === pool.id;
+
+                        return (
+                          <button
+                            key={pool.id}
+                            type="button"
+                            aria-pressed={selected}
+                            onClick={() => {
+                              if ((pool.candidateCount ?? 0) < 2) {
+                                setError("Add at least two candidates to this pool before creating a bracket.");
+                                return;
+                              }
+                              setSourcePoolId(pool.id);
+                              setError("");
+                              setStep(1);
+                            }}
+                            className={`min-h-28 border p-4 text-left transition ${
+                              selected
+                                ? "border-[var(--accent-2)] bg-[rgba(255,216,77,0.07)]"
+                                : "border-[var(--line)] hover:border-[var(--accent-3)] hover:bg-[rgba(52,211,196,0.04)]"
+                            }`}
+                          >
+                            <span className="display-face block text-base font-black uppercase leading-tight text-[var(--ink)]">{pool.name}</span>
+                            <span className="ui-section-kicker mt-3 block text-[var(--accent-3)]">{pool.candidateCount} {pool.candidateCount === 1 ? "candidate" : "candidates"}</span>
+                            {pool.description ? <span className="ui-copy mt-2 line-clamp-2 block text-sm leading-5 text-[var(--muted)]">{pool.description}</span> : null}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {hasMorePools ? (
+                      <div ref={poolLoadSentinelRef} className="h-px" aria-live="polite">
+                        {loadingMorePools ? <span className="sr-only">Loading more pools</span> : null}
+                      </div>
+                    ) : null}
+                  </div>
               ) : onCreatePoolWorkspace ? null : (
-                <LocalPoolBuilder poolName={poolName} onPoolNameChange={setPoolName} candidates={candidates} onCandidatesChange={setCandidates} />
+                <div className="space-y-4">
+                  {availablePools.length ? (
+                    <button type="button" onClick={() => setSourceMode("existing")} className="ui-button ui-button-muted">← Choose a saved pool</button>
+                  ) : null}
+                  <LocalPoolBuilder poolName={poolName} onPoolNameChange={setPoolName} candidates={candidates} onCandidatesChange={setCandidates} />
+                </div>
               )}
             </div>
           ) : null}
           {step === 1 ? (
-            <div className="space-y-5">
+            <div className="space-y-10">
+              <div className="space-y-3">
+                <WizardQuestion>How will we select matchups?</WizardQuestion>
+                <VersusChoice value={playStyle} onChange={setPlayStyle} choices={[{ value: "fixed_bracket", title: "Keep the bracket fixed", description: "The original tournament tree stays intact throughout." }, { value: "reseed", title: "Reseed each round", description: "The highest seed faces the lowest remaining seed." }]} />
+              </div>
               <div className="space-y-3">
                 <WizardQuestion>What should the bracket decide?</WizardQuestion>
                 <ResultModeChoices value={resultMode} onChange={setResultMode} />
               </div>
-              <div className="space-y-3">
-                <WizardQuestion>Matchups each round</WizardQuestion>
-                <VersusChoice value={playStyle} onChange={setPlayStyle} choices={[{ value: "fixed_bracket", title: "Keep the bracket fixed", description: "The original tournament tree stays intact throughout." }, { value: "reseed", title: "Reseed each round", description: "The highest seed faces the lowest remaining seed." }]} />
-              </div>
             </div>
           ) : null}
           {step === 2 ? (
-            <div className="space-y-5">
+            <div className="space-y-10">
               <div className="space-y-3">
-                <p className="display-face text-sm font-black uppercase tracking-[0.18em] text-[var(--accent-3)]">Winner of each matchup</p>
+                <WizardQuestion>How will each matchup be decided?</WizardQuestion>
                 <VersusChoice
                   value={advancementMode}
                   onChange={setAdvancementMode}
@@ -454,7 +594,7 @@ export function BracketCreationWizard({ pools, creating, onCancel, onCreate, onC
               </div>
               {advancementMode === "vote_winner" ? (
                 <div className="space-y-3">
-                  <p className="display-face text-sm font-black uppercase tracking-[0.18em] text-[var(--accent-3)]">If there's a tie</p>
+                  <WizardQuestion>How should a tie be resolved?</WizardQuestion>
                   <VersusChoice
                     value={tieBreakMode}
                     onChange={setTieBreakMode}
@@ -468,15 +608,45 @@ export function BracketCreationWizard({ pools, creating, onCancel, onCreate, onC
             </div>
           ) : null}
           {step === 3 ? (
-            <div className="space-y-5">
+            <div className="space-y-10">
               <div className="space-y-3">
                 <WizardQuestion>How should entries be seeded?</WizardQuestion>
-                <VersusChoice value={seedingMode} onChange={setSeedingMode} choices={[{ value: "pool_order", title: "Use pool order", description: "Candidates enter in the same order as the selected pool." }, { value: "custom", title: "Customize seeds", description: "Open the seed editor next to arrange entries and add play-ins." }]} />
+                <VersusChoice value={seedingMode} onChange={chooseSeedingMode} choices={[{ value: "pool_order", title: "Use pool order", description: "Candidates enter in the same order as the selected pool." }, { value: "custom", title: "Customize seeds", description: "Arrange the seed order here before creating the bracket." }]} />
               </div>
+              {seedingMode === "custom" ? (
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <WizardQuestion>Put contenders in seed order</WizardQuestion>
+                    <p className="ui-copy text-sm leading-6 text-[var(--muted)]">Drag a contender onto another to place it before that seed.</p>
+                  </div>
+                  {customSeedLoading ? <p className="ui-copy text-sm text-[var(--muted)]">Loading contenders…</p> : null}
+                  {!customSeedLoading && customSeedEntries.length ? (
+                    <ol className="grid gap-2 sm:grid-cols-2">
+                      {customSeedEntries.map((candidate, index) => (
+                        <li
+                          key={candidate.id}
+                          draggable
+                          onDragStart={() => setDraggingSeedCandidateId(candidate.id)}
+                          onDragEnd={() => setDraggingSeedCandidateId(null)}
+                          onDragOver={(event) => event.preventDefault()}
+                          onDrop={() => {
+                            moveCustomSeedEntry(draggingSeedCandidateId, candidate.id);
+                            setDraggingSeedCandidateId(null);
+                          }}
+                          className={`flex min-h-16 cursor-move items-center gap-3 border px-3 py-3 transition ${draggingSeedCandidateId === candidate.id ? "border-[var(--accent-3)] bg-[rgba(52,211,196,0.06)]" : "border-[var(--line)] hover:border-[var(--accent-2)]"}`}
+                        >
+                          <span className="display-face w-8 shrink-0 text-lg font-black text-[var(--accent-2)]">{index + 1}</span>
+                          <span className="display-face min-w-0 truncate text-base font-black uppercase text-[var(--ink)]">{candidate.name}</span>
+                        </li>
+                      ))}
+                    </ol>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
           ) : null}
           {step === 4 ? (
-            <div className="space-y-5">
+            <div className="space-y-10">
               <div className="space-y-3">
                 <WizardQuestion>Who can take part?</WizardQuestion>
                 <ChoiceCards
@@ -492,9 +662,9 @@ export function BracketCreationWizard({ pools, creating, onCancel, onCreate, onC
             </div>
           ) : null}
           {step === 5 ? (
-            <div className="space-y-6">
+            <div className="space-y-10">
               <label className="block space-y-3">
-                <WizardQuestion>Name your bracket</WizardQuestion>
+                <WizardQuestion>What should this bracket be called?</WizardQuestion>
                 <input value={title} onChange={(event) => setTitle(event.target.value)} placeholder={`${selectedName || "Untitled"} Bracket`} className="ui-field border-[var(--accent-3)] bg-[rgba(52,211,196,0.06)] px-5 py-4 display-face text-3xl font-black uppercase" />
               </label>
               <div className="space-y-3">
@@ -502,7 +672,7 @@ export function BracketCreationWizard({ pools, creating, onCancel, onCreate, onC
                 <div className="grid gap-3 sm:grid-cols-2">
                 <ReviewItem icon={Users} label="Contenders" value={selectedName || "New pool"} detail={`${selectedCount} contenders`} />
                 <ReviewItem icon={Gauge} label="Format" value={playStyle === "reseed" ? "Reseed each round" : "Keep the bracket fixed"} detail={resultModeDetail.title} />
-                <ReviewItem icon={ListOrdered} label="Seeding" value={seedingMode === "custom" ? "Customize next" : "Pool order"} detail={seedingMode === "custom" ? "Arrange entries and play-ins after creation." : "Candidates begin in their pool order."} />
+                <ReviewItem icon={ListOrdered} label="Seeding" value={seedingMode === "custom" ? "Custom seed order" : "Pool order"} detail={seedingMode === "custom" ? "Seed order set in this wizard." : "Candidates begin in their pool order."} />
                 <ReviewItem icon={Trophy} label="Winner" value={advancementMode === "vote_winner" ? "Highest vote total" : "You'll choose"} detail={advancementMode === "vote_winner" ? "Votes decide each matchup." : "Record real-world outcomes yourself."} />
                   <ReviewItem icon={audienceMode === "public" ? Globe2 : audienceMode === "friends" ? Users : LockKeyhole} label="Access" value={audienceMode === "friends" ? "Share with friends" : audienceMode} detail={audienceMode === "private" ? "Only you can see and run it." : audienceMode === "friends" ? "Invite people with a private link." : "Anyone can discover and vote."} />
                 </div>
@@ -512,7 +682,7 @@ export function BracketCreationWizard({ pools, creating, onCancel, onCreate, onC
           {error ? <p className="mt-4 text-sm text-[var(--accent-2)]">{error}</p> : null}
         </div>
 
-        <footer className={fullPage ? "bracket-setup-actions" : "flex items-center justify-between gap-3 border-t border-[var(--line)] px-5 py-4"}><button type="button" onClick={step === 0 ? onCancel : () => setStep((current) => current - 1)} className="ui-button ui-button-muted">{step === 0 ? (fullPage ? "Back to Brackets" : "Cancel") : "Back"}</button>{step < STEPS.length - 1 ? <button type="button" onClick={goNext} className="ui-button ui-button-primary">Continue</button> : <button type="button" onClick={handleCreate} disabled={creating} className="ui-button ui-button-primary">{creating ? "Creating" : "Create bracket"}</button>}</footer>
+        <footer className={fullPage ? "bracket-setup-actions" : "flex items-center justify-between gap-3 border-t border-[var(--line)] px-5 py-4"}><button type="button" onClick={step === 0 ? onCancel : () => setStep((current) => current - 1)} className="ui-button ui-button-muted">{step === 0 ? (fullPage ? "Back to Brackets" : "Cancel") : "Back"}</button>{step < STEPS.length - 1 && !(step === 0 && sourceMode === "existing") ? <button type="button" onClick={goNext} className="ui-button ui-button-primary">Continue</button> : step === STEPS.length - 1 ? <button type="button" onClick={handleCreate} disabled={creating} className="ui-button ui-button-primary">{creating ? "Creating" : "Create bracket"}</button> : null}</footer>
       </section>
     </div>
   );

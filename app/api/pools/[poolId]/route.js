@@ -18,9 +18,13 @@ import {
 export const GET = withRouteErrorHandling(async function GET(request, { params }) {
   const user = await getOptionalCurrentUser(request);
   const { poolId } = await params;
+  const candidateLimit = Number.parseInt(request.nextUrl.searchParams.get("candidateLimit") || "", 10);
+  const candidateOffset = Number.parseInt(request.nextUrl.searchParams.get("candidateOffset") || "0", 10);
   const pool = await getPoolById({
     poolId,
-    userId: user?.id ?? null
+    userId: user?.id ?? null,
+    candidateLimit: Number.isInteger(candidateLimit) && candidateLimit > 0 ? candidateLimit : null,
+    candidateOffset: Number.isInteger(candidateOffset) && candidateOffset >= 0 ? candidateOffset : 0
   });
 
   const response = json({ item: pool });

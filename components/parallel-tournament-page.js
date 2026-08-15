@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { BracketOutcomeHeader } from "@/components/bracket-outcome-header";
 import { openMyParallelBracket } from "@/lib/client-api/parallel-participants";
 
 export function ParallelTournamentPage({ parallelTournament }) {
@@ -33,17 +34,11 @@ export function ParallelTournamentPage({ parallelTournament }) {
       {error ? <p className="vote-message vote-message-error">{error}</p> : null}
 
       <section className="results-shell">
-        <header className="results-header">
-          <div className="results-header-row">
-            <div className="results-header-copy">
-              <p className="results-kicker">Parallel Bracket</p>
-              <h1 className="results-title">{parallelTournament.title}</h1>
-              <p className="results-meta">
-                {parallelTournament.candidateCount} entries | {parallelTournament.participantCount} participants
-              </p>
-            </div>
-          </div>
-        </header>
+        <BracketOutcomeHeader
+          kicker="Parallel Bracket"
+          title={parallelTournament.title}
+          meta={`${parallelTournament.candidateCount} entries | ${parallelTournament.participantCount} participants`}
+        />
 
         <div className="vote-callout-body">
           <p className="vote-callout-copy">

@@ -1,0 +1,158 @@
+.content-card {
+  min-width: 0;
+}
+
+.content-card-interactive {
+  border: 1px solid var(--line);
+  background: transparent;
+  color: inherit;
+  transition: border-color 150ms ease, background-color 150ms ease;
+}
+
+.content-card-interactive:hover,
+.content-card-interactive:focus-visible {
+  border-color: var(--line-strong);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.content-card-selected-cyan {
+  border-color: var(--accent-3);
+  background: rgba(52, 211, 196, 0.06);
+}
+
+.content-card-selected-yellow {
+  border-color: var(--accent-2);
+  background: rgba(255, 216, 77, 0.08);
+}
+
+.image-rail-card { position: relative; isolation: isolate; display: flex; overflow: hidden; }
+.image-rail-card-image { position: absolute; inset: 0; z-index: -1; height: 100%; width: 100%; object-fit: cover; }
+.image-rail-card-rail { position: relative; width: 100%; margin-top: auto; }
+
+.compact-rail-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid var(--line-strong);
+  padding: 0.9rem 0 0.75rem;
+  background: transparent;
+}
+
+.compact-rail-header-copy {
+  min-width: 0;
+  max-width: 42rem;
+}
+
+.compact-rail-header-title {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  font-size: 1.45rem;
+  font-weight: 900;
+}
+
+.compact-rail-header-kicker + .compact-rail-header-title {
+  margin-top: 0.45rem;
+}
+
+.compact-rail-header-count {
+  color: var(--muted);
+  font-size: 0.72em;
+  font-weight: 700;
+}
+
+.compact-rail-header-button {
+  display: block;
+  width: 100%;
+  text-align: left;
+}
+
+@media (max-width: 767px) {
+  .compact-rail-header-title {
+    gap: 0.42rem;
+    font-size: 1.28rem;
+  }
+}
+
+.completed-bracket-card {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  min-height: 13rem;
+  width: 100%;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: var(--panel-2);
+  color: inherit;
+  text-align: left;
+  transition: border-color 150ms ease;
+}
+
+.completed-bracket-card:hover,
+.completed-bracket-card:focus-visible {
+  border-color: var(--accent-3);
+  outline: 2px solid var(--accent-3);
+  outline-offset: 2px;
+}
+
+.completed-bracket-card-rail {
+  width: 100%;
+  margin-top: auto;
+  padding: 0.7rem 0.9rem;
+  background: rgba(55, 52, 47, 0.68);
+  backdrop-filter: blur(2px);
+}
+
+.completed-bracket-card-menu {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(232, 226, 214, 0.32);
+  background-color: rgba(55, 52, 47, 0.68);
+  color: var(--ink);
+  backdrop-filter: blur(2px);
+  cursor: pointer;
+}
+
+.completed-bracket-card-menu:hover,
+.completed-bracket-card-menu:focus-visible,
+.completed-bracket-card-menu[aria-expanded="true"] {
+  border-color: var(--accent-3);
+  background-color: rgba(55, 52, 47, 0.88);
+  color: var(--accent-3);
+}
+
+.completed-bracket-card-title {
+  font-size: 1.02rem;
+  font-weight: 900;
+  line-height: 1.05;
+  transition: color 150ms ease;
+}
+
+.completed-bracket-card:hover .completed-bracket-card-title,
+.completed-bracket-card:focus-visible .completed-bracket-card-title {
+  color: var(--accent-3);
+}
+
+.completed-bracket-card-winner {
+  display: flex;
+  align-items: center;
+  margin-top: 0.4rem;
+  color: var(--muted);
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.workspace-create-card { display: flex; min-height: 11rem; width: 100%; flex-direction: column; align-items: flex-start; justify-content: space-between; gap: 1.25rem; border: 1px solid var(--line-strong); padding: 1.25rem; text-align: left; transition: background-color 150ms ease, border-color 150ms ease; }
+.workspace-create-card-primary { border-color: var(--accent-2); background: rgba(255, 216, 77, 0.035); }
+.workspace-create-card-primary:hover, .workspace-create-card-primary:focus-visible { background: rgba(255, 216, 77, 0.07); }
+.workspace-create-card-secondary { background: rgba(255, 255, 255, 0.02); }
+.workspace-create-card-secondary:hover, .workspace-create-card-secondary:focus-visible { border-color: var(--accent-3); background: rgba(52, 211, 196, 0.055); }
+.workspace-create-card-icon { font-size: 2.25rem; font-weight: 900; line-height: 1; }
+.workspace-create-card-primary .workspace-create-card-icon { color: var(--accent-2); }
+.workspace-create-card-secondary .workspace-create-card-icon { color: var(--accent-3); }
+.workspace-create-card-title { display: block; font-size: 1.125rem; font-weight: 900; color: var(--ink); }
+.workspace-create-card-copy { display: block; margin-top: 0.5rem; font-size: 0.875rem; line-height: 1.5; color: var(--muted); }

@@ -7,13 +7,14 @@ import {
   createParallelTournament,
   createPool,
   createTournament,
+  getPool,
   listPools,
   listTournaments,
   updateTournament
 } from "@/lib/client-api/create-workspace";
 import { isParallelResultMode } from "@/lib/bracket-modes";
 
-export function NewBracketSetupPage() {
+export function NewBracketSetupPage({ draftId: routeDraftId = null }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [pools, setPools] = useState([]);
@@ -22,16 +23,28 @@ export function NewBracketSetupPage() {
   const [creating, setCreating] = useState(false);
 
   useEffect(() => {
-    Promise.all([listPools(), listTournaments()])
-      .then(([poolData, tournamentData]) => {
-        setPools(poolData.items || []);
-        const draftId = searchParams?.get("draftId");
+    const requestedPoolId = searchParams?.get("poolId") || null;
+
+    Promise.all([
+      listPools(),
+      listTournaments(),
+      requestedPoolId ? getPool(requestedPoolId).catch(() => null) : Promise.resolve(null)
+    ])
+      .then(([poolData, tournamentData, requestedPoolData]) => {
+        const listedPools = poolData.items || [];
+        const requestedPool = requestedPoolData?.item || null;
+        setPools(
+          requestedPool && !listedPools.some((pool) => pool.id === requestedPool.id)
+            ? [requestedPool, ...listedPools]
+            : listedPools
+        );
+        const draftId = routeDraftId || searchParams?.get("draftId");
         setDraft(draftId ? (tournamentData.items || []).find((item) => item.id === draftId && item.status === "draft") || null : null);
       })
       .finally(() => setLoading(false));
-  }, [searchParams]);
+  }, [routeDraftId, searchParams]);
 
-  async function handleCreate({ title, source, playStyle, resultMode, advancementMode, tieBreakMode, seedingMode, audienceMode }) {
+  async function handleCreate({ title, source, playStyle, resultMode, advancementMode, tieBreakMode, seedingMode, seedCandidateIds, audienceMode }) {
     setCreating(true);
     try {
       const pool = source.type === "existing"
@@ -63,6 +76,7 @@ export function NewBracketSetupPage() {
         resultMode,
         advancementMode,
         tieBreakMode,
+        seedCandidateIds: seedingMode === "custom" ? seedCandidateIds : undefined,
         ...audience
       };
       const isParallelBracket = isParallelResultMode(resultMode);
@@ -81,9 +95,7 @@ export function NewBracketSetupPage() {
         : draft
           ? await updateTournament(draft.id, payload)
           : await createTournament(payload);
-      const params = new URLSearchParams({ view: "tournaments", stage: "draft", tournament: data.item.id });
-      if (!isParallelBracket && seedingMode === "custom") params.set("openSeeding", data.item.id);
-      router.push(`/create?${params.toString()}`);
+      router.push("/brackets?stage=draft");
       return data.item;
     } catch {
       return null;
@@ -115,5 +127,5 @@ export function NewBracketSetupPage() {
         : "private"
   };
 
-  return <BracketCreationWizard pools={pools} initialPoolId={searchParams?.get("poolId") || ""} initialConfig={initialConfig} initialStep={searchParams?.get("step") === "structure" ? 1 : 0} creating={creating} onCancel={() => router.push("/create?view=tournaments&stage=draft")} onCreate={handleCreate} fullPage />;
+  return <BracketCreationWizard pools={pools} initialPoolId={searchParams?.get("poolId") || ""} initialConfig={initialConfig} initialStep={searchParams?.get("step") === "structure" ? 1 : 0} creating={creating} onCancel={() => router.push("/brackets?stage=draft")} onCreate={handleCreate} fullPage />;
 }

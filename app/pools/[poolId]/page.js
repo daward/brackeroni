@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { CandidateTagList } from "@/components/candidate-tag-list";
+import { PublicPoolCandidates } from "@/components/public-pool-candidates";
+import { CreatePanels } from "@/components/create-panels";
 import { getOptionalCurrentUser } from "@/lib/auth/current-user";
 import { getPoolById } from "@/lib/data/pools";
 
@@ -22,13 +22,14 @@ export async function generateMetadata({ params }) {
 export default async function PublicPoolPage({ params }) {
   const user = await getOptionalCurrentUser();
   const { poolId } = await params;
-  const pool = await getPoolById({
+  let pool = await getPoolById({
     poolId,
-    userId: user?.id ?? null
+    userId: user?.id ?? null,
+    candidateLimit: 24
   });
 
-  if (user && pool.visibility === "public_unlisted" && !pool.isOwned) {
-    redirect(`/create?favoritePool=${pool.id}`);
+  if (user && pool.isOwned) {
+    return <CreatePanels workspaceView="pools" initialPoolId={pool.id} initialPool={pool} />;
   }
 
   return (
@@ -59,7 +60,7 @@ export default async function PublicPoolPage({ params }) {
           )}
           <div className="flex flex-wrap gap-3">
             {user ? (
-              <Link href={`/create?makeBracketFromPool=${pool.id}`} className="ui-button ui-button-primary">
+              <Link href={`/brackets/configuration?poolId=${pool.id}`} className="ui-button ui-button-primary">
                 Make Bracket
               </Link>
             ) : (
@@ -70,7 +71,7 @@ export default async function PublicPoolPage({ params }) {
                 Sign In To Save Pool
               </Link>
             )}
-            <Link href="/pools" className="ui-button ui-button-muted">
+            <Link href="/explore/pools" className="ui-button ui-button-muted">
               Browse Pools
             </Link>
           </div>
@@ -83,31 +84,7 @@ export default async function PublicPoolPage({ params }) {
             Candidates
           </h2>
         </div>
-        <div className="grid gap-3 px-5 py-5 sm:grid-cols-2 xl:grid-cols-3">
-          {pool.candidates.map((candidate) => (
-            <div
-              key={candidate.id}
-              className="overflow-hidden border border-[var(--line)] bg-[var(--panel-2)]"
-            >
-              {candidate.imageUrl ? (
-                <img
-                  src={candidate.imageUrl}
-                  alt={candidate.name}
-                  className="h-40 w-full object-cover"
-                />
-              ) : null}
-              <div className="px-4 py-4">
-                <p className="display-face text-lg font-black">{candidate.name}</p>
-                <CandidateTagList tags={candidate.tags} className="mt-2" />
-                {candidate.description ? (
-                  <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-                    {candidate.description}
-                  </p>
-                ) : null}
-              </div>
-            </div>
-          ))}
-        </div>
+        <PublicPoolCandidates poolId={pool.id} initialCandidates={pool.candidates} initialPagination={pool.candidatePagination} />
       </section>
     </div>
   );

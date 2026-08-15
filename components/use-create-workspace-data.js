@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import { runSingleFlight } from "@/lib/async/single-flight";
 import {
   normalizeParallelBracketItem,
   sortManagedBrackets,
@@ -18,20 +19,37 @@ import {
 } from "@/lib/client-api/create-workspace";
 import { listTournamentMatches } from "@/lib/client-api/voting";
 
-export function useCreateWorkspaceData({ setErrorMessage, setExpandedPoolId }) {
-  const [pools, setPools] = useState([]);
+const POOL_PAGE_SIZE = 24;
+const TOURNAMENT_PAGE_SIZE = 12;
+
+export function useCreateWorkspaceData({ setErrorMessage, setExpandedPoolId, workspaceView, tournamentStage = "draft", initialPool = null }) {
+  const [pools, setPools] = useState(() => (initialPool ? [initialPool] : []));
+  const [poolPage, setPoolPage] = useState(1);
+  const [poolPagination, setPoolPagination] = useState({
+    page: 1,
+    pageSize: POOL_PAGE_SIZE,
+    totalCount: 0,
+    hasNextPage: false
+  });
   const [tournaments, setTournaments] = useState([]);
-  const [poolDetails, setPoolDetails] = useState({});
+  const [tournamentPage, setTournamentPage] = useState(1);
+  const [tournamentPagination, setTournamentPagination] = useState({ page: 1, pageSize: TOURNAMENT_PAGE_SIZE, hasNextPage: false });
+  const [tournamentStatusCounts, setTournamentStatusCounts] = useState({ draft: 0, active: 0, complete: 0 });
+  const [poolDetails, setPoolDetails] = useState(() =>
+    initialPool?.id ? { [initialPool.id]: initialPool } : {}
+  );
   const [tournamentInvites, setTournamentInvites] = useState({});
   const [tournamentShareLinks, setTournamentShareLinks] = useState({});
   const [tournamentMatches, setTournamentMatches] = useState({});
   const [isWorkspacePending, startWorkspaceTransition] = useTransition();
-  const poolDetailsRef = useRef({});
+  const poolDetailsRef = useRef(initialPool?.id ? { [initialPool.id]: initialPool } : {});
   const tournamentInvitesRef = useRef({});
   const tournamentShareLinksRef = useRef({});
   const tournamentMatchesRef = useRef({});
   const pendingPoolDetailIdsRef = useRef(new Set());
   const pendingTournamentDetailIdsRef = useRef(new Set());
+  const workspaceLoadPromiseRef = useRef(null);
+  const lastWorkspaceLoadRef = useRef({ key: null, completedAt: 0 });
 
   useEffect(() => {
     poolDetailsRef.current = poolDetails;
@@ -230,7 +248,7 @@ export function useCreateWorkspaceData({ setErrorMessage, setExpandedPoolId }) {
     pendingPoolDetailIdsRef.current.add(poolId);
 
     try {
-      const data = await getPool(poolId);
+      const data = await getPool(poolId, { candidateLimit: 24 });
       setPoolDetails((current) => ({
         ...current,
         [poolId]: data.item
@@ -241,6 +259,21 @@ export function useCreateWorkspaceData({ setErrorMessage, setExpandedPoolId }) {
     }
   }, []);
 
+  const ensurePoolInWorkspace = useCallback(async (poolId) => {
+    const pool = await ensurePoolDetails(poolId);
+
+    if (!pool) {
+      return null;
+    }
+
+    setPools((current) =>
+      current.some((item) => item.id === pool.id)
+        ? current
+        : sortManagedPools([...current, pool])
+    );
+
+    return pool;
+  }, [ensurePoolDetails]);
   const ensureTournamentWorkspaceDetails = useCallback(async (tournament) => {
     if (!tournament?.id) {
       return;
@@ -327,63 +360,120 @@ export function useCreateWorkspaceData({ setErrorMessage, setExpandedPoolId }) {
     }
   }, []);
 
-  const loadWorkspace = useCallback(async () => {
-    const [poolData, tournamentData, parallelTournamentData] = await Promise.all([
-      listPools(),
-      listTournaments(),
-      listParallelTournaments().catch(() => ({ items: [] }))
-    ]);
-    const sortedPools = sortManagedPools(poolData.items ?? []);
-    const normalizedTournaments = sortManagedBrackets([
-      ...(tournamentData.items ?? [])
-        .filter((item) => !item.parentParallelTournamentId)
-        .map((item) => ({ ...item, kind: "standard" })),
-      ...(parallelTournamentData.items ?? []).map(normalizeParallelBracketItem)
-    ]);
+  const loadWorkspace = useCallback(({ force = false } = {}) => {
+    const workspaceKey =
+      workspaceView === "pools" ? `pools:${poolPage}` : `tournaments:${tournamentStage}:${tournamentPage}`;
+    const lastLoad = lastWorkspaceLoadRef.current;
 
-    setPools(sortedPools);
-    setTournaments(normalizedTournaments);
-    setPoolDetails((current) =>
-      Object.fromEntries(
-        Object.entries(current).filter(([poolId]) =>
-          sortedPools.some((pool) => pool.id === poolId)
-        )
-      )
-    );
-    setTournamentMatches((current) =>
-      Object.fromEntries(
-        Object.entries(current).filter(([tournamentId]) =>
-          normalizedTournaments.some((tournament) => tournament.id === tournamentId)
-        )
-      )
-    );
-    setTournamentInvites((current) =>
-      Object.fromEntries(
-        Object.entries(current).filter(([tournamentId]) =>
-          normalizedTournaments.some((tournament) => tournament.id === tournamentId)
-        )
-      )
-    );
-    setTournamentShareLinks((current) =>
-      Object.fromEntries(
-        Object.entries(current).filter(([tournamentId]) =>
-          normalizedTournaments.some((tournament) => tournament.id === tournamentId)
-        )
-      )
-    );
-    setExpandedPoolId((current) => {
-      if (!sortedPools.length) {
-        return null;
+    // Route transitions and React effects can ask for the exact same workspace
+    // within milliseconds. Reuse that completed result; mutations pass force.
+    if (!force && lastLoad.key === workspaceKey && Date.now() - lastLoad.completedAt < 1_500) {
+      return Promise.resolve();
+    }
+
+    return runSingleFlight(workspaceLoadPromiseRef, async () => {
+      if (workspaceView === "pools") {
+        const poolData = await listPools({
+          limit: POOL_PAGE_SIZE,
+          offset: (poolPage - 1) * POOL_PAGE_SIZE
+        });
+        const listedPools = poolData.items ?? [];
+        // A direct /pools/[id] route already has its pool from the server.
+        // Keep that record mounted while the paginated list loads, even when
+        // it falls outside the current page, so the detail view never flashes
+        // through an empty workspace.
+        const sortedPools = sortManagedPools(
+          initialPool?.id && !listedPools.some((pool) => pool.id === initialPool.id)
+            ? [...listedPools, initialPool]
+            : listedPools
+        );
+        const totalCount = Number(poolData.meta?.totalCount ?? listedPools.length);
+        const totalPages = Math.max(1, Math.ceil(totalCount / POOL_PAGE_SIZE));
+
+        setPoolPagination({
+          page: Math.min(poolPage, totalPages),
+          pageSize: POOL_PAGE_SIZE,
+          totalCount,
+          hasNextPage: Boolean(poolData.meta?.hasNextPage)
+        });
+
+        if (poolPage > totalPages) {
+          setPoolPage(totalPages);
+        }
+
+        if (poolPage === 1) {
+          setPools(sortedPools);
+          setPoolDetails((current) =>
+            Object.fromEntries(
+              Object.entries(current).filter(([poolId]) =>
+                sortedPools.some((pool) => pool.id === poolId)
+              )
+            )
+          );
+          setExpandedPoolId((current) =>
+            current && sortedPools.some((pool) => pool.id === current) ? current : null
+          );
+        } else {
+          setPools((current) =>
+            sortManagedPools([
+              ...current,
+              ...sortedPools.filter((pool) => !current.some((existing) => existing.id === pool.id))
+            ])
+          );
+        }
+        return;
       }
 
-      if (current && sortedPools.some((pool) => pool.id === current)) {
-        return current;
-      }
+      const tournamentOffset = (tournamentPage - 1) * TOURNAMENT_PAGE_SIZE;
+      const [tournamentData, parallelTournamentData] = await Promise.all([
+        listTournaments({ limit: TOURNAMENT_PAGE_SIZE, offset: tournamentOffset, status: tournamentStage }),
+        listParallelTournaments({ limit: TOURNAMENT_PAGE_SIZE, offset: tournamentOffset, status: tournamentStage }).catch(() => ({ items: [], meta: { hasNextPage: false } }))
+      ]);
+      setTournamentPagination({
+        page: tournamentPage,
+        pageSize: TOURNAMENT_PAGE_SIZE,
+        hasNextPage: Boolean(tournamentData.meta?.hasNextPage || parallelTournamentData.meta?.hasNextPage)
+      });
+      const standardCounts = tournamentData.meta?.statusCounts ?? {};
+      const parallelCounts = parallelTournamentData.meta?.statusCounts ?? {};
+      setTournamentStatusCounts({
+        draft: Number(standardCounts.draft ?? 0) + Number(parallelCounts.draft ?? 0),
+        active: Number(standardCounts.active ?? 0) + Number(parallelCounts.active ?? 0),
+        complete: Number(standardCounts.complete ?? 0) + Number(parallelCounts.complete ?? 0)
+      });
+      const normalizedTournaments = sortManagedBrackets([
+        ...(tournamentData.items ?? [])
+          .filter((item) => !item.parentParallelTournamentId)
+          .map((item) => ({ ...item, kind: "standard" })),
+        ...(parallelTournamentData.items ?? []).map(normalizeParallelBracketItem)
+      ]);
 
-      return null;
+      if (tournamentPage === 1) {
+        setTournaments(normalizedTournaments);
+        setTournamentMatches((current) =>
+          Object.fromEntries(Object.entries(current).filter(([tournamentId]) => normalizedTournaments.some((tournament) => tournament.id === tournamentId)))
+        );
+        setTournamentInvites((current) =>
+          Object.fromEntries(Object.entries(current).filter(([tournamentId]) => normalizedTournaments.some((tournament) => tournament.id === tournamentId)))
+        );
+        setTournamentShareLinks((current) =>
+          Object.fromEntries(Object.entries(current).filter(([tournamentId]) => normalizedTournaments.some((tournament) => tournament.id === tournamentId)))
+        );
+      } else {
+        setTournaments((current) =>
+          sortManagedBrackets([
+            ...current,
+            ...normalizedTournaments.filter((tournament) => !current.some((existing) => existing.id === tournament.id))
+          ])
+        );
+      }
+    }).then(() => {
+      lastWorkspaceLoadRef.current = {
+        key: workspaceKey,
+        completedAt: Date.now()
+      };
     });
-  }, [setExpandedPoolId]);
-
+  }, [initialPool, poolPage, setExpandedPoolId, tournamentPage, tournamentStage, workspaceView]);
   useEffect(() => {
     startWorkspaceTransition(async () => {
       try {
@@ -399,8 +489,11 @@ export function useCreateWorkspaceData({ setErrorMessage, setExpandedPoolId }) {
     loadFriendsTournamentMeta,
     loadWorkspace,
     ensurePoolDetails,
+    ensurePoolInWorkspace,
     ensureTournamentWorkspaceDetails,
     poolDetails,
+    poolPage,
+    poolPagination,
     pools,
     refreshTournamentMatches,
     removeCandidateFromWorkspace,
@@ -408,6 +501,11 @@ export function useCreateWorkspaceData({ setErrorMessage, setExpandedPoolId }) {
     replacePoolInWorkspace,
     replaceTournamentMatchInWorkspace,
     replaceTournamentInWorkspace,
+    setPoolPage,
+    setTournamentPage,
+    tournamentPage,
+    tournamentPagination,
+    tournamentStatusCounts,
     setTournamentShareLink,
     tournamentInvites,
     tournamentMatches,
@@ -415,3 +513,9 @@ export function useCreateWorkspaceData({ setErrorMessage, setExpandedPoolId }) {
     tournamentShareLinks
   };
 }
+
+
+
+
+
+

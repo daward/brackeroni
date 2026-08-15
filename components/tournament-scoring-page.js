@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { BracketOutcomeHeader } from "@/components/bracket-outcome-header";
+import { ResultsTable } from "@/components/results-table";
 import {
   formatResultModeLabel,
   usesOpenEndedRankingMode,
@@ -26,8 +27,7 @@ function formatWinPercentage(value) {
 
 function AggregateScoreTable({ scores, selectedVoterKey, onSelectVoter, scoringEnabled }) {
   return (
-    <div className="results-table-wrap hidden md:block">
-      <table className="results-table results-scoring-table">
+    <ResultsTable className="results-scoring-table" wrapperClassName="hidden md:block">
         <thead>
           <tr>
             <th className="results-scoring-rank-column">#</th>
@@ -66,8 +66,7 @@ function AggregateScoreTable({ scores, selectedVoterKey, onSelectVoter, scoringE
             </tr>
           ))}
         </tbody>
-      </table>
-    </div>
+      </ResultsTable>
   );
 }
 
@@ -119,8 +118,7 @@ function VoterHistoryTable({ tournament, votes, scoringEnabled }) {
   }
 
   return (
-    <div className="results-table-wrap hidden md:block">
-      <table className="results-table results-scoring-table">
+    <ResultsTable className="results-scoring-table" wrapperClassName="hidden md:block">
         <thead>
           <tr>
             <th className="results-scoring-round-column">#</th>
@@ -148,8 +146,7 @@ function VoterHistoryTable({ tournament, votes, scoringEnabled }) {
             </tr>
           ))}
         </tbody>
-      </table>
-    </div>
+      </ResultsTable>
   );
 }
 

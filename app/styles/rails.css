@@ -1,0 +1,52 @@
+.mobile-swipe-rail-shell {
+  position: relative;
+}
+
+.mobile-swipe-rail {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 1rem;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  overscroll-behavior-x: contain;
+  touch-action: pan-x;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding-bottom: 0.15rem;
+}
+
+.mobile-swipe-rail::-webkit-scrollbar {
+  display: none;
+}
+
+.mobile-swipe-rail-slide {
+  flex: 0 0 100%;
+  width: 100%;
+  min-width: 100%;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+}
+
+.mobile-swipe-rail-dots {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  margin-top: 0.65rem;
+}
+
+.mobile-swipe-rail-dot {
+  width: 0.34rem;
+  height: 0.34rem;
+  border-radius: 999px;
+  background: rgba(228, 220, 201, 0.38);
+  transition:
+    background-color 150ms ease,
+    transform 150ms ease;
+}
+
+.mobile-swipe-rail-dot-active {
+  background: var(--accent-3);
+  transform: scale(1.15);
+}

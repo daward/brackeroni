@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState, useTransition } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { ResilientRemoteImage } from "@/components/resilient-remote-image";
+import { ContentCard } from "@/components/content-card";
 import {
   addPoolToFavorites,
   createAndStartFavoriteBracket
@@ -12,15 +13,15 @@ import {
 function FavoriteStar({ isFavorited }) {
   return (
     <span
-      className={`home-favorite-star ${
-        isFavorited ? "home-favorite-star-filled" : "home-favorite-star-empty"
+      className={`public-pool-favorite-star ${
+        isFavorited ? "public-pool-favorite-star-filled" : "public-pool-favorite-star-empty"
       }`}
     >
       <svg
         viewBox="0 0 24 24"
         aria-hidden="true"
-        className={`home-favorite-star-outline-icon ${
-          isFavorited ? "home-favorite-star-outline-hidden" : "home-favorite-star-outline-visible"
+        className={`public-pool-favorite-star-outline-icon ${
+          isFavorited ? "public-pool-favorite-star-outline-hidden" : "public-pool-favorite-star-outline-visible"
         }`}
         fill="none"
         stroke="currentColor"
@@ -32,8 +33,8 @@ function FavoriteStar({ isFavorited }) {
       <svg
         viewBox="0 0 24 24"
         aria-hidden="true"
-        className={`home-favorite-star-fill-icon ${
-          isFavorited ? "home-favorite-star-fill-visible" : "home-favorite-star-fill-hidden"
+        className={`public-pool-favorite-star-fill-icon ${
+          isFavorited ? "public-pool-favorite-star-fill-visible" : "public-pool-favorite-star-fill-hidden"
         }`}
         fill="currentColor"
       >
@@ -131,7 +132,7 @@ export function PublicPoolCard({
   const visibleCandidates = visibleIndexes
     .map((candidateIndex) => previewCandidates[candidateIndex])
     .filter(Boolean);
-  const primaryHref = href || `/create?makeBracketFromPool=${pool.id}`;
+  const primaryHref = href || `/pools/${pool.id}`;
   const signInHref = `/api/auth/signin?callbackUrl=${encodeURIComponent(pathname || `/pools/${pool.id}`)}`;
 
   function handleFavorite(event) {
@@ -174,22 +175,22 @@ export function PublicPoolCard({
   }
 
   return (
-    <div className="home-pool-card">
+    <ContentCard className="public-pool-card">
       <Link
         href={primaryHref}
         aria-label={href ? `View ${pool.name}` : `Make bracket from ${pool.name}`}
-        className="home-pool-card-primary-link"
+        className="public-pool-card-primary-link"
       />
-      <div className="home-pool-card-content">
-        <div className="home-pool-card-main">
-          <div className="home-pool-card-topline">
-            <p className="home-pool-card-meta">{pool.candidateCount} candidates</p>
+      <div className="public-pool-card-content">
+        <div className="public-pool-card-main">
+          <div className="public-pool-card-topline">
+            <p className="public-pool-card-meta">{pool.candidateCount} candidates</p>
             {pool.isFavorited ? (
               <Link
-                href={`/create?view=pools&pool=${pool.favoritePoolId}`}
+                href={`/pools/${pool.favoritePoolId}`}
                 aria-label="Open saved pool"
                 title="Saved in your pools"
-                className="home-star-link"
+                className="public-pool-star-link"
               >
                 <FavoriteStar isFavorited />
               </Link>
@@ -201,7 +202,7 @@ export function PublicPoolCard({
                   disabled={isFavoriting}
                   aria-label="Add to favorites"
                   title="Add to favorites"
-                  className="home-star-button"
+                  className="public-pool-star-button"
                 >
                   <FavoriteStar isFavorited={false} />
                 </button>
@@ -210,66 +211,66 @@ export function PublicPoolCard({
                   href={signInHref}
                   aria-label="Sign in to add to favorites"
                   title="Sign in to add to favorites"
-                  className="home-star-link"
+                  className="public-pool-star-link"
                 >
                   <FavoriteStar isFavorited={false} />
                 </Link>
               )
             ) : (
               <Link
-                href={`/create?favoritePool=${pool.id}`}
+                href={`/pools/${pool.id}`}
                 aria-label="Add to favorites"
                 title="Add to favorites"
-                className="home-star-link"
+                className="public-pool-star-link"
               >
                 <FavoriteStar isFavorited={false} />
               </Link>
             )}
           </div>
-          <div className="home-pool-card-title-row">
-            <h3 className="home-pool-card-title display-face">{pool.name}</h3>
+          <div className="public-pool-card-title-row">
+            <h3 className="public-pool-card-title display-face">{pool.name}</h3>
           </div>
-          <p className="home-pool-card-description">
+          <p className="public-pool-card-description">
             {pool.description || "A published pool ready to be turned into new brackets."}
           </p>
-          <p className="home-pool-card-byline">
+          <p className="public-pool-card-byline">
             By {pool.creatorName || pool.creatorEmail}
           </p>
-          <div className="home-pool-card-actions">
+          <div className="public-pool-card-actions">
             {signedIn ? (
               <button
                 type="button"
                 onClick={handleChooseFavorite}
                 disabled={isCreatingFavoriteBracket}
-                className="home-pool-card-action ui-button ui-button-highlight"
+                className="public-pool-card-action ui-button ui-button-highlight"
               >
                 {isCreatingFavoriteBracket ? "Creating" : "Find Your Favorite"}
               </button>
             ) : (
               <Link
                 href={signInHref}
-                className="home-pool-card-action ui-button ui-button-highlight"
+                className="public-pool-card-action ui-button ui-button-highlight"
               >
                 Find Your Favorite
               </Link>
             )}
           </div>
         </div>
-        <div className="home-pool-card-preview-grid">
+        <div className="public-pool-card-preview-grid">
           {visibleCandidates.map((candidate, index) => (
             <div
               key={`${candidate.id}:${index}`}
-              className="home-pool-preview-tile"
+              className="public-pool-preview-tile"
             >
               {candidate.imageUrl ? (
                 <ResilientRemoteImage
                   src={candidate.imageUrl}
                   alt={candidate.name}
-                  className="home-pool-preview-image"
+                  className="public-pool-preview-image"
                 />
               ) : (
-                <div className="home-pool-preview-fallback">
-                  <p className="home-pool-preview-fallback-name">
+                <div className="public-pool-preview-fallback">
+                  <p className="public-pool-preview-fallback-name">
                     {candidate.name}
                   </p>
                 </div>
@@ -279,17 +280,17 @@ export function PublicPoolCard({
                   <ResilientRemoteImage
                     src={previewCandidates[activeOverlay.nextIndex].imageUrl}
                     alt={previewCandidates[activeOverlay.nextIndex].name}
-                    className={`home-pool-preview-overlay-image ${
-                      isOverlayVisible ? "home-pool-preview-visible" : "home-pool-preview-hidden"
+                    className={`public-pool-preview-overlay-image ${
+                      isOverlayVisible ? "public-pool-preview-visible" : "public-pool-preview-hidden"
                     }`}
                   />
                 ) : (
                   <div
-                    className={`home-pool-preview-overlay-fallback ${
-                      isOverlayVisible ? "home-pool-preview-visible" : "home-pool-preview-hidden"
+                    className={`public-pool-preview-overlay-fallback ${
+                      isOverlayVisible ? "public-pool-preview-visible" : "public-pool-preview-hidden"
                     }`}
                   >
-                    <p className="home-pool-preview-fallback-name">
+                    <p className="public-pool-preview-fallback-name">
                       {previewCandidates[activeOverlay.nextIndex]?.name}
                     </p>
                   </div>
@@ -299,6 +300,6 @@ export function PublicPoolCard({
           ))}
         </div>
       </div>
-    </div>
+    </ContentCard>
   );
 }

@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { CompletedBracketCard } from "@/components/completed-bracket-card";
 import { ExpandedDraftTournamentSection } from "@/components/expanded-draft-tournament-section";
+import { WorkspaceCreateCard } from "@/components/workspace-create-card";
 import {
   canCopyBracketLink,
   describeTournamentAudienceMode,
@@ -11,6 +13,7 @@ import {
   InlineTitleField
 } from "@/components/create-panel-helpers";
 import { SectionCard } from "@/components/section-card";
+import { InfiniteScrollControl } from "@/components/infinite-scroll-control";
 import { TournamentMetaRow } from "@/components/tournament-management";
 import { TournamentManagementCard } from "@/components/tournament-management-card";
 import {
@@ -184,6 +187,11 @@ function LiveBracketPicker({
 export function TournamentWorkspaceSection({
   tournaments,
   tournamentStageView,
+  tournamentPage,
+  tournamentPagination,
+  tournamentStatusCounts,
+  setTournamentPage,
+  isLoadingBrackets,
   setTournamentStageView,
   selectedLiveTournamentId,
   setSelectedLiveTournamentId,
@@ -238,6 +246,7 @@ export function TournamentWorkspaceSection({
   const router = useRouter();
   const [draftCardMenuId, setDraftCardMenuId] = useState(null);
   const [completedCardMenuId, setCompletedCardMenuId] = useState(null);
+  const canLoadMore = Boolean(tournamentPagination?.hasNextPage);
   const draftTournaments = tournaments.filter((tournament) => tournament.status === "draft");
   const activeTournaments = tournaments.filter((tournament) => tournament.status === "active");
   const completedTournaments = tournaments.filter((tournament) => tournament.status === "complete");
@@ -275,7 +284,7 @@ export function TournamentWorkspaceSection({
 
   function renderDraftOrCompleteTournamentCard(tournament, firstDraftTournamentId) {
     if (tournament.status === "draft") {
-      const pool = pools.find((item) => item.id === tournament.sourcePoolId);
+      const pool = pools.find((item) => item.id === tournament.sourcePoolId) || poolDetails[tournament.sourcePoolId];
       const candidateCount = pool?.candidateCount ?? tournament.entryCount ?? 0;
       const canStart = Boolean(tournament.sourcePoolId) && candidateCount > 0;
 
@@ -290,7 +299,7 @@ export function TournamentWorkspaceSection({
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-              <button type="button" onClick={() => router.push(`/create/bracket/new?draftId=${tournament.id}`)} className="ui-button ui-button-accent ui-button-compact">Continue setup</button>
+              <button type="button" onClick={() => router.push(`/brackets/${tournament.id}/configuration`)} className="ui-button ui-button-accent ui-button-compact">Continue setup</button>
               <button type="button" onClick={() => handleStartTournament(tournament.id)} disabled={!canStart || isActionPending(`start-tournament:${tournament.id}`)} className="ui-button ui-button-muted ui-button-compact">Start</button>
               <button type="button" onClick={() => handleArchiveTournament(tournament.id, tournament.title)} className="ui-button ui-button-muted ui-button-compact">Archive</button>
             </div>
@@ -750,20 +759,16 @@ export function TournamentWorkspaceSection({
     if (tournamentStageView === "draft") {
       return (
         <div className="grid items-stretch gap-4 md:grid-cols-2 xl:grid-cols-3">
-          <button
+          <WorkspaceCreateCard
             type="button"
             onClick={onOpenBracketWizard}
             disabled={isActionPending("create-tournament")}
-            className="group flex h-full min-h-44 w-full flex-col items-start justify-start gap-5 border border-[var(--accent-2)] p-5 text-left transition hover:bg-[rgba(255,216,77,0.07)] disabled:opacity-60"
-          >
-            <span className="display-face text-4xl font-black leading-none text-[var(--accent-2)]">+</span>
-            <span>
-              <span className="display-face block text-xl font-black uppercase leading-tight text-[var(--ink)]">Add a bracket</span>
-              <span className="ui-copy mt-2 block text-sm leading-6 text-[var(--muted)]">Set up a new bracket.</span>
-            </span>
-          </button>
+            icon="+"
+            title="Add a bracket"
+            description="Set up a new bracket."
+          />
           {draftTournaments.map((tournament) => {
-            const pool = pools.find((item) => item.id === tournament.sourcePoolId);
+            const pool = pools.find((item) => item.id === tournament.sourcePoolId) || poolDetails[tournament.sourcePoolId];
             const candidateCount = pool?.candidateCount ?? tournament.entryCount ?? 0;
             const canStart = Boolean(tournament.sourcePoolId) && candidateCount > 0;
             const menuIsOpen = draftCardMenuId === tournament.id;
@@ -772,10 +777,10 @@ export function TournamentWorkspaceSection({
               <div key={tournament.id} className="relative h-full">
                 <button
                   type="button"
-                  onClick={() => router.push(`/create/bracket/new?draftId=${tournament.id}`)}
+                  onClick={() => router.push(`/brackets/${tournament.id}/configuration`)}
                   className="group flex h-full min-h-44 w-full flex-col items-start justify-start border border-[var(--line)] bg-[rgba(255,255,255,0.025)] p-5 pr-16 text-left transition hover:border-[var(--accent-3)] hover:bg-[rgba(45,211,201,0.06)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-3)]"
                 >
-                  <h3 className="display-face text-xl font-black leading-tight transition group-hover:text-[var(--accent-3)] group-focus-visible:text-[var(--accent-3)]">
+                  <h3 className="display-face text-lg font-black leading-tight transition group-hover:text-[var(--accent-3)] group-focus-visible:text-[var(--accent-3)]">
                     {tournament.title}
                   </h3>
                   <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
@@ -784,10 +789,25 @@ export function TournamentWorkspaceSection({
                 </button>
                 <button
                   type="button"
+                  disabled={isActionPending(`start-tournament:${tournament.id}`)}
+                  onClick={() => {
+                    if (canStart) {
+                      handleStartTournament(tournament.id);
+                      return;
+                    }
+
+                    router.push(`/brackets/${tournament.id}/configuration`);
+                  }}
+                  className="display-face absolute bottom-5 left-5 z-10 text-sm font-black uppercase tracking-[0.12em] text-[var(--accent-3)] transition hover:text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--accent-3)] disabled:opacity-60"
+                >
+                  {canStart ? "Start bracket →" : "Set up bracket →"}
+                </button>
+                <button
+                  type="button"
                   aria-label={`Actions for ${tournament.title}`}
                   aria-expanded={menuIsOpen}
                   onClick={() => setDraftCardMenuId((current) => current === tournament.id ? null : tournament.id)}
-                  className="ui-button ui-button-muted absolute right-3 top-3 z-10 !h-10 !w-10 !min-w-0 !p-0 text-2xl leading-none"
+                  className="completed-bracket-card-menu absolute right-3 top-3 z-10 h-10 w-10 p-0 text-2xl leading-none"
                 >
                   <span aria-hidden="true">⋮</span>
                 </button>
@@ -837,33 +857,19 @@ export function TournamentWorkspaceSection({
 
             return (
               <div key={tournament.id} className="relative h-full">
-                <a
+                <CompletedBracketCard
+                  tournament={tournament}
+                  as="a"
                   href={`/results/${tournament.id}`}
-                  className="group relative isolate flex h-full min-h-52 w-full flex-col overflow-hidden border border-[var(--line)] bg-[var(--panel-2)] text-left transition hover:border-[var(--accent-3)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-3)]"
-                >
-                  {tournament.winnerImageUrl ? (
-                    <img
-                      src={tournament.winnerImageUrl}
-                      alt=""
-                      aria-hidden="true"
-                      className="absolute inset-0 -z-10 h-full w-full object-cover"
-                    />
-                  ) : null}
-                  <div className="mt-auto w-full bg-black/90 px-4 py-3 pr-14">
-                    <h3 className="display-face text-lg font-black leading-tight transition group-hover:text-[var(--accent-3)] group-focus-visible:text-[var(--accent-3)]">
-                      {tournament.title}
-                    </h3>
-                    <p className="display-face mt-1 text-sm font-bold text-[var(--accent-3)]">
-                      Winner · {winner}
-                    </p>
-                  </div>
-                </a>
+                  winnerLabel={winner}
+                  railClassName="pr-14"
+                />
                 <button
                   type="button"
                   aria-label={`Actions for ${tournament.title}`}
                   aria-expanded={menuIsOpen}
                   onClick={() => setCompletedCardMenuId((current) => current === tournament.id ? null : tournament.id)}
-                  className="ui-button ui-button-muted absolute right-3 top-3 z-10 !h-10 !w-10 !min-w-0 !p-0 text-2xl leading-none"
+                  className="completed-bracket-card-menu absolute right-3 top-3 z-10 h-10 w-10 p-0 text-2xl leading-none"
                 >
                   <span aria-hidden="true">⋮</span>
                 </button>
@@ -927,17 +933,17 @@ export function TournamentWorkspaceSection({
           {
             key: "draft",
             label: "Drafts",
-            count: draftTournaments.length
+            count: tournamentStatusCounts?.draft ?? draftTournaments.length
           },
           {
             key: "active",
             label: "Live",
-            count: activeTournaments.length
+            count: tournamentStatusCounts?.active ?? activeTournaments.length
           },
           {
             key: "complete",
             label: "Completed",
-            count: completedTournaments.length
+            count: tournamentStatusCounts?.complete ?? completedTournaments.length
           }
         ].map((view) => {
           const isActiveView = tournamentStageView === view.key;
@@ -958,6 +964,16 @@ export function TournamentWorkspaceSection({
       <SectionCard className="results-shell border-0 bg-transparent">
         <div className="space-y-0">{renderStageContent()}</div>
       </SectionCard>
+      {canLoadMore ? (
+        <InfiniteScrollControl
+          enabled={canLoadMore}
+          loading={isLoadingBrackets}
+          pageKey={tournamentPage}
+          onLoadMore={() => setTournamentPage((current) => current + 1)}
+          className="h-px"
+          loadingLabel="Loading more brackets"
+        />
+      ) : null}
       {tournamentStageView === "draft" ? (
         <button
           type="button"
@@ -972,3 +988,6 @@ export function TournamentWorkspaceSection({
     </div>
   );
 }
+
+
+

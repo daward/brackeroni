@@ -1,27 +1,20 @@
-import { CreatePanels } from "@/components/create-panels";
-import { requireCurrentUserPage } from "@/lib/auth/current-user";
-
-export const metadata = {
-  title: "Create | Brackeroni"
-};
+import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
-export default async function CreatePage({ searchParams }) {
+export default async function LegacyCreatePage({ searchParams }) {
   const params = (await searchParams) ?? {};
-  const query = new URLSearchParams();
+  const poolId = typeof params.pool === "string" ? params.pool : null;
+  const view = typeof params.view === "string" ? params.view : "tournaments";
+  const stage = typeof params.stage === "string" ? params.stage : null;
 
-  for (const [key, value] of Object.entries(params)) {
-    if (typeof value === "string") {
-      query.set(key, value);
-    } else if (Array.isArray(value)) {
-      for (const item of value) {
-        query.append(key, item);
-      }
-    }
+  if (poolId) {
+    redirect(`/pools/${poolId}`);
   }
 
-  const callbackPath = query.size > 0 ? `/create?${query.toString()}` : "/create";
-  await requireCurrentUserPage(callbackPath);
-  return <CreatePanels />;
+  if (view === "pools") {
+    redirect("/pools");
+  }
+
+  redirect(stage ? `/brackets?stage=${encodeURIComponent(stage)}` : "/brackets");
 }

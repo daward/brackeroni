@@ -30,6 +30,7 @@ export function TournamentMetaRow({
 export function TournamentActionGroup({
   actions,
   layout = "column",
+  align = "end",
   className = ""
 }) {
   const visibleActions = actions.filter(Boolean);
@@ -40,7 +41,7 @@ export function TournamentActionGroup({
 
   const layoutClassName =
     layout === "row"
-      ? "flex flex-wrap gap-3 lg:justify-end"
+      ? `flex flex-wrap gap-3 lg:justify-${align}`
       : "flex flex-col gap-3";
 
   return (

@@ -2,7 +2,10 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { CompletedBracketCard } from "@/components/completed-bracket-card";
+import { CompactRailHeader } from "@/components/compact-rail-header";
+import { useInfiniteScroll } from "@/components/use-infinite-scroll";
 import { BackdropRemoteImage } from "@/components/resilient-remote-image";
 import { TournamentResultsPage } from "@/components/tournament-results-page";
 import {
@@ -91,7 +94,7 @@ function formatVoteHeader(match, tournament) {
 }
 
 function buildCreateReturnUrl(tournamentId, stage = "active") {
-  return `/create?stage=${stage}&tournament=${tournamentId}`;
+  return `/brackets?stage=${stage}`;
 }
 
 function buildResultsUrl(tournamentOrId) {
@@ -173,6 +176,8 @@ function getCurrentRoundProgress(tournament, focusedMatch, focusedOpenMatches) {
 export function VoteScreenPanels({
   activeTournaments,
   completedTournaments,
+  completedPage = 1,
+  completedHasNextPage = false,
   initialFocusedTournamentId = null,
   initialResultsTournamentId = null,
   initialReturnTo = null,
@@ -181,6 +186,9 @@ export function VoteScreenPanels({
   const router = useRouter();
   const [active, setActive] = useState(activeTournaments);
   const [completed, setCompleted] = useState(completedTournaments);
+  const [completedHasNext, setCompletedHasNext] = useState(completedHasNextPage);
+  const [completedLoading, setCompletedLoading] = useState(false);
+  const completedOffsetRef = useRef(completedTournaments.length);
   const [focusedTournamentId, setFocusedTournamentId] = useState(() => {
     return initialFocusedTournamentId || readStoredFocusedTournamentId() || null;
   });
@@ -193,7 +201,42 @@ export function VoteScreenPanels({
   const [transitionMessage, setTransitionMessage] = useState("");
   const [postRoundPollCount, setPostRoundPollCount] = useState(0);
   const [mobileOpenSection, setMobileOpenSection] = useState("open");
+  const replaceIfChanged = useCallback((href) => {
+    if (
+      typeof window !== "undefined" &&
+      `${window.location.pathname}${window.location.search}` === href
+    ) {
+      return;
+    }
 
+    router.replace(href);
+  }, [router]);
+
+  const loadMoreCompleted = useCallback(async () => {
+    if (completedLoading || !completedHasNext) return;
+    setCompletedLoading(true);
+    setError("");
+    try {
+      const response = await fetch(
+        `/api/tournaments?scope=vote-completed&offset=${completedOffsetRef.current}&limit=12`,
+        { cache: "no-store" }
+      );
+      if (!response.ok) {
+        const payload = await response.json().catch(() => null);
+        throw new Error(payload?.error?.message || "Failed to load more completed brackets.");
+      }
+      const data = await response.json();
+      const nextItems = data.items ?? [];
+      const uniqueItems = nextItems.filter((item) => !completed.some((existing) => existing.id === item.id));
+      setCompleted((current) => [...current, ...uniqueItems]);
+      completedOffsetRef.current += nextItems.length;
+      setCompletedHasNext(uniqueItems.length > 0 && Boolean(data.meta?.hasNextPage));
+    } catch (loadError) {
+      setError(loadError.message || "Failed to load more completed brackets.");
+    } finally {
+      setCompletedLoading(false);
+    }
+  }, [completed, completedHasNext, completedLoading]);
   const focusedTournament =
     active.find((tournament) => tournament.id === focusedTournamentId) ?? null;
   const openActiveTournaments = active.filter(
@@ -224,8 +267,7 @@ export function VoteScreenPanels({
     waitingTournamentIds.length > 0 &&
     postRoundPollCount < 18 &&
     !pendingVoteMatchId &&
-    !resultsTournament &&
-    !shouldReturnToCreate;
+    !resultsTournament;
   const isFocusedTournamentWaiting =
     Boolean(focusedTournament) &&
     focusedTournament.kind !== "parallel_parent" &&
@@ -295,14 +337,14 @@ export function VoteScreenPanels({
     }
 
     setFocusedTournamentId(storedTournamentId);
-    router.replace(buildVoteUrl({ tournamentId: storedTournamentId, returnTo: initialReturnTo }));
+    replaceIfChanged(buildVoteUrl({ tournamentId: storedTournamentId, returnTo: initialReturnTo }));
   }, [
     active,
     focusedTournamentId,
     initialFocusedTournamentId,
     initialReturnTo,
     postRoundPollEnabled,
-    router,
+    replaceIfChanged,
     waitingTournamentIds
   ]);
 
@@ -321,30 +363,37 @@ export function VoteScreenPanels({
 
     setFocusedTournamentId(null);
     writeStoredFocusedTournamentId(null);
-    router.replace(buildVoteUrl({ returnTo: initialReturnTo }));
-  }, [focusedTournamentId, focusedTournament, router, initialReturnTo]);
+    replaceIfChanged(buildVoteUrl({ returnTo: initialReturnTo }));
+  }, [focusedTournamentId, focusedTournament, replaceIfChanged, initialReturnTo]);
 
   useEffect(() => {
     if (!focusedTournament) {
       return;
     }
 
-    if (focusedMatch || isFocusedTournamentWaiting) {
+    if (focusedMatch || isFocusedTournamentWaiting || pendingVoteMatchId) {
       return;
     }
 
     setFocusedTournamentId(null);
     writeStoredFocusedTournamentId(null);
-    router.replace(buildVoteUrl({ returnTo: initialReturnTo }));
-  }, [focusedTournament, focusedMatch, isFocusedTournamentWaiting, router, initialReturnTo]);
+    replaceIfChanged(buildVoteUrl({ returnTo: initialReturnTo }));
+  }, [focusedTournament, focusedMatch, isFocusedTournamentWaiting, replaceIfChanged, initialReturnTo]);
 
   useEffect(() => {
-    if (!shouldReturnToCreate || !focusedTournament || focusedMatch || pendingVoteMatchId) {
+    if (!shouldReturnToCreate || !focusedTournament || focusedMatch || isFocusedTournamentWaiting || pendingVoteMatchId) {
       return;
     }
 
-    router.replace(buildCreateReturnUrl(focusedTournament.id, "active"));
-  }, [shouldReturnToCreate, focusedTournament, focusedMatch, pendingVoteMatchId, router]);
+    replaceIfChanged(buildCreateReturnUrl(focusedTournament.id, "active"));
+  }, [
+    shouldReturnToCreate,
+    focusedTournament,
+    focusedMatch,
+    isFocusedTournamentWaiting,
+    pendingVoteMatchId,
+    replaceIfChanged
+  ]);
 
   async function vote(matchId, tournamentId, selectedEntryId) {
     if (pendingVoteMatchId) {
@@ -355,9 +404,10 @@ export function VoteScreenPanels({
     setMessage("");
     setTransitionMessage("");
     setPendingVoteMatchId(matchId);
-
+    let voteResult;
     try {
-      await submitMatchVote(matchId, selectedEntryId);
+      const voteResponse = await submitMatchVote(matchId, selectedEntryId);
+      voteResult = voteResponse.item;
     } catch (error) {
       if (error.status === 400 && error.code === "MATCH_NOT_OPEN") {
         setTransitionMessage("That round closed before your vote was submitted, so it did not count.");
@@ -380,34 +430,80 @@ export function VoteScreenPanels({
       return;
     }
 
-    const { matches, tournament: refreshedTournamentData } = await getTournamentWithMatches(tournamentId);
-
-    if (refreshedTournamentData.status === "complete") {
+    if (voteResult?.tournamentStatus === "complete") {
       setTransitionMessage("");
       setActive((current) => current.filter((tournament) => tournament.id !== tournamentId));
-      setCompleted((current) => [refreshedTournamentData, ...current]);
+      setCompleted((current) => [
+        {
+          ...(focusedTournament || {}),
+          id: tournamentId,
+          status: "complete"
+        },
+        ...current.filter((tournament) => tournament.id !== tournamentId)
+      ]);
       setFocusedTournamentId(null);
       writeStoredFocusedTournamentId(null);
-      router.replace(buildResultsUrl(refreshedTournamentData));
+      setPendingVoteMatchId(null);
+      router.replace(buildResultsUrl(tournamentId));
       return;
     }
 
-    const refreshedTournament = {
-      ...refreshedTournamentData,
-      matches
-    };
-    const remainingOpenMatches = openMatchesForTournament(refreshedTournament).length;
+    // The vote endpoint succeeded. Update the one fact the voter just changed
+    // locally instead of reloading both the tournament and its entire match list.
+    const optimisticTournament = focusedTournament?.id === tournamentId
+      ? {
+          ...focusedTournament,
+          matches: (focusedTournament.matches || []).map((match) => {
+            if (match.id !== matchId) {
+              return match;
+            }
 
-    setActive((current) =>
-      current.map((tournament) => (tournament.id === tournamentId ? refreshedTournament : tournament))
-    );
+            return {
+              ...match,
+              userVoteEntryId: selectedEntryId,
+              leftVoteCount:
+                match.leftEntryId === selectedEntryId
+                  ? (match.leftVoteCount || 0) + 1
+                  : match.leftVoteCount,
+              rightVoteCount:
+                match.rightEntryId === selectedEntryId
+                  ? (match.rightVoteCount || 0) + 1
+                  : match.rightVoteCount
+            };
+          })
+        }
+      : null;
+    const remainingOpenMatches = optimisticTournament
+      ? openMatchesForTournament(optimisticTournament).length
+      : 0;
+
+    if (optimisticTournament) {
+      setActive((current) =>
+        current.map((tournament) =>
+          tournament.id === tournamentId ? optimisticTournament : tournament
+        )
+      );
+    }
+
+    // Private brackets advance as soon as the last match in a round receives
+    // a vote. The server has already generated that next round by this point;
+    // refresh precisely at this transition so we render its first matchup
+    // instead of falling into the public-bracket polling state.
+    if (
+      focusedTournament?.sharingMode === "private" &&
+      remainingOpenMatches === 0
+    ) {
+      await refreshTournamentState(tournamentId);
+      setMessage("Vote recorded. Next round ready.");
+      setPendingVoteMatchId(null);
+      return;
+    }
+
     setFocusedTournamentId(tournamentId);
     setMessage(
       remainingOpenMatches > 0
         ? "Vote recorded. Next matchup ready."
-        : shouldReturnToCreate
-          ? "Vote recorded. Returning to create."
-          : "Vote recorded. No open matches remain in this round. Checking for the next round."
+        : "Vote recorded. No open matches remain in this round. Checking for the next round."
     );
     setPendingVoteMatchId(null);
   }
@@ -520,10 +616,10 @@ export function VoteScreenPanels({
           ) : null}
         {signInRequiredTournament ? (
           <section className="vote-callout-panel">
-            <div className="vote-rail-header">
-              <p className="vote-kicker">Sign-In Required</p>
-              <h2 className="vote-rail-title display-face">{signInRequiredTournament.title}</h2>
-            </div>
+            <CompactRailHeader
+              kicker="Sign-In Required"
+              title={signInRequiredTournament.title}
+            />
             <div className="vote-callout-body">
               <p className="vote-callout-copy">
                 This public bracket is visible, but voting in it requires a signed-in account.
@@ -546,16 +642,14 @@ export function VoteScreenPanels({
 
       <div className="vote-mobile-sections lg:hidden">
         <section className="vote-rail">
-          <button
+          <CompactRailHeader
+            as="button"
             type="button"
             onClick={() => setMobileOpenSection((current) => (current === "open" ? null : "open"))}
-            className="vote-rail-header vote-rail-header-button"
+            className="compact-rail-header-button"
             aria-expanded={mobileOpenSection === "open"}
-          >
-            <h2 className="vote-rail-title display-face">
-              Vote Now <span className="vote-rail-count">({openMatchCount} open matches)</span>
-            </h2>
-          </button>
+            title={<>Vote Now <span className="compact-rail-header-count">({openMatchCount} open matches)</span></>}
+          />
           {mobileOpenSection === "open" ? (
             <TournamentListSection
               tournaments={openActiveTournaments}
@@ -567,31 +661,27 @@ export function VoteScreenPanels({
         </section>
 
         <section className="vote-rail">
-          <button
+          <CompactRailHeader
+            as="button"
             type="button"
             onClick={() =>
               setMobileOpenSection((current) => (current === "completed" ? null : "completed"))
             }
-            className="vote-rail-header vote-rail-header-button"
+            className="compact-rail-header-button"
             aria-expanded={mobileOpenSection === "completed"}
-          >
-            <h2 className="vote-rail-title display-face">
-              Completed <span className="vote-rail-count">({completed.length})</span>
-            </h2>
-          </button>
+            title={<>Completed <span className="compact-rail-header-count">({completed.length})</span></>}
+          />
           {mobileOpenSection === "completed" ? (
-            <CompletedListSection tournaments={completed} onOpenResults={openResultsModal} />
+            <CompletedListSection tournaments={completed} onOpenResults={openResultsModal} hasNextPage={completedHasNext} loading={completedLoading} onLoadMore={loadMoreCompleted} />
           ) : null}
         </section>
       </div>
 
       <div className="vote-desktop-sections hidden lg:flex">
         <section className="vote-rail">
-          <div className="vote-rail-header">
-            <h2 className="vote-rail-title display-face">
-              Vote Now <span className="vote-rail-count">({openMatchCount} open matches)</span>
-            </h2>
-          </div>
+          <CompactRailHeader
+            title={<>Vote Now <span className="compact-rail-header-count">({openMatchCount} open matches)</span></>}
+          />
           <TournamentListSection
             tournaments={openActiveTournaments}
             emptyTitle="No Open Matches"
@@ -601,12 +691,10 @@ export function VoteScreenPanels({
         </section>
 
         <section className="vote-rail">
-          <div className="vote-rail-header">
-            <h2 className="vote-rail-title display-face">
-              Completed <span className="vote-rail-count">({completed.length})</span>
-            </h2>
-          </div>
-          <CompletedListSection tournaments={completed} onOpenResults={openResultsModal} />
+          <CompactRailHeader
+            title={<>Completed <span className="compact-rail-header-count">({completed.length})</span></>}
+          />
+          <CompletedListSection tournaments={completed} onOpenResults={openResultsModal} hasNextPage={completedHasNext} loading={completedLoading} onLoadMore={loadMoreCompleted} />
         </section>
       </div>
 
@@ -805,7 +893,7 @@ function TournamentListSection({ tournaments, emptyTitle, emptySubtitle, onSelec
   );
 }
 
-function CompletedListSection({ tournaments, onOpenResults }) {
+function CompletedListSection({ tournaments, onOpenResults, hasNextPage = false, loading = false, onLoadMore }) {
   if (tournaments.length === 0) {
     return <div className="py-4"><div className="border border-[var(--line-strong)] p-5"><p className="display-face text-lg font-black text-[var(--muted)]">No completed brackets</p></div></div>;
   }
@@ -813,14 +901,26 @@ function CompletedListSection({ tournaments, onOpenResults }) {
   return (
     <div className="vote-card-grid">
       {tournaments.map((tournament) => (
-        <button key={tournament.id} type="button" onClick={() => onOpenResults(tournament)} className="group relative isolate flex min-h-52 w-full flex-col overflow-hidden border border-[var(--line)] bg-[var(--panel-2)] text-left transition hover:border-[var(--accent-3)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-3)]">
-          {tournament.winnerImageUrl ? <img src={tournament.winnerImageUrl} alt="" aria-hidden="true" className="absolute inset-0 -z-10 h-full w-full object-cover" /> : null}
-          <div className="mt-auto w-full bg-black/90 px-4 py-3">
-            <h3 className="display-face text-lg font-black leading-tight transition group-hover:text-[var(--accent-3)]">{tournament.title}</h3>
-            {tournament.winnerName ? <p className="display-face mt-1 text-sm font-bold text-[var(--accent-3)]">Winner · {tournament.winnerName}{tournament.winnerSeed ? ` (Seed ${tournament.winnerSeed})` : ""}</p> : null}
-          </div>
-        </button>
+        <CompletedBracketCard
+          key={tournament.id}
+          tournament={tournament}
+          type="button"
+          onClick={() => onOpenResults(tournament)}
+        />
       ))}
+      {hasNextPage ? <CompletedLoadMore loading={loading} onLoadMore={onLoadMore} pageKey={tournaments.length} /> : null}
     </div>
   );
 }
+
+function CompletedLoadMore({ loading, onLoadMore, pageKey }) {
+  const sentinelRef = useInfiniteScroll({
+    enabled: true,
+    loading,
+    pageKey,
+    onLoadMore
+  });
+
+  return <div ref={sentinelRef} className="col-span-full flex justify-center border-t border-[var(--line)] pt-5"><span className="sr-only">Loading more completed brackets</span></div>;
+}
+

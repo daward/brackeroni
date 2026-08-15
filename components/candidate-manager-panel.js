@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
-import { CandidateTagList } from "@/components/candidate-tag-list";
+import { useCallback, useRef, useState } from "react";
+import { CandidatePoolCard } from "@/components/candidate-pool-card";
+import { WorkspaceCreateCard } from "@/components/workspace-create-card";
+import { InfiniteScrollControl } from "@/components/infinite-scroll-control";
 import { ResilientRemoteImage } from "@/components/resilient-remote-image";
 
 export function CandidatePreviewChips({ candidates, limit = 4 }) {
@@ -41,6 +43,7 @@ export function CandidateManagerPanel({
   isEditingCandidate,
   readOnly = false,
   candidates,
+  candidatePagination = null,
   imageSuggestions,
   imageSuggestionLoading,
   onDraftChange,
@@ -67,8 +70,26 @@ export function CandidateManagerPanel({
   const [isTagDrawerOpen, setIsTagDrawerOpen] = useState(false);
   const [activeTagFilter, setActiveTagFilter] = useState("");
   const [lowValueTagThreshold, setLowValueTagThreshold] = useState("1");
+  const [expandedReadOnlyCandidateId, setExpandedReadOnlyCandidateId] = useState(null);
+  const [pagedCandidates, setPagedCandidates] = useState(candidates);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const offsetRef = useRef(candidates.length);
+  const loadMoreCandidates = useCallback(async () => {
+    if (!poolId || isLoadingMore || !candidatePagination?.hasNextPage) return;
+    setIsLoadingMore(true);
+    try {
+      const response = await fetch(`/api/pools/${poolId}/candidates?limit=24&offset=${offsetRef.current}`, { cache: "no-store" });
+      if (!response.ok) throw new Error("Failed to load candidates.");
+      const data = await response.json();
+      const nextItems = data.items ?? [];
+      setPagedCandidates((current) => [...current, ...nextItems.filter((item) => !current.some((candidate) => candidate.id === item.id))]);
+      offsetRef.current += nextItems.length;
+      candidatePagination.hasNextPage = Boolean(data.meta?.hasNextPage) && nextItems.length > 0;
+    } finally { setIsLoadingMore(false); }
+  }, [candidatePagination, isLoadingMore, poolId]);
+  const displayedCandidates = pagedCandidates;
 
-  const tagCounts = candidates.reduce((counts, candidate) => {
+  const tagCounts = displayedCandidates.reduce((counts, candidate) => {
     for (const tag of candidate.tags || []) {
       counts[tag] = (counts[tag] || 0) + 1;
     }
@@ -84,8 +105,8 @@ export function CandidateManagerPanel({
   });
   const resolvedTagFilter = activeTagFilter && tagCounts[activeTagFilter] ? activeTagFilter : "";
   const visibleCandidates = resolvedTagFilter
-    ? candidates.filter((candidate) => (candidate.tags || []).includes(resolvedTagFilter))
-    : candidates;
+    ? displayedCandidates.filter((candidate) => (candidate.tags || []).includes(resolvedTagFilter))
+    : displayedCandidates;
 
   return (
     <>
@@ -121,30 +142,23 @@ export function CandidateManagerPanel({
         </div>
         <div className="mt-3 grid auto-rows-fr items-stretch gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {!readOnly ? (
-            <button
+            <WorkspaceCreateCard
               type="button"
               onClick={onCreateCandidate}
-              className="group flex min-h-[12rem] h-full flex-col items-start justify-between border border-[var(--accent-2)] bg-[rgba(255,216,77,0.035)] p-4 text-left transition hover:bg-[rgba(255,216,77,0.09)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-2)]"
-            >
-              <span className="display-face text-3xl font-black leading-none text-[var(--accent-2)]">+</span>
-              <span>
-                <span className="display-face block text-lg font-black text-[var(--ink)]">Add candidate</span>
-                <span className="ui-copy mt-2 block text-sm leading-6 text-[var(--muted)]">Add one contender to this pool.</span>
-              </span>
-            </button>
+              icon="+"
+              title="Add candidate"
+              description="Add one contender to this pool."
+            />
           ) : null}
           {!readOnly && onImportCandidates ? (
-            <button
+            <WorkspaceCreateCard
               type="button"
               onClick={onImportCandidates}
-              className="group flex min-h-[12rem] h-full flex-col items-start justify-between border border-[var(--line-strong)] bg-[rgba(255,255,255,0.02)] p-4 text-left transition hover:border-[var(--accent-3)] hover:bg-[rgba(52,211,196,0.055)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-3)]"
-            >
-              <span className="display-face text-3xl font-black leading-none text-[var(--accent-3)]">↥</span>
-              <span>
-                <span className="display-face block text-lg font-black text-[var(--ink)]">Import a list</span>
-                <span className="ui-copy mt-2 block text-sm leading-6 text-[var(--muted)]">Paste or import a group of contenders.</span>
-              </span>
-            </button>
+              tone="secondary"
+              icon="↥"
+              title="Import a list"
+              description="Paste or import a group of contenders."
+            />
           ) : null}
           {visibleCandidates.length === 0 && (readOnly || resolvedTagFilter) ? (
             <div className="flex min-h-[12rem] items-end border border-[var(--line)] bg-[rgba(255,255,255,0.02)] p-4">
@@ -155,91 +169,33 @@ export function CandidateManagerPanel({
               </span>
             </div>
           ) : (
-            visibleCandidates.map((candidate) => (
-              <div
-                key={candidate.id}
-                className={`group relative flex flex-col overflow-hidden border border-[var(--line)] bg-[var(--panel)] ${
-                  candidate.imageUrl ? "min-h-[16rem]" : ""
-                }`}
-              >
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (!readOnly) {
+            visibleCandidates.map((candidate) => {
+              const expanded = readOnly && expandedReadOnlyCandidateId === candidate.id;
+
+              return (
+                <CandidatePoolCard
+                  key={candidate.id}
+                  candidate={candidate}
+                  readOnly={readOnly}
+                  expanded={expanded}
+                  removing={removingCandidateId === candidate.id}
+                  onActivate={() => {
+                    if (readOnly) {
+                      setExpandedReadOnlyCandidateId((current) => current === candidate.id ? null : candidate.id);
+                    } else {
                       onEditCandidate(candidate);
                     }
                   }}
-                  className="flex h-full w-full flex-1 flex-col text-left transition hover:border-[var(--accent-2)]"
-                >
-                  {candidate.imageUrl ? (
-                    <div className="h-40 w-full bg-[var(--panel-3)]">
-                      <ResilientRemoteImage
-                        src={candidate.imageUrl}
-                        alt={candidate.name}
-                        className="h-full w-full object-cover"
-                      />
-                    </div>
-                  ) : null}
-                  <div className="flex flex-1 flex-col px-3 py-3">
-                    <div className="flex items-start justify-between gap-3">
-                      <p className="display-face text-sm font-black">{candidate.name}</p>
-                      {candidate.sourceUrl ? (
-                        <a
-                          href={candidate.sourceUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          onClick={(event) => event.stopPropagation()}
-                          aria-label={`Open source for ${candidate.name}`}
-                          title={`Open source for ${candidate.name}`}
-                          className="mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center border border-[var(--line)] text-[var(--muted)] transition hover:border-[var(--accent-3)] hover:text-[var(--accent-3)]"
-                        >
-                          <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 fill-none stroke-current stroke-2">
-                            <path d="M14 5h5v5" />
-                            <path d="M10 14 19 5" />
-                            <path d="M19 14v5H5V5h5" />
-                          </svg>
-                        </a>
-                      ) : null}
-                    </div>
-                    <CandidateTagList tags={candidate.tags} className="mt-2" />
-                    {candidate.description ? (
-                      <p className="mt-2 text-xs leading-5 text-[var(--muted)]">
-                        {candidate.description}
-                      </p>
-                    ) : null}
-                  </div>
-                </button>
-                {!readOnly ? (
-                  <button
-                    type="button"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      onRemoveCandidate(candidate);
-                    }}
-                    aria-label={`Remove ${candidate.name}`}
-                    title={`Remove ${candidate.name}`}
-                    disabled={readOnly || removingCandidateId === candidate.id}
-                    className={`absolute right-3 z-10 flex h-9 w-9 items-center justify-center rounded-full border border-[var(--line)] bg-[rgba(10,10,10,0.86)] text-[var(--muted)] opacity-0 transition hover:border-[var(--accent)] hover:text-[var(--accent)] group-hover:opacity-100 group-focus-within:opacity-100 disabled:opacity-60 ${
-                      candidate.imageUrl ? "bottom-3" : "top-3"
-                    }`}
-                  >
-                    {removingCandidateId === candidate.id ? (
-                      <span className="text-[10px] uppercase tracking-[0.12em]">...</span>
-                    ) : (
-                      <svg viewBox="0 0 24 24" className="h-4 w-4 fill-none stroke-current stroke-2">
-                        <path d="M4 7h16" />
-                        <path d="M9 7V4h6v3" />
-                        <path d="M7 7l1 13h8l1-13" />
-                        <path d="M10 11v5" />
-                        <path d="M14 11v5" />
-                      </svg>
-                    )}
-                  </button>
-                ) : null}
-              </div>
-            ))
+                  onRemove={(event) => {
+                    event.stopPropagation();
+                    onRemoveCandidate(candidate);
+                  }}
+                />
+              );
+            })
           )}
         </div>
+        {candidatePagination?.hasNextPage ? <InfiniteScrollControl enabled loading={isLoadingMore} pageKey={pagedCandidates.length} onLoadMore={loadMoreCandidates} className="h-px" loadingLabel="Loading more candidates" /> : null}
       </div>
 
       {isTagDrawerOpen ? (

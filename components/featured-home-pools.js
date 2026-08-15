@@ -21,7 +21,7 @@ export function FeaturedHomePools({ pools, signedIn = false }) {
         <MobileSwipeRail
           items={safePools}
           getKey={(pool) => pool.id}
-          railClassName="home-mobile-swipe-rail-pools"
+          railClassName="mobile-swipe-rail-pools"
           renderItem={(pool) => <PublicPoolCard pool={pool} signedIn={signedIn} />}
         />
       </div>

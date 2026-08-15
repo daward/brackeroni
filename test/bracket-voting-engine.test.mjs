@@ -8,7 +8,8 @@ import {
   calculateSwissRoundCount
 } from "../lib/tournament/rounds.js";
 import { resolveMatchWinner } from "../lib/tournament/match-resolution.js";
-import { closeActiveRoundIfReady } from "../lib/data/rounds.js";
+import { buildSwissStandings } from "../lib/tournament/swiss-standings.js";
+import { advanceTournamentRound } from "../lib/services/tournament-round-progression.js";
 
 function entry(id, seed) {
   return { id, seed };
@@ -453,7 +454,7 @@ test("closing an active round completes a winner-only tournament when only one e
   };
   const { tx, calls } = createFakeTx(fixtures);
 
-  const result = await closeActiveRoundIfReady(tx, {
+  const result = await advanceTournamentRound(tx, {
     tournamentId: "tournament-1",
     roundId: "round-1",
     playStyle: "fixed_bracket",
@@ -505,7 +506,7 @@ test("round closure waits when an open match has no votes and auto-close is not 
   };
   const { tx, calls } = createFakeTx(fixtures);
 
-  const result = await closeActiveRoundIfReady(tx, {
+  const result = await advanceTournamentRound(tx, {
     tournamentId: "tournament-1",
     roundId: "round-1",
     playStyle: "fixed_bracket",
@@ -520,4 +521,17 @@ test("round closure waits when an open match has no votes and auto-close is not 
   assert.equal(fixtures.roundClosed, false);
   assert.equal(fixtures.tournamentCompleted, false);
   assert.equal(calls.some((call) => call.sql.startsWith("update match set")), false);
+});
+
+test("Swiss standings rank wins, Buchholz, and seed deterministically", () => {
+  const standings = buildSwissStandings(
+    [entry("a", 1), entry("b", 2), entry("c", 3)],
+    [
+      { leftEntryId: "a", rightEntryId: "b", winnerEntryId: "a" },
+      { leftEntryId: "b", rightEntryId: "c", winnerEntryId: "b" },
+      { leftEntryId: "a", rightEntryId: "c", winnerEntryId: "a" }
+    ]
+  );
+
+  assert.deepEqual(standings.map((standing) => standing.id), ["a", "b", "c"]);
 });

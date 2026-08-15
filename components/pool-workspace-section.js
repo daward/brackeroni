@@ -1,12 +1,19 @@
 "use client";
 
+import { useEffect } from "react";
+
 import { CandidateManagerPanel } from "@/components/candidate-manager-panel";
-import { PoolManagementPanel } from "@/components/pool-management-panel";
+import { PoolManagementPanel, PoolVisibilityPicker } from "@/components/pool-management-panel";
 import { describePoolVisibility, InlineTitleField } from "@/components/create-panel-helpers";
+import { useInfiniteScroll } from "@/components/use-infinite-scroll";
+import { WorkspaceCreateCard } from "@/components/workspace-create-card";
 
 export function PoolWorkspaceSection({
   pools,
   poolDetails,
+  poolPage,
+  isLoadingPools,
+  poolPagination,
   expandedPoolId,
   poolInlineDrafts,
   candidateDrafts,
@@ -24,6 +31,7 @@ export function PoolWorkspaceSection({
   onSavePool,
   onPatchPoolDraft,
   onCommitPoolDraft,
+  onLoadMorePools,
   onSetExpandedPoolId,
   onSetOpenPoolActionsMenuId,
   onSetOpenPoolMergeMenuId,
@@ -46,22 +54,25 @@ export function PoolWorkspaceSection({
   handleRemoveCandidateFromPool,
   poolCardRefs
 }) {
+  const canLoadMore = !expandedPoolId && poolPagination.hasNextPage;
+  const loadMoreSentinelRef = useInfiniteScroll({
+    enabled: canLoadMore,
+    loading: isLoadingPools,
+    pageKey: poolPage,
+    onLoadMore: onLoadMorePools
+  });
   return (
     <div className={expandedPoolId ? "" : "space-y-3"}>
       <div className={expandedPoolId ? "" : "grid items-stretch gap-4 md:grid-cols-2 xl:grid-cols-3"}>
         {!expandedPoolId ? (
-          <button
+          <WorkspaceCreateCard
             type="button"
             onClick={onCreatePool}
             disabled={isActionPending("create-pool")}
-            className="group flex h-full min-h-44 w-full flex-col items-start justify-start gap-5 border border-[var(--accent-2)] p-5 text-left transition hover:bg-[rgba(255,216,77,0.07)] disabled:opacity-60"
-          >
-            <span className="display-face text-4xl font-black leading-none text-[var(--accent-2)]">+</span>
-            <span>
-              <span className="display-face block text-xl font-black uppercase leading-tight text-[var(--ink)]">Add a pool</span>
-              <span className="ui-copy mt-2 block text-sm leading-6 text-[var(--muted)]">Start a new candidate set.</span>
-            </span>
-          </button>
+            icon="+"
+            title="Add a pool"
+            description="Start a new candidate set."
+          />
         ) : null}          {pools.length > 0 ? (
             pools.filter((pool) => !expandedPoolId || pool.id === expandedPoolId).map((pool) => {
               const isExpanded = expandedPoolId === pool.id;
@@ -109,10 +120,25 @@ export function PoolWorkspaceSection({
                             }
                           onBlur={(event) => onCommitPoolDraft(pool.id, { name: event.target.value, description: inlinePoolDraft.description ?? pool.description ?? "", visibility: inlinePoolDraft.visibility ?? pool.visibility ?? "private" })}
                           />
-                          <p className="mt-1 text-xs uppercase tracking-[0.16em] text-[var(--muted)]">
+                          <div className="mt-1 flex flex-wrap items-center gap-1 text-xs uppercase tracking-[0.16em] text-[var(--muted)]">
                             <span className="text-[var(--accent-3)]">{pool.candidateCount} candidates</span>
-                            {" · "}{describePoolVisibility(pool.visibility)}
-                          </p>
+                            <span aria-hidden="true">·</span>
+                            {poolIsReadOnly ? (
+                              <span>{describePoolVisibility(pool.visibility)}</span>
+                            ) : (
+                              <PoolVisibilityPicker
+                                compact
+                                value={inlinePoolDraft.visibility ?? pool.visibility ?? "private"}
+                                onChange={(visibility) =>
+                                  onCommitPoolDraft(pool.id, {
+                                    name: inlinePoolDraft.name ?? pool.name,
+                                    description: inlinePoolDraft.description ?? pool.description ?? "",
+                                    visibility
+                                  })
+                                }
+                              />
+                            )}
+                          </div>
                         </div>
                         <button
                           type="button"
@@ -129,22 +155,31 @@ export function PoolWorkspaceSection({
                         showTitle={false}
                         showSummary={false}
                         compactDetails
+                        showVisibility={false}
                         onDraftChange={(patch) => onPatchPoolDraft(pool.id, patch)}
                         onDraftCommit={(draft) => onCommitPoolDraft(pool.id, draft)}
                         actionBar={
-                        <>
-                          {pool.candidateCount >= 2 && onUsePoolForBracket ? <button type="button" onClick={() => onUsePoolForBracket(pool)} className="ui-button ui-button-muted">Use for bracket</button> : null}
-                          {pool.candidateCount >= 2 ? <button type="button" onClick={() => onCreateBracketFromPool(pool)} disabled={isActionPending("create-tournament")} className="ui-button ui-button-primary">Set up bracket</button> : null}
-                          <div className="relative">
-                            <button type="button" onClick={() => { onSetOpenPoolActionsMenuId(openPoolActionsMenuId === pool.id ? null : pool.id); onSetOpenPoolMergeMenuId(null); }} className="ui-button ui-button-muted">
-                              {openPoolActionsMenuId === pool.id ? "Close" : "⋮ More"}
-                            </button>
-                            {openPoolActionsMenuId === pool.id ? (
-                              <PoolActionsMenu pool={pool} pools={pools} poolIsReadOnly={poolIsReadOnly} missingPoolImageCount={missingPoolImageCount} sourceLinkedCandidateCount={sourceLinkedCandidateCount} openPoolMergeMenuId={openPoolMergeMenuId} isActionPending={isActionPending} onCopyPoolLink={onCopyPoolLink} onAutoFillMissingImages={onAutoFillMissingImages} onEnrichPoolCandidatesFromSourceUrls={onEnrichPoolCandidatesFromSourceUrls} onSetOpenPoolMergeMenuId={onSetOpenPoolMergeMenuId} onMergePool={onMergePool} onArchivePool={onArchivePool} />
+                          <>
+                            {pool.candidateCount >= 2 && onUsePoolForBracket ? (
+                              <button type="button" onClick={() => onUsePoolForBracket(pool)} className="ui-button ui-button-muted">
+                                Use for bracket
+                              </button>
                             ) : null}
-                          </div>
-                        </>
-                      }
+                            {pool.candidateCount >= 2 ? (
+                              <button type="button" onClick={() => onCreateBracketFromPool(pool)} disabled={isActionPending("create-tournament")} className="ui-button ui-button-primary">
+                                Set up bracket
+                              </button>
+                            ) : null}
+                            <div className="relative">
+                              <button type="button" onClick={() => { onSetOpenPoolActionsMenuId(openPoolActionsMenuId === pool.id ? null : pool.id); onSetOpenPoolMergeMenuId(null); }} className="ui-button ui-button-muted">
+                                {openPoolActionsMenuId === pool.id ? "Close" : "⋮ More"}
+                              </button>
+                              {openPoolActionsMenuId === pool.id ? (
+                                <PoolActionsMenu pool={pool} pools={pools} poolIsReadOnly={poolIsReadOnly} missingPoolImageCount={missingPoolImageCount} sourceLinkedCandidateCount={sourceLinkedCandidateCount} openPoolMergeMenuId={openPoolMergeMenuId} isActionPending={isActionPending} onCopyPoolLink={onCopyPoolLink} onAutoFillMissingImages={onAutoFillMissingImages} onEnrichPoolCandidatesFromSourceUrls={onEnrichPoolCandidatesFromSourceUrls} onSetOpenPoolMergeMenuId={onSetOpenPoolMergeMenuId} onMergePool={onMergePool} onArchivePool={onArchivePool} />
+                              ) : null}
+                            </div>
+                          </>
+                        }
                     >
                       {false ? (
                       <div className="flex items-start justify-between gap-6">
@@ -284,6 +319,7 @@ export function PoolWorkspaceSection({
                         isCandidateEditorOpen={isCandidateEditorOpen}
                         isEditingCandidate={isEditingPoolCandidate}
                         candidates={previewCandidates}
+                        candidatePagination={poolDetails[pool.id]?.candidatePagination}
                         readOnly={poolIsReadOnly}
                         imageSuggestions={imageSuggestions[pool.id] || []}
                         imageSuggestionLoading={Boolean(imageSuggestionLoading[pool.id])}
@@ -352,6 +388,13 @@ export function PoolWorkspaceSection({
             })
           ) : null}
         </div>
+      {canLoadMore ? (
+        <div ref={loadMoreSentinelRef} className="flex justify-center border-t border-[var(--line)] pt-5">
+          <button type="button" onClick={onLoadMorePools} disabled={isLoadingPools} className="ui-button ui-button-muted disabled:cursor-wait disabled:opacity-55">
+            {isLoadingPools ? "Loading pools" : "Load more pools"}
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -371,6 +414,7 @@ function PoolActionsMenu({
   onMergePool,
   onArchivePool
 }) {
+
   return (
     <div className="absolute right-0 top-full z-20 mt-2 w-64 border border-[var(--line)] bg-[var(--panel)] p-2 shadow-[0_10px_30px_rgba(0,0,0,0.35)]">
       <div className="space-y-1">
@@ -475,3 +519,5 @@ function PoolActionsMenu({
     </div>
   );
 }
+
+

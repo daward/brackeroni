@@ -9,7 +9,7 @@ const VISIBILITY_OPTIONS = [
   { value: "public_unlisted", label: "Publish unlisted", description: "Only people with the link can find it." }
 ];
 
-function PoolVisibilityPicker({ value, onChange, compact = false }) {
+export function PoolVisibilityPicker({ value, onChange, compact = false }) {
   const [isOpen, setIsOpen] = useState(false);
   const selected = VISIBILITY_OPTIONS.find((option) => option.value === value) || VISIBILITY_OPTIONS[0];
 
@@ -20,7 +20,7 @@ function PoolVisibilityPicker({ value, onChange, compact = false }) {
         onClick={() => setIsOpen((current) => !current)}
         aria-haspopup="listbox"
         aria-expanded={isOpen}
-        className="flex w-full items-center justify-between border border-[var(--line)] bg-transparent px-3 py-3 text-left text-sm text-[var(--ink)] outline-none transition hover:border-[var(--accent-3)] focus-visible:border-[var(--accent-3)]"
+        className={`flex ${compact ? "w-auto gap-1 text-[11px] uppercase tracking-[0.16em] text-[var(--muted)]" : "w-full border border-[var(--line)] bg-transparent px-3 py-3 text-sm text-[var(--ink)] hover:border-[var(--accent-3)] focus-visible:border-[var(--accent-3)]"} items-center justify-between text-left outline-none transition hover:text-[var(--accent-3)] focus-visible:text-[var(--accent-3)]`}
       >
         <span>{selected.label}</span>
         <svg viewBox="0 0 20 20" aria-hidden="true" className={`h-4 w-4 shrink-0 fill-none stroke-current stroke-2 transition ${isOpen ? "rotate-180" : ""}`}>
@@ -28,7 +28,7 @@ function PoolVisibilityPicker({ value, onChange, compact = false }) {
         </svg>
       </button>
       {isOpen ? (
-        <div role="listbox" className="absolute z-30 mt-2 w-full border border-[var(--line-strong)] bg-[var(--panel)] p-1 shadow-[0_16px_30px_rgba(0,0,0,0.35)]">
+        <div role="listbox" className={`absolute z-30 mt-2 border border-[var(--line-strong)] bg-[var(--panel)] p-1 shadow-[0_16px_30px_rgba(0,0,0,0.35)] ${compact ? "right-0 w-64" : "w-full"}`}>
           {VISIBILITY_OPTIONS.map((option) => {
             const isSelected = option.value === selected.value;
 
@@ -75,6 +75,8 @@ export function PoolManagementPanel({
   children,
   className = ""
 }) {
+  const [isDescriptionEditing, setIsDescriptionEditing] = useState(false);
+
   const buildDraft = (next) => ({
     name: draft?.name ?? pool?.name ?? "",
     description: draft?.description ?? pool?.description ?? "",
@@ -117,25 +119,60 @@ export function PoolManagementPanel({
               <p className="mt-2 text-xs leading-5 text-[var(--muted)]">
                 Imported from <span className="text-[var(--ink)]">{pool.importSourceTitle || pool.importSourceUrl}</span>
               </p>
-            ) : null}
-            <div className={compactDetails ? "mt-4 grid gap-3 md:grid-cols-[minmax(0,1fr)_14rem]" : ""}>
-              <textarea
-                value={draft?.description ?? ""}
-                disabled={readOnly}
-                onChange={(event) => patch({ description: event.target.value })}
-                onBlur={(event) => commit({ description: event.target.value })}
-                rows={compactDetails ? 1 : 2}
-                placeholder="Pool description"
-                className={`${compactDetails ? "mt-0 bg-transparent" : "mt-3 bg-[var(--panel-2)]"} block w-full border border-[var(--line)] px-3 py-3 text-sm leading-6 text-[var(--ink)] outline-none placeholder:text-[var(--muted)] focus:border-[var(--accent-3)]`}
-              />
-              {!readOnly && showVisibility ? (
-                <PoolVisibilityPicker
-                  compact={compactDetails}
-                  value={draft?.visibility ?? "private"}
-                  onChange={(visibility) => commit({ visibility })}
+            ) : null}            {compactDetails ? (
+              <div className="mt-3 flex flex-wrap items-start justify-between gap-x-6 gap-y-2 border-t border-[var(--line)] pt-3">
+                <div className="min-w-0 flex-1">
+                  {isDescriptionEditing && !readOnly ? (
+                    <textarea
+                      autoFocus
+                      value={draft?.description ?? ""}
+                      onChange={(event) => patch({ description: event.target.value })}
+                      onBlur={(event) => {
+                        commit({ description: event.target.value });
+                        setIsDescriptionEditing(false);
+                      }}
+                      rows={2}
+                      placeholder="Add a pool description"
+                      className="block w-full border border-[var(--accent-3)] bg-transparent px-3 py-2 text-sm leading-6 text-[var(--ink)] outline-none placeholder:text-[var(--muted)]"
+                    />
+                  ) : (
+                    <button
+                      type="button"
+                      disabled={readOnly}
+                      onClick={() => setIsDescriptionEditing(true)}
+                      className={`ui-copy block max-w-3xl text-left text-sm leading-6 transition ${draft?.description ? "text-[var(--muted)] hover:text-[var(--ink)]" : "text-[var(--muted)] hover:text-[var(--accent-3)]"} disabled:cursor-default`}
+                    >
+                      {draft?.description || "Add a short description"}
+                    </button>
+                  )}
+                </div>
+                {!readOnly && showVisibility ? (
+                  <PoolVisibilityPicker
+                    compact
+                    value={draft?.visibility ?? "private"}
+                    onChange={(visibility) => commit({ visibility })}
+                  />
+                ) : null}
+              </div>
+            ) : (
+              <div>
+                <textarea
+                  value={draft?.description ?? ""}
+                  disabled={readOnly}
+                  onChange={(event) => patch({ description: event.target.value })}
+                  onBlur={(event) => commit({ description: event.target.value })}
+                  rows={2}
+                  placeholder="Pool description"
+                  className="mt-3 block w-full border border-[var(--line)] bg-[var(--panel-2)] px-3 py-3 text-sm leading-6 text-[var(--ink)] outline-none placeholder:text-[var(--muted)] focus:border-[var(--accent-3)]"
                 />
-              ) : null}
-            </div>
+                {!readOnly && showVisibility ? (
+                  <PoolVisibilityPicker
+                    value={draft?.visibility ?? "private"}
+                    onChange={(visibility) => commit({ visibility })}
+                  />
+                ) : null}
+              </div>
+            )}
             {actionBar ? <div className="mt-4 flex flex-wrap justify-end gap-2">{actionBar}</div> : null}
           </div>
           {actionRail ? <div className="flex w-36 shrink-0 flex-col items-stretch gap-2">{actionRail}</div> : null}

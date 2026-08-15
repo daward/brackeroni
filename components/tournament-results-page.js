@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useState } from "react";
 import { BracketOutcomeHeader } from "@/components/bracket-outcome-header";
+import { ResultsHistory } from "@/components/results-history";
+import { ResultsRankingList } from "@/components/results-ranking-list";
 import { BackdropRemoteImage } from "@/components/resilient-remote-image";
 import {
   formatResultModeLabel,
@@ -271,12 +273,12 @@ function ResultEntryDetails({
         </div>
       </div>
 
-      <section className="results-history">
-        <h3 className="results-section-title">Match History</h3>
-        <div className="results-history-list">
-          {selectedEntryHistory.length === 0 ? (
-            <p className="results-empty-copy">No played matches to show yet.</p>
-          ) : (
+      <ResultsHistory
+        title="Match History"
+        hasItems={selectedEntryHistory.length > 0}
+        emptyMessage="No played matches to show yet."
+      >
+          {(
             selectedEntryHistory.map((match) => {
               const voteNote = describeUserVote(match);
               const opponentLabel = describeHistoryOpponent(
@@ -320,8 +322,7 @@ function ResultEntryDetails({
               );
             })
           )}
-        </div>
-      </section>
+      </ResultsHistory>
     </>
   );
 }
@@ -372,41 +373,7 @@ export function TournamentResultsPage({
         <div className="results-grid">
           <section className="results-ranking-rail">
             <h2 className="results-section-title">Final Ranking</h2>
-            <div className="results-ranking-list">
-              {orderedEntries.map((entry, index) => (
-                <button
-                  key={entry.id}
-                  type="button"
-                  onClick={() => handleSelectEntry(entry.id)}
-                  className={`results-ranking-item ${
-                    selectedEntry?.id === entry.id
-                      ? "results-ranking-item-active"
-                      : "results-ranking-item-idle"
-                  }`}
-                >
-                  <span className="results-ranking-rank">
-                    {getDisplayRank(entry, orderedEntries, index)}
-                  </span>
-                  {entry.candidateImageUrl ? (
-                    <BackdropRemoteImage
-                      src={entry.candidateImageUrl}
-                      alt={entry.candidateName}
-                      className="results-ranking-image"
-                      imageClassName="object-cover object-center"
-                      undersizedImageClassName="object-contain p-1.5"
-                      minimumSourceWidth={72}
-                      minimumSourceHeight={72}
-                    />
-                  ) : null}
-                  <div className="results-ranking-copy">
-                    <p className="results-ranking-name">{entry.candidateName}</p>
-                    <p className="results-ranking-seed">
-                      {formatSeedLabel(seedDisplayByEntryId, entry.id, entry.seed)}
-                    </p>
-                  </div>
-                </button>
-              ))}
-            </div>
+            <ResultsRankingList entries={orderedEntries} selectedEntryId={selectedEntry?.id} onSelectEntry={handleSelectEntry} getRank={(entry, index) => getDisplayRank(entry, orderedEntries, index)} getSeedLabel={(entry) => formatSeedLabel(seedDisplayByEntryId, entry.id, entry.seed)} />
           </section>
 
           <aside className="results-details-rail ui-scroll-subtle">

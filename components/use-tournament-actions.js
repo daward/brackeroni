@@ -88,6 +88,7 @@ export function useTournamentActions({
         playStyle: options.playStyle || "fixed_bracket",
         resultMode: options.resultMode || "winner_only",
         tieBreakMode: options.tieBreakMode || "higher_seed_wins",
+        seedCandidateIds: options.seedCandidateIds,
         advancementMode: options.advancementMode || "vote_winner"
       });
 
@@ -98,7 +99,7 @@ export function useTournamentActions({
       setExpandedDraftTournamentId(data.item.id);
       setWorkspaceView("tournaments");
       setSuccessMessage("Draft bracket created.");
-      await loadWorkspace();
+      await loadWorkspace({ force: true });
       return data.item;
     } catch (error) {
       setErrorMessage(error.message || "Failed to create bracket.");
@@ -136,7 +137,7 @@ export function useTournamentActions({
       setExpandedDraftTournamentId(data.item.id);
       setWorkspaceView("tournaments");
       setSuccessMessage(`Draft bracket created from ${pool.name}.`);
-      await loadWorkspace();
+      await loadWorkspace({ force: true });
       return data.item;
     } catch (error) {
       setErrorMessage(error.message || "Failed to create bracket from pool.");
@@ -175,7 +176,7 @@ export function useTournamentActions({
         });
       }, 1800);
 
-      await loadWorkspace();
+      await loadWorkspace({ force: true });
     } catch (error) {
       setErrorMessage(error.message || "Failed to update bracket.");
     } finally {
@@ -236,7 +237,7 @@ export function useTournamentActions({
       setTournamentStageView(startAfterCreate ? "active" : "draft");
       setExpandedDraftTournamentId(createData.item.id);
       setEditingTournamentTitleId(null);
-      await loadWorkspace();
+      await loadWorkspace({ force: true });
       return true;
     } catch (error) {
       setErrorMessage(error.message || "Failed to create parallel bracket.");
@@ -297,7 +298,7 @@ export function useTournamentActions({
         replaceTournamentInWorkspace(tournamentId, nextTournament);
       }
       setSuccessMessage("Bracket started.");
-      await loadWorkspace();
+      await loadWorkspace({ force: true });
       setTimeout(() => {
         tournamentCardRefs.current[tournamentId]?.scrollIntoView({
           behavior: "smooth",
@@ -338,7 +339,7 @@ export function useTournamentActions({
             }.`
           : "Bracket synced with pool. No new candidates were added."
       );
-      await loadWorkspace();
+      await loadWorkspace({ force: true });
     } catch (error) {
       setErrorMessage(error.message || "Failed to sync bracket with pool.");
     } finally {
@@ -367,7 +368,7 @@ export function useTournamentActions({
         setEditingTournamentTitleId(null);
       }
       setSuccessMessage("Rerun draft created.");
-      await loadWorkspace();
+      await loadWorkspace({ force: true });
     } catch (error) {
       setErrorMessage(error.message || "Failed to create rerun.");
     } finally {
@@ -400,7 +401,7 @@ export function useTournamentActions({
       await (isParallelParent ? archiveParallelTournament(tournamentId) : archiveTournament(tournamentId));
 
       setSuccessMessage("Bracket archived.");
-      await loadWorkspace();
+      await loadWorkspace({ force: true });
     } catch (error) {
       setErrorMessage(error.message || "Failed to archive bracket.");
     } finally {
@@ -429,7 +430,7 @@ export function useTournamentActions({
           ? "Bracket complete. Review progress and reveal rounds when ready."
           : "Round closed and bracket advanced."
       );
-      await loadWorkspace();
+      await loadWorkspace({ force: true });
     } catch (error) {
       setErrorMessage(error.message || "Failed to close the current round.");
     } finally {
@@ -454,7 +455,7 @@ export function useTournamentActions({
       }
       await refreshTournamentMatches(tournamentId);
       setSuccessMessage(data.item?.status === "complete" ? "Final results revealed." : "Results revealed and the next round is open.");
-      await loadWorkspace();
+      await loadWorkspace({ force: true });
     } catch (error) {
       setErrorMessage(error.message || "Failed to open the next round.");
     } finally {
@@ -475,7 +476,7 @@ export function useTournamentActions({
       const data = await setTournamentMatchWinner(matchId, winnerEntryId);
       replaceTournamentMatchInWorkspace(tournamentId, data.item);
       setSuccessMessage("Winner saved.");
-      await loadWorkspace();
+      await loadWorkspace({ force: true });
     } catch (error) {
       setErrorMessage(error.message || "Failed to update match winner.");
     } finally {

@@ -471,7 +471,7 @@ export function ImportPoolReview() {
                 ) : null}
                 {createdPoolId ? (
                   <Link
-                    href={`/create?view=pools&pool=${encodeURIComponent(createdPoolId)}`}
+                    href={`/pools/${encodeURIComponent(createdPoolId)}`}
                     className="ui-button ui-button-muted"
                   >
                     Go To Pool

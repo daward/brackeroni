@@ -35,25 +35,25 @@ export function MobileSwipeRail({
   }
 
   return (
-    <div className={`home-mobile-swipe-shell ${shellClassName}`.trim()}>
+    <div className={`mobile-swipe-rail-shell ${shellClassName}`.trim()}>
       <div
         ref={railRef}
-        className={`home-mobile-swipe-rail ${railClassName}`.trim()}
+        className={`mobile-swipe-rail ${railClassName}`.trim()}
         onScroll={handleScroll}
       >
         {items.map((item, index) => (
-          <div key={getKey(item, index)} className="home-mobile-swipe-slide">
+          <div key={getKey(item, index)} className="mobile-swipe-rail-slide">
             {renderItem(item, index)}
           </div>
         ))}
       </div>
       {items.length > 1 ? (
-        <div className="home-mobile-swipe-dots" aria-hidden="true">
+        <div className="mobile-swipe-rail-dots" aria-hidden="true">
           {items.map((item, index) => (
             <span
               key={getKey(item, index)}
-              className={`home-mobile-swipe-dot ${
-                index === activeIndex ? "home-mobile-swipe-dot-active" : ""
+              className={`mobile-swipe-rail-dot ${
+                index === activeIndex ? "mobile-swipe-rail-dot-active" : ""
               }`}
             />
           ))}

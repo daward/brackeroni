@@ -34,7 +34,6 @@ export function useCandidateActions({
   endAction,
   setErrorMessage,
   setSuccessMessage,
-  loadWorkspace,
   setOpenPoolActionsMenuId,
   setOpenPoolMergeMenuId
 }) {
@@ -220,7 +219,6 @@ export function useCandidateActions({
       setExpandedPoolId(poolId);
       replacePoolInWorkspace(data.item);
       setSuccessMessage("Candidate created inside pool.");
-      await loadWorkspace();
     } catch (error) {
       setErrorMessage(error.message || "Failed to create candidate.");
     } finally {
@@ -296,7 +294,6 @@ export function useCandidateActions({
       replaceCandidateInWorkspace(poolId, data.item);
       closeCandidateEditor(poolId);
       setSuccessMessage("Candidate updated.");
-      await loadWorkspace();
     } catch (error) {
       setErrorMessage(error.message || "Failed to update candidate.");
     } finally {
@@ -340,20 +337,16 @@ export function useCandidateActions({
             continue;
           }
 
-          await updateCandidateInPool(pool.id, candidate.id, {
+          const updatedCandidate = await updateCandidateInPool(pool.id, candidate.id, {
             imageUrl: bestSuggestion.imageUrl
           });
 
+          replaceCandidateInWorkspace(pool.id, updatedCandidate.item);
           appliedCount += 1;
         } catch {
           failedCount += 1;
         }
       }
-
-      if (appliedCount > 0) {
-        await loadWorkspace();
-      }
-
       setSuccessMessage(
         `Filled ${appliedCount} missing image${appliedCount === 1 ? "" : "s"}. ` +
           `${skippedCount} skipped.${failedCount > 0 ? ` ${failedCount} failed.` : ""}`

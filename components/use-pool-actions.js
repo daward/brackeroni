@@ -62,7 +62,7 @@ export function usePoolActions({
       setExpandedPoolId(data.item?.id ?? null);
       setIsPoolModalOpen(false);
       setSuccessMessage("Pool created.");
-      await loadWorkspace();
+      await loadWorkspace({ force: true });
     } catch (error) {
       setErrorMessage(error.message || "Failed to create pool.");
     } finally {
@@ -102,7 +102,7 @@ export function usePoolActions({
       setExpandedPoolId(data.item?.id ?? null);
       closePoolImportModal();
       setSuccessMessage("Pool imported.");
-      await loadWorkspace();
+      await loadWorkspace({ force: true });
     } catch (error) {
       setErrorMessage(error.message || "Failed to import pool.");
     } finally {
@@ -155,7 +155,7 @@ export function usePoolActions({
       }
 
       setSuccessMessage(attachedTournamentId ? "New pool created and linked to bracket." : "Pool created.");
-      await loadWorkspace();
+      await loadWorkspace({ force: true });
       setExpandedPoolId(createdPool.id);
       return createdPool;
     } catch (error) {
@@ -187,7 +187,7 @@ export function usePoolActions({
       setOpenPoolMergeMenuId(null);
       setOpenPoolActionsMenuId(null);
       setSuccessMessage("Pool merged.");
-      await loadWorkspace();
+      await loadWorkspace({ force: true });
     } catch (error) {
       setErrorMessage(error.message || "Failed to merge pools.");
     } finally {
@@ -262,7 +262,7 @@ export function usePoolActions({
       setSuccessMessage("Pool updated.");
       setOpenPoolActionsMenuId(null);
       setOpenPoolMergeMenuId(null);
-      await loadWorkspace();
+      await loadWorkspace({ force: true });
     } catch (error) {
       setErrorMessage(error.message || "Failed to update pool.");
     } finally {
@@ -333,7 +333,7 @@ export function usePoolActions({
       setEditingPool(null);
       setPoolEditForm(emptyPoolForm);
       setSuccessMessage("Pool updated.");
-      await loadWorkspace();
+      await loadWorkspace({ force: true });
     } catch (error) {
       setErrorMessage(error.message || "Failed to update pool.");
     } finally {
@@ -369,7 +369,7 @@ export function usePoolActions({
       setOpenPoolActionsMenuId(null);
       setOpenPoolMergeMenuId(null);
       setSuccessMessage("Pool archived.");
-      await loadWorkspace();
+      await loadWorkspace({ force: true });
     } catch (error) {
       setErrorMessage(error.message || "Failed to archive pool.");
     } finally {
@@ -406,7 +406,7 @@ export function usePoolActions({
       setOpenPoolActionsMenuId(null);
       setOpenPoolMergeMenuId(null);
       setSuccessMessage(`Removed "${normalizedTag}" from this pool.`);
-      await loadWorkspace();
+      await loadWorkspace({ force: true });
     } catch (error) {
       setErrorMessage(error.message || "Failed to remove tag from pool.");
     } finally {
@@ -464,7 +464,7 @@ export function usePoolActions({
         );
       }
 
-      await loadWorkspace();
+      await loadWorkspace({ force: true });
     } catch (error) {
       setErrorMessage(error.message || "Failed to enrich candidates from source URLs.");
     } finally {
@@ -507,7 +507,7 @@ export function usePoolActions({
           ? `Removed ${removedTagCount} low-value tag${removedTagCount === 1 ? "" : "s"}.`
           : "No tags matched that threshold."
       );
-      await loadWorkspace();
+      await loadWorkspace({ force: true });
     } catch (error) {
       setErrorMessage(error.message || "Failed to remove low-value tags from pool.");
     } finally {

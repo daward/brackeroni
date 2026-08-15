@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { BracketOutcomeHeader } from "@/components/bracket-outcome-header";
+import { MobileSwipeRail } from "@/components/mobile-swipe-rail";
 import { BackdropRemoteImage } from "@/components/resilient-remote-image";
 import { openNextTournamentRound, revealTournamentRound } from "@/lib/client-api/create-workspace";
 import {
@@ -699,18 +700,6 @@ function RoundProgressCard({
   const finalEntries = isRankingFinalResults ? orderFinalEntries(tournament.entries).slice(0, 12) : [];
   const isEffectivelyRevealed = Boolean(round.revealedAt || isSuperseded);
   const isHidden = round.status === "closed" && !isEffectivelyRevealed;
-  const [activeStatSlide, setActiveStatSlide] = useState(0);
-
-  function handleStatRailScroll(event) {
-    const { scrollLeft, clientWidth } = event.currentTarget;
-
-    if (!clientWidth) {
-      return;
-    }
-
-    setActiveStatSlide(Math.round(scrollLeft / clientWidth));
-  }
-
   return (
     <article
       id={`round-${round.id}`}
@@ -728,71 +717,17 @@ function RoundProgressCard({
         </p>
       </div>
 
-      <div className="progress-stat-carousel mt-6 md:hidden">
-        <div className="progress-stat-carousel-rail ui-scroll-subtle" onScroll={handleStatRailScroll}>
-            <div className="progress-stat-carousel-slide">
-              <RoundStatCard
-                label="Most Votes"
-                value={stats.voteLeader ? stats.voteLeader.name : "No votes yet"}
-                tieCount={stats.voteLeaderTieCount}
-                tone="blue"
-                detail={
-                  stats.voteLeader
-                    ? `${stats.voteLeader.votes} votes | Seed ${stats.voteLeader.seed}`
-                    : null
-                }
-              />
-            </div>
-            <div className="progress-stat-carousel-slide">
-              <RoundStatCard
-                label="Closest Match"
-                value={stats.closestMatch ? stats.closestMatch.winnerName : "No closed match yet"}
-                tieCount={stats.closestMatchTieCount}
-                tone="yellow"
-                detail={
-                  stats.closestMatch
-                    ? `Beat ${stats.closestMatch.loserName} by ${stats.closestMatch.margin} votes`
-                    : null
-                }
-              />
-            </div>
-            <div className="progress-stat-carousel-slide">
-              <RoundStatCard
-                label="Biggest Blowout"
-                value={stats.biggestBlowout ? stats.biggestBlowout.winnerName : "No closed match yet"}
-                tieCount={stats.biggestBlowoutTieCount}
-                tone="blue"
-                detail={
-                  stats.biggestBlowout
-                    ? `${formatPercent(stats.biggestBlowout.winnerPercent)} over ${stats.biggestBlowout.loserName}`
-                    : null
-                }
-              />
-            </div>
-            <div className="progress-stat-carousel-slide">
-              <RoundStatCard
-                label="Biggest Upset"
-                value={stats.biggestUpset ? stats.biggestUpset.winnerName : "No seed upset"}
-                tieCount={stats.biggestUpsetTieCount}
-                tone="yellow"
-                detail={
-                  stats.biggestUpset
-                    ? `Seed ${stats.biggestUpset.winnerSeed} beat seed ${stats.biggestUpset.loserSeed}`
-                    : null
-                }
-              />
-            </div>
-        </div>
-        <div className="progress-stat-carousel-dots">
-            {[0, 1, 2, 3].map((index) => (
-              <span
-                key={index}
-                className={`progress-stat-carousel-dot ${
-                  activeStatSlide === index ? "progress-stat-carousel-dot-active" : ""
-                }`.trim()}
-              />
-            ))}
-        </div>
+      <div className="mt-6 md:hidden">
+        <MobileSwipeRail
+          items={[
+            { label: "Most Votes", value: stats.voteLeader?.name || "No votes yet", tieCount: stats.voteLeaderTieCount, tone: "blue", detail: stats.voteLeader ? `${stats.voteLeader.votes} votes | Seed ${stats.voteLeader.seed}` : null },
+            { label: "Closest Match", value: stats.closestMatch?.winnerName || "No closed match yet", tieCount: stats.closestMatchTieCount, tone: "yellow", detail: stats.closestMatch ? `Beat ${stats.closestMatch.loserName} by ${stats.closestMatch.margin} votes` : null },
+            { label: "Biggest Blowout", value: stats.biggestBlowout?.winnerName || "No closed match yet", tieCount: stats.biggestBlowoutTieCount, tone: "blue", detail: stats.biggestBlowout ? `${formatPercent(stats.biggestBlowout.winnerPercent)} over ${stats.biggestBlowout.loserName}` : null },
+            { label: "Biggest Upset", value: stats.biggestUpset?.winnerName || "No seed upset", tieCount: stats.biggestUpsetTieCount, tone: "yellow", detail: stats.biggestUpset ? `Seed ${stats.biggestUpset.winnerSeed} beat seed ${stats.biggestUpset.loserSeed}` : null }
+          ]}
+          getKey={(item) => item.label}
+          renderItem={(item) => <RoundStatCard {...item} />}
+        />
       </div>
 
       <div className="mt-6 hidden gap-x-8 gap-y-2 md:grid md:grid-cols-2 xl:grid-cols-4">

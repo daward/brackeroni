@@ -814,7 +814,7 @@ export function useSeedingActions({ setErrorMessage, setSuccessMessage, loadWork
           setLastSavedSeedingSnapshot(nextSnapshot);
           setSeedingSaveError("");
           setIsDirty(false);
-          await loadWorkspace();
+          await loadWorkspace({ force: true });
         }
       } catch (error) {
         if (!isMountedRef.current) {

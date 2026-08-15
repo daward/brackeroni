@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { BracketCreationWizard } from "@/components/bracket-creation-wizard";
 import { SeedingModal } from "@/components/seeding-modal";
 import { PoolWorkspaceSection } from "@/components/pool-workspace-section";
@@ -15,6 +15,7 @@ import {
 import { TournamentWorkspaceSection } from "@/components/tournament-workspace-section";
 import { useCandidateActions } from "@/components/use-candidate-actions";
 import { useCreateWorkspaceData } from "@/components/use-create-workspace-data";
+import { normalizePoolNavigationTarget } from "@/lib/create-workspace/pool-navigation";
 import { usePoolActions } from "@/components/use-pool-actions";
 import { useSeedingActions } from "@/components/use-seeding-actions";
 import { useTournamentActions } from "@/components/use-tournament-actions";
@@ -44,10 +45,10 @@ const emptyPoolImportForm = {
   text: ""
 };
 
-export function CreatePanels() {
+export function CreatePanels({ workspaceView: routeWorkspaceView = "tournaments", initialPoolId = null, initialPool = null }) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [expandedPoolId, setExpandedPoolId] = useState(null);
+  const [expandedPoolId, setExpandedPoolId] = useState(initialPoolId);
   const [isPoolModalOpen, setIsPoolModalOpen] = useState(false);
   const [isPoolImportModalOpen, setIsPoolImportModalOpen] = useState(false);
   const [isBracketWizardOpen, setIsBracketWizardOpen] = useState(false);
@@ -65,8 +66,13 @@ export function CreatePanels() {
   const [openPoolActionsMenuId, setOpenPoolActionsMenuId] = useState(null);
   const [openPoolMergeMenuId, setOpenPoolMergeMenuId] = useState(null);
   const [tournamentInlineDrafts, setTournamentInlineDrafts] = useState({});
-  const [workspaceView, setWorkspaceViewState] = useState("tournaments");
-  const [tournamentStageView, setTournamentStageViewState] = useState("draft");
+  const workspaceView = routeWorkspaceView;
+  const [tournamentStageView, setTournamentStageViewState] = useState(() => {
+    const requestedStage = searchParams?.get("stage");
+    return requestedStage === "draft" || requestedStage === "active" || requestedStage === "complete"
+      ? requestedStage
+      : "draft";
+  });
   const [selectedLiveTournamentId, setSelectedLiveTournamentId] = useState(null);
   const [expandedDraftTournamentId, setExpandedDraftTournamentId] = useState("all");
   const [managedEntrantsTournamentId, setManagedEntrantsTournamentId] = useState(null);
@@ -89,8 +95,11 @@ export function CreatePanels() {
   });
   const poolSearchScrollHandledRef = useRef(null);
 
-  function navigateCreateWithParams(nextParams, { history = "replace" } = {}) {
-    const href = nextParams.toString() ? `/create?${nextParams.toString()}` : "/create";
+  function navigateWorkspace(nextParams, { history = "replace" } = {}) {
+    const nextView = nextParams.get("view") || workspaceView;
+    nextParams.delete("view");
+    const query = nextParams.toString();
+    const href = `${nextView === "pools" ? "/pools" : "/brackets"}${query ? `?${query}` : ""}`;
 
     if (history === "push") {
       router.push(href);
@@ -100,74 +109,54 @@ export function CreatePanels() {
     router.replace(href);
   }
 
-  function setWorkspaceView(nextView, { history = "replace" } = {}) {
-    setWorkspaceViewState(nextView);
-
-    const nextParams = new URLSearchParams(searchParams?.toString() || "");
-    nextParams.set("view", nextView);
-
-    if (nextView === "tournaments") {
-      nextParams.delete("pool");
-      nextParams.delete("favoritePool");
-      nextParams.delete("makeBracketFromPool");
-      if (!nextParams.get("stage")) {
-        nextParams.set("stage", tournamentStageView);
-      }
-    } else {
-      nextParams.delete("stage");
-      nextParams.delete("tournament");
-      nextParams.delete("pool");
-      nextParams.delete("favoritePool");
-      nextParams.delete("makeBracketFromPool");
-    }
-
-    navigateCreateWithParams(nextParams, { history });
+  function setWorkspaceView(nextView) {
+    router.push(nextView === "pools" ? "/pools" : "/brackets");
   }
 
-  function setExpandedPoolWithUrl(nextPoolId, { history = "push" } = {}) {
-    setExpandedPoolId(nextPoolId);
+  const openPool = useCallback((nextPoolId, { history = "push" } = {}) => {
+    const poolId = normalizePoolNavigationTarget(nextPoolId);
 
-    const nextParams = new URLSearchParams(searchParams?.toString() || "");
-    nextParams.set("view", "pools");
-    nextParams.delete("favoritePool");
-    nextParams.delete("makeBracketFromPool");
-
-    if (nextPoolId) {
-      nextParams.set("pool", nextPoolId);
-    } else {
-      nextParams.delete("pool");
-    }
-
-    const currentQuery = searchParams?.toString() || "";
-    const nextQuery = nextParams.toString();
-    if (currentQuery === nextQuery) {
+    if (poolId === undefined) {
+      console.error("Ignoring invalid pool navigation target.");
       return;
     }
 
-    navigateCreateWithParams(nextParams, { history });
-  }
+    const href = poolId ? `/pools/${poolId}` : "/pools";
 
+    // A pool route owns the expanded state. Updating local state before the
+    // route transition briefly renders an expanded card, then remounts the
+    // exact same view once the destination loads.
+    if (history === "push") {
+      router.push(href);
+      return;
+    }
+
+    router.replace(href);
+  }, [router]);
   function setTournamentStageView(nextStage, { history = "replace" } = {}) {
     setTournamentStageViewState(nextStage);
-    setWorkspaceViewState("tournaments");
+    setTournamentPage(1);
+    const href = `/brackets?stage=${encodeURIComponent(nextStage)}`;
 
-    const nextParams = new URLSearchParams(searchParams?.toString() || "");
-    nextParams.set("view", "tournaments");
-    nextParams.set("stage", nextStage);
-    nextParams.delete("tournament");
-    nextParams.delete("pool");
-    nextParams.delete("favoritePool");
-    nextParams.delete("makeBracketFromPool");
+    if (history === "push") {
+      router.push(href);
+      return;
+    }
 
-    navigateCreateWithParams(nextParams, { history });
+    router.replace(href);
   }
-
   const {
     isWorkspacePending,
     loadWorkspace,
     ensurePoolDetails,
+    ensurePoolInWorkspace,
     ensureTournamentWorkspaceDetails,
     poolDetails,
+    tournamentPage,
+    tournamentPagination,
+    tournamentStatusCounts,
+    poolPage,
+    poolPagination,
     pools,
     refreshTournamentMatches,
     removeCandidateFromWorkspace,
@@ -175,6 +164,8 @@ export function CreatePanels() {
     replacePoolInWorkspace,
     replaceTournamentMatchInWorkspace,
     replaceTournamentInWorkspace,
+    setPoolPage,
+    setTournamentPage,
     setTournamentShareLink,
     tournamentInvites,
     tournamentMatches,
@@ -182,7 +173,10 @@ export function CreatePanels() {
     tournamentShareLinks
   } = useCreateWorkspaceData({
     setErrorMessage,
-    setExpandedPoolId: setExpandedPoolWithUrl
+    setExpandedPoolId,
+    workspaceView,
+    tournamentStage: tournamentStageView,
+    initialPool
   });
   const isPending = isTransitionPending || isWorkspacePending;
 
@@ -227,10 +221,13 @@ export function CreatePanels() {
     imageSuggestionQuery,
     setImageSuggestionQuery,
     poolDetails,
+    tournamentPage,
+    tournamentPagination,
+    tournamentStatusCounts,
     removeCandidateFromWorkspace,
     replaceCandidateInWorkspace,
     replacePoolInWorkspace,
-    setExpandedPoolId: setExpandedPoolWithUrl,
+    setExpandedPoolId: openPool,
     tournaments,
     emptyCandidateForm,
     isActionPending,
@@ -273,7 +270,7 @@ export function CreatePanels() {
     poolEditForm,
     setPoolEditForm,
     expandedPoolId,
-    setExpandedPoolId: setExpandedPoolWithUrl,
+    setExpandedPoolId: openPool,
     pools,
     poolInlineDrafts,
     setPoolInlineDrafts,
@@ -324,6 +321,8 @@ export function CreatePanels() {
   } = useTournamentSharingActions({
     tournaments,
     tournamentShareLinks,
+    setPoolPage,
+    setTournamentPage,
     setTournamentShareLink,
     isActionPending,
     beginAction,
@@ -475,6 +474,7 @@ export function CreatePanels() {
     }
   }, [
     ensurePoolDetails,
+    ensurePoolInWorkspace,
     ensureTournamentWorkspaceDetails,
     expandedDraftTournamentId,
     tournamentInlineDrafts,
@@ -482,14 +482,6 @@ export function CreatePanels() {
     tournaments,
     workspaceView
   ]);
-
-  useEffect(() => {
-    const requestedView = searchParams?.get("view");
-
-    if (requestedView === "pools" || requestedView === "tournaments") {
-      setWorkspaceViewState(requestedView);
-    }
-  }, [searchParams]);
 
   useEffect(() => {
     if (workspaceView !== "tournaments") {
@@ -605,19 +597,43 @@ export function CreatePanels() {
       return;
     }
 
-    const requestedPoolId = searchParams?.get("pool");
+    const requestedPoolId = initialPoolId || searchParams?.get("pool");
     if (!requestedPoolId) {
       return;
     }
 
-    const requestedPool = pools.find((pool) => pool.id === requestedPoolId);
-    if (!requestedPool) {
+    const normalizedPoolId = normalizePoolNavigationTarget(requestedPoolId);
+    if (!normalizedPoolId) {
+      openPool(null, { history: "replace" });
       return;
+    }
+
+    const requestedPool = pools.find((pool) => pool.id === normalizedPoolId);
+    if (!requestedPool) {
+      let cancelled = false;
+
+      ensurePoolInWorkspace(normalizedPoolId)
+        .then((pool) => {
+          if (!cancelled && pool) {
+            setExpandedPoolId(pool.id);
+          }
+        })
+        .catch((error) => {
+          if (!cancelled) {
+            setErrorMessage(error.message || "Failed to load pool.");
+          }
+        });
+
+      return () => {
+        cancelled = true;
+      };
     }
 
     setExpandedPoolId(requestedPool.id);
 
-    if (poolSearchScrollHandledRef.current === requestedPool.id) {
+    // Direct pool routes already enter at the appropriate document position.
+    // Avoid a second, smooth page scroll after the route has rendered.
+    if (initialPoolId || poolSearchScrollHandledRef.current === requestedPool.id) {
       return;
     }
 
@@ -631,7 +647,7 @@ export function CreatePanels() {
     }, 50);
 
     return () => clearTimeout(timer);
-  }, [workspaceView, pools, searchParams]);
+  }, [workspaceView, pools, initialPoolId, searchParams, openPool, ensurePoolInWorkspace, setErrorMessage]);
 
   useEffect(() => {
     const shouldCreatePoolForBracket = searchParams?.get("newPoolForBracket");
@@ -647,7 +663,7 @@ export function CreatePanels() {
         actionSearchParamsHandledRef.current.newPoolForBracket = null;
         return;
       }
-      router.replace(`/create?view=pools&pool=${pool.id}&fromBracketSetup=1`);
+      router.replace(`/pools/${pool.id}?fromBracketSetup=1`);
     });
   }, [createPoolRecord, router, searchParams, startTransition]);
 
@@ -671,9 +687,9 @@ export function CreatePanels() {
       try {
         const data = await favoritePool(requestedFavoritePoolId);
 
-        await loadWorkspace();
+        await loadWorkspace({ force: true });
         setWorkspaceView("pools");
-        setExpandedPoolWithUrl(data.item.id, { history: "replace" });
+        openPool(data.item.id, { history: "replace" });
         setSuccessMessage(`Added ${data.item.name} to your pools.`);
 
       } catch (error) {
@@ -711,7 +727,7 @@ export function CreatePanels() {
         return;
       }
 
-      router.replace(`/create?view=tournaments&stage=draft&tournament=${createdBracket.id}`);
+      router.replace("/brackets?stage=draft");
     });
   }, [pools, router, searchParams, startTransition]);
 
@@ -755,7 +771,7 @@ export function CreatePanels() {
       setWorkspaceView("tournaments");
       setTournamentStageView("draft");
       setExpandedDraftTournamentId(createdBracket.id);
-      router.replace(`/create?view=tournaments&stage=draft&tournament=${createdBracket.id}`);
+      router.replace("/brackets?stage=draft");
     });
   }, [createDraftBracket, router, searchParams, startTransition]);
 
@@ -780,7 +796,7 @@ export function CreatePanels() {
 
     actionSearchParamsHandledRef.current.openSeedingTournamentId = tournamentId;
     openSeedingEditor(tournament)
-      .then(() => router.replace(`/create?view=tournaments&stage=draft&tournament=${tournamentId}`))
+      .then(() => router.replace("/brackets?stage=draft"))
       .catch((error) => {
         actionSearchParamsHandledRef.current.openSeedingTournamentId = null;
         setErrorMessage(error.message || "Failed to open seeding.");
@@ -795,6 +811,7 @@ export function CreatePanels() {
     advancementMode,
     tieBreakMode,
     seedingMode,
+    seedCandidateIds,
     audienceMode
   }) {
     if (isBracketWizardCreating) {
@@ -833,14 +850,12 @@ export function CreatePanels() {
         resultMode,
         advancementMode,
         tieBreakMode,
+        seedCandidateIds: seedingMode === "custom" ? seedCandidateIds : undefined,
         ...audience
       });
 
       if (bracket) {
         setIsBracketWizardOpen(false);
-        if (seedingMode === "custom") {
-          await openSeedingEditor(bracket);
-        }
       }
 
       return bracket;
@@ -867,7 +882,7 @@ export function CreatePanels() {
                 : "border-transparent hover:border-[var(--line-strong)]"
             }`}
           >
-            <p className="display-face text-lg font-black uppercase sm:text-xl">Brackets ({tournaments.length})</p>
+            <p className="display-face text-lg font-black uppercase sm:text-xl">Brackets</p>
             <p
               className="mt-2 hidden text-sm uppercase tracking-[0.14em] text-[var(--muted)] sm:block"
             >
@@ -883,7 +898,7 @@ export function CreatePanels() {
                 : "border-transparent hover:border-[var(--line-strong)]"
             }`}
           >
-            <p className="display-face text-lg font-black uppercase sm:text-xl">Pools ({pools.length})</p>
+            <p className="display-face text-lg font-black uppercase sm:text-xl">Pools</p>
             <p
               className="mt-2 hidden text-sm uppercase tracking-[0.14em] text-[var(--muted)] sm:block"
             >
@@ -897,6 +912,9 @@ export function CreatePanels() {
         <PoolWorkspaceSection
           pools={pools}
           poolDetails={poolDetails}
+          poolPage={poolPage}
+          isLoadingPools={isWorkspacePending}
+          poolPagination={poolPagination}
           expandedPoolId={expandedPoolId}
           poolInlineDrafts={poolInlineDrafts}
           candidateDrafts={candidateDrafts}
@@ -909,8 +927,8 @@ export function CreatePanels() {
           isActionPending={isActionPending}
           onCreatePool={() => createPoolRecord()}
           onOpenImport={() => setIsPoolImportModalOpen(true)}
-          onCreateBracketFromPool={(pool) => router.push(`/create/bracket/new?poolId=${pool.id}&step=structure`)}
-          onUsePoolForBracket={searchParams?.get("fromBracketSetup") === "1" ? (pool) => router.push(`/create/bracket/new?poolId=${pool.id}`) : null}
+          onCreateBracketFromPool={(pool) => router.push(`/brackets/configuration?poolId=${pool.id}&step=structure`)}
+          onUsePoolForBracket={searchParams?.get("fromBracketSetup") === "1" ? (pool) => router.push(`/brackets/configuration?poolId=${pool.id}`) : null}
           onSavePool={savePoolInline}
           onPatchPoolDraft={(poolId, patch) =>
             setPoolInlineDrafts((current) => ({
@@ -925,7 +943,8 @@ export function CreatePanels() {
             }));
             return savePoolInline(poolId, draft);
           }}
-          onSetExpandedPoolId={setExpandedPoolWithUrl}
+          onLoadMorePools={() => setPoolPage((current) => current + 1)}
+          onSetExpandedPoolId={openPool}
           onSetOpenPoolActionsMenuId={setOpenPoolActionsMenuId}
           onSetOpenPoolMergeMenuId={setOpenPoolMergeMenuId}
           onCopyPoolLink={handleCopyPoolLink}
@@ -953,6 +972,11 @@ export function CreatePanels() {
         <TournamentWorkspaceSection
           tournaments={tournaments}
           tournamentStageView={tournamentStageView}
+          tournamentPage={tournamentPage}
+          tournamentPagination={tournamentPagination}
+          tournamentStatusCounts={tournamentStatusCounts}
+          setTournamentPage={setTournamentPage}
+          isLoadingBrackets={isWorkspacePending}
           setTournamentStageView={setTournamentStageView}
           selectedLiveTournamentId={selectedLiveTournamentId}
           setSelectedLiveTournamentId={setSelectedLiveTournamentId}
@@ -980,7 +1004,7 @@ export function CreatePanels() {
           imageSuggestionLoading={imageSuggestionLoading}
           emptyCandidateForm={emptyCandidateForm}
           isActionPending={isActionPending}
-          onOpenBracketWizard={() => router.push("/create/bracket/new")}
+          onOpenBracketWizard={() => router.push("/brackets/configuration")}
           createPoolRecord={createPoolRecord}
           handleSyncTournamentWithPool={handleSyncTournamentWithPool}
           openSeedingEditor={handleOpenSeedingEditor}
@@ -1320,3 +1344,10 @@ function FlashMessages({ errorMessage, successMessage }) {
     </div>
   );
 }
+
+
+
+
+
+
+

@@ -20,11 +20,11 @@ export const PATCH = withRouteErrorHandling(async function PATCH(request, { para
 export const DELETE = withRouteErrorHandling(async function DELETE(request, { params }) {
   const user = await getCurrentUser(request);
   const { poolId, candidateId } = await params;
-  const pool = await removeCandidateFromPool({
+  const result = await removeCandidateFromPool({
     poolId,
     creatorUserId: user.id,
     candidateId
   });
 
-  return json({ item: pool });
+  return json(result);
 });

@@ -584,13 +584,15 @@ export function ActiveParallelTournamentSection({
 
       <LiveAccordion title="Bracket Actions" defaultOpen={false}>
         <TournamentActionGroup
+          layout="row"
+          align="start"
           actions={[
             {
               key: `parallel-archive:${tournament.id}`,
               label: isActionPending(`archive-tournament:${tournament.id}`) ? "Archiving" : "Archive",
               onClick: () => onArchiveTournament(tournament.id, tournament.title),
               disabled: isActionPending(`archive-tournament:${tournament.id}`),
-              className: "ui-button ui-button-muted w-full"
+              className: "ui-button ui-button-muted"
             }
           ]}
         />
@@ -805,20 +807,22 @@ export function ActiveStandardTournamentSection({
 
       <LiveAccordion title="Bracket Actions" defaultOpen={false}>
         <TournamentActionGroup
+          layout="row"
+          align="start"
           actions={[
             {
               key: `rerun:${tournament.id}`,
               label: isActionPending(`rerun-tournament:${tournament.id}`) ? "Creating" : "Rerun",
               onClick: () => onRerunTournament(tournament.id),
               disabled: isActionPending(`rerun-tournament:${tournament.id}`),
-              className: "ui-button ui-button-accent w-full"
+              className: "ui-button ui-button-accent"
             },
             {
               key: `archive:${tournament.id}`,
               label: isActionPending(`archive-tournament:${tournament.id}`) ? "Archiving" : "Archive",
               onClick: () => onArchiveTournament(tournament.id, tournament.title),
               disabled: isActionPending(`archive-tournament:${tournament.id}`),
-              className: "ui-button ui-button-muted w-full"
+              className: "ui-button ui-button-muted"
             }
           ]}
         />

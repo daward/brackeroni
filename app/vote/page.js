@@ -58,6 +58,8 @@ export default async function VotePage({ searchParams }) {
   const user = await getOptionalCurrentUser();
   const cookieStore = await cookies();
   const anonymousVoterToken = cookieStore.get(ANONYMOUS_VOTER_COOKIE)?.value ?? null;
+  const votePage = Math.max(1, Number.parseInt(typeof params.page === "string" ? params.page : "1", 10) || 1);
+  const voteOffset = (votePage - 1) * 12;
   const requestedParallelTournamentId =
     typeof params.parallelTournament === "string" ? params.parallelTournament : null;
 
@@ -94,15 +96,18 @@ export default async function VotePage({ searchParams }) {
     accessibleParallelTournaments,
     publicParallelTournaments
   ] = await Promise.all([
-    user ? listAccessibleTournaments({ userId: user.id }) : Promise.resolve([]),
-    listPublicTournaments({ statuses: ["active", "complete"], limit: 24 }),
+    user ? listAccessibleTournaments({ userId: user.id, statuses: ["active", "complete"], limit: 12, offset: voteOffset }) : Promise.resolve([]),
+    listPublicTournaments({ statuses: ["active", "complete"], limit: 12 }),
     user
       ? listAccessibleParallelTournaments({
           userId: user.id,
-          anonymousVoterToken
+          anonymousVoterToken,
+          statuses: ["active", "complete"],
+          limit: 12,
+          offset: voteOffset
         })
       : Promise.resolve([]),
-    listPublicParallelTournaments({ statuses: ["active", "complete"], limit: 24 })
+    listPublicParallelTournaments({ statuses: ["active", "complete"], limit: 12 })
   ]);
   const requestedTournamentId = typeof params.tournament === "string" ? params.tournament : null;
   const tournaments = [
@@ -164,7 +169,8 @@ export default async function VotePage({ searchParams }) {
       const rightUpdated = right.updatedAt ? new Date(right.updatedAt).getTime() : 0;
 
       return rightUpdated - leftUpdated;
-    });
+    })
+    .slice(0, 12);
   const requestedTournament =
     requestedTournamentId
       ? await getAccessibleTournamentById({
@@ -234,6 +240,8 @@ export default async function VotePage({ searchParams }) {
       <VoteScreenPanels
         activeTournaments={mergedActiveTournaments}
         completedTournaments={completedTournaments}
+        completedPage={votePage}
+        completedHasNextPage={[accessibleTournaments, publicTournaments, accessibleParallelTournaments, publicParallelTournaments].some((items) => items.length >= 12)}
         initialFocusedTournamentId={requestedTournamentId}
         initialResultsTournamentId={typeof params.results === "string" ? params.results : null}
         initialReturnTo={typeof params.returnTo === "string" ? params.returnTo : null}
@@ -242,3 +250,5 @@ export default async function VotePage({ searchParams }) {
     </div>
   );
 }
+
+

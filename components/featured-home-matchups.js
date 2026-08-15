@@ -5,39 +5,32 @@ import { useMemo } from "react";
 import { MobileSwipeRail } from "@/components/mobile-swipe-rail";
 import { ResilientRemoteImage } from "@/components/resilient-remote-image";
 
-function FeaturedHomeMatchCard({ name, imageUrl, side }) {
+function FeaturedCandidateMedia({
+  name,
+  imageUrl,
+  wrapperClassName,
+  backdropClassName,
+  glowClassName,
+  imageClassName,
+  fallbackClassName,
+  children
+}) {
   return (
-    <div className={`home-match-card home-match-card-${side}`}>
-      <div className="home-match-card-image-wrap">
-        {imageUrl ? (
-          <>
-            <ResilientRemoteImage
-              src={imageUrl}
-              alt=""
-              aria-hidden="true"
-              className="home-match-card-backdrop"
-            />
-            <div className="home-match-card-glow" />
-            <ResilientRemoteImage
-              src={imageUrl}
-              alt={name}
-              className="home-match-card-image"
-            />
-            <div className="home-match-card-name-band">
-              <p className="home-match-card-name display-face">{name}</p>
-            </div>
-          </>
-        ) : (
-          <>
-            <div className="home-match-card-fallback" />
-            <div className="home-match-card-name-band">
-              <p className="home-match-card-name display-face">{name}</p>
-            </div>
-          </>
-        )}
-      </div>
+    <div className={wrapperClassName}>
+      {imageUrl ? (
+        <>
+          <ResilientRemoteImage src={imageUrl} alt="" aria-hidden="true" className={backdropClassName} />
+          <div className={glowClassName} />
+          <ResilientRemoteImage src={imageUrl} alt={name} className={imageClassName} />
+        </>
+      ) : <div className={fallbackClassName} />}
+      {children}
     </div>
   );
+}
+
+function FeaturedHomeMatchCard({ name, imageUrl, side }) {
+  return <div className={`home-match-card home-match-card-${side}`}><FeaturedCandidateMedia name={name} imageUrl={imageUrl} wrapperClassName="home-match-card-image-wrap" backdropClassName="home-match-card-backdrop" glowClassName="home-match-card-glow" imageClassName="home-match-card-image" fallbackClassName="home-match-card-fallback"><div className="home-match-card-name-band"><p className="home-match-card-name display-face">{name}</p></div></FeaturedCandidateMedia></div>;
 }
 
 function MatchupRow({ item }) {
@@ -64,27 +57,7 @@ function MatchupRow({ item }) {
 
 function MobileFeaturedHalf({ name, imageUrl, align = "top" }) {
   return (
-    <div className="home-mobile-half">
-      {imageUrl ? (
-        <>
-          <ResilientRemoteImage
-            src={imageUrl}
-            alt=""
-            aria-hidden="true"
-            className="home-mobile-half-backdrop"
-          />
-          <div className="home-mobile-half-glow" />
-          <ResilientRemoteImage
-            src={imageUrl}
-            alt={name}
-            className={`home-mobile-half-foreground ${
-              align === "top" ? "home-mobile-half-foreground-top" : "home-mobile-half-foreground-bottom"
-            }`}
-          />
-        </>
-      ) : (
-        <div className="home-mobile-half-fallback" />
-      )}
+    <FeaturedCandidateMedia name={name} imageUrl={imageUrl} wrapperClassName="home-mobile-half" backdropClassName="home-mobile-half-backdrop" glowClassName="home-mobile-half-glow" imageClassName={`home-mobile-half-foreground ${align === "top" ? "home-mobile-half-foreground-top" : "home-mobile-half-foreground-bottom"}`} fallbackClassName="home-mobile-half-fallback">
       <div
         className={`home-mobile-half-label ${
           align === "top" ? "home-mobile-half-label-top" : "home-mobile-half-label-bottom"
@@ -92,7 +65,7 @@ function MobileFeaturedHalf({ name, imageUrl, align = "top" }) {
       >
         <p className="home-mobile-half-name display-face">{name}</p>
       </div>
-    </div>
+    </FeaturedCandidateMedia>
   );
 }
 
@@ -116,7 +89,7 @@ export function FeaturedHomeVoteSection({ items }) {
 
   if (!safeItems.length) {
     return (
-      <Link href="/vote" className="home-vote-fallback">
+      <Link href="/vote" prefetch={false} className="home-vote-fallback">
         <div className="home-vote-fallback-body">
           <p className="ui-section-kicker">Public Brackets</p>
           <p className="home-vote-fallback-title display-face">No Live Public Matchup</p>
@@ -132,9 +105,13 @@ export function FeaturedHomeVoteSection({ items }) {
         <MobileSwipeRail
           items={safeItems}
           getKey={(item) => `${item.tournamentId}:${item.matchId}`}
-          railClassName="home-mobile-swipe-rail-votes"
+          railClassName="mobile-swipe-rail-votes"
           renderItem={(item) => (
-            <>
+            <Link
+              href={item.voteHref || `/vote?tournament=${item.tournamentId}`}
+              prefetch={false}
+              className="home-mobile-vote-link"
+            >
               <div className="home-mobile-vote-header">
                 <div className="home-mobile-vote-header-row">
                   <div>
@@ -145,13 +122,8 @@ export function FeaturedHomeVoteSection({ items }) {
                   </div>
                 </div>
               </div>
-              <Link
-                href={item.voteHref || `/vote?tournament=${item.tournamentId}`}
-                className="home-mobile-vote-link"
-              >
-                <MobileMatchupCard item={item} />
-              </Link>
-            </>
+              <MobileMatchupCard item={item} />
+            </Link>
           )}
         />
       </div>
@@ -162,6 +134,7 @@ export function FeaturedHomeVoteSection({ items }) {
             <Link
               key={`${item.tournamentId}:${item.matchId}`}
               href={item.voteHref || `/vote?tournament=${item.tournamentId}`}
+              prefetch={false}
               className="home-desktop-vote-link"
             >
               <div className="home-desktop-vote-header">

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { CirclePlay, Plane, Trophy } from "lucide-react";
+import { CompactRailHeader } from "@/components/compact-rail-header";
 import { FeaturedHomePools } from "@/components/featured-home-pools";
 import { FeaturedHomeVoteSection } from "@/components/featured-home-matchups";
 import { getOptionalCurrentUser } from "@/lib/auth/current-user";
@@ -110,9 +111,10 @@ export default async function HomePage() {
 
       <div className="home-feature-grid">
         <section className="home-vote-rail">
-          <div className="home-vote-rail-header">
-            <div className="home-vote-rail-header-text">
-              <h2 className="home-vote-rail-title display-face">
+          <CompactRailHeader
+            className="home-compact-rail-header"
+            title={
+              <>
                 <span className="home-rail-title-icon" aria-hidden="true">
                   <svg viewBox="0 0 24 24" className="home-rail-title-icon-svg" fill="none">
                     <rect x="2.5" y="5.5" width="6" height="13" rx="1" />
@@ -123,9 +125,9 @@ export default async function HomePage() {
                   </svg>
                 </span>
                 Try a Quick Matchup
-              </h2>
-            </div>
-          </div>
+              </>
+            }
+          />
           <FeaturedHomeVoteSection items={combinedFeaturedMatchups} />
         </section>
 
@@ -133,9 +135,10 @@ export default async function HomePage() {
 
         <section className="home-pool-rail">
           <div className="home-pool-rail-inner">
-            <div className="home-pool-rail-header">
-              <div className="home-pool-rail-header-text">
-                <h2 className="home-pool-rail-title display-face">
+            <CompactRailHeader
+              className="home-compact-rail-header"
+              title={
+                <>
                   <span className="home-rail-title-icon" aria-hidden="true">
                     <svg viewBox="0 0 24 24" className="home-rail-title-icon-svg" fill="none">
                       <rect x="3" y="5" width="6" height="6" rx="1" />
@@ -147,12 +150,14 @@ export default async function HomePage() {
                     </svg>
                   </span>
                   Start From a Pool
-                </h2>
-              </div>
-              <Link href="/pools" className="home-pool-rail-browse ui-button ui-button-primary">
-                Browse
-              </Link>
-            </div>
+                </>
+              }
+              action={
+                <Link href="/explore/pools" className="home-pool-rail-browse ui-button ui-button-primary">
+                  Browse
+                </Link>
+              }
+            />
             <FeaturedHomePools pools={publicPools} signedIn={Boolean(user)} />
           </div>
         </section>

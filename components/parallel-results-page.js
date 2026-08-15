@@ -2,6 +2,9 @@
 
 import { useState } from "react";
 import { BracketOutcomeHeader } from "@/components/bracket-outcome-header";
+import { ResultsHistory } from "@/components/results-history";
+import { ResultsTable } from "@/components/results-table";
+import { ResultsRankingList } from "@/components/results-ranking-list";
 import { BackdropRemoteImage } from "@/components/resilient-remote-image";
 import {
   formatResultModeLabel,
@@ -132,11 +135,10 @@ function AggregateEntryDetails({
         <h3 className="results-section-title">
           {hasOpenBallots ? "Participant Scores So Far" : "Participant Scores"}
         </h3>
-        <div className="results-table-wrap results-table-wrap-compact">
-          {participantScores.length === 0 ? (
-            <p className="results-empty-copy">No completed participant ranks are available yet.</p>
-          ) : (
-            <table className="results-table results-table-compact">
+        {participantScores.length === 0 ? (
+          <p className="results-empty-copy">No completed participant ranks are available yet.</p>
+        ) : (
+          <ResultsTable compact>
               <thead>
                 <tr>
                   <th>Name</th>
@@ -151,9 +153,8 @@ function AggregateEntryDetails({
                   </tr>
                 ))}
               </tbody>
-            </table>
-          )}
-        </div>
+          </ResultsTable>
+        )}
       </section>
     </>
   );
@@ -168,8 +169,7 @@ function AggregateResultsTable({
   onToggleSort
 }) {
   return (
-    <div className="results-table-wrap">
-      <table className="results-table parallel-results-table">
+    <ResultsTable className="parallel-results-table">
         <thead>
           <tr>
             <th>
@@ -271,8 +271,7 @@ function AggregateResultsTable({
             </tr>
           ))}
         </tbody>
-      </table>
-    </div>
+    </ResultsTable>
   );
 }
 
@@ -284,17 +283,16 @@ function CandidateHistory({
 }) {
   if (!selectedParticipant) {
     return (
-      <section className="results-history">
-        <h3 className="results-section-title">Ballot History</h3>
-        <p className="results-empty-copy">No participant ballot details are visible here.</p>
-      </section>
+      <ResultsHistory
+        title="Ballot History"
+        hasItems={false}
+        emptyMessage="No participant ballot details are visible here."
+      />
     );
   }
 
   return (
-    <section className="results-history">
-      <h3 className="results-section-title">Ballot History</h3>
-      <div className="results-history-list">
+    <ResultsHistory title="Ballot History">
         <div className="results-history-card">
           <p className="results-history-round">Selected Voter</p>
           <div className="results-history-card-body">
@@ -345,8 +343,7 @@ function CandidateHistory({
             );
           })
         )}
-      </div>
-    </section>
+    </ResultsHistory>
   );
 }
 
@@ -515,39 +512,7 @@ export function ParallelResultsPage({
                 onToggleSort={handleToggleAggregateSort}
               />
             ) : (
-              <div className="results-ranking-list">
-                {displayedEntries.map((entry, index) => (
-                  <button
-                    key={entry.id}
-                    type="button"
-                    onClick={() => handleSelectEntry(entry.id)}
-                    className={`results-ranking-item ${
-                      selectedEntry?.id === entry.id
-                        ? "results-ranking-item-active"
-                        : "results-ranking-item-idle"
-                    }`}
-                  >
-                    <span className="results-ranking-rank">
-                      {selectedParticipant?.candidateRanks[entry.candidateId]?.finalRank ?? index + 1}
-                    </span>
-                    {entry.candidateImageUrl ? (
-                      <BackdropRemoteImage
-                        src={entry.candidateImageUrl}
-                        alt={entry.candidateName}
-                        className="results-ranking-image"
-                        imageClassName="object-cover object-center"
-                        undersizedImageClassName="object-contain p-1.5"
-                        minimumSourceWidth={72}
-                        minimumSourceHeight={72}
-                      />
-                    ) : null}
-                    <div className="results-ranking-copy">
-                      <p className="results-ranking-name">{entry.candidateName}</p>
-                      <p className="results-ranking-seed">Seed {entry.seed}</p>
-                    </div>
-                  </button>
-                ))}
-              </div>
+              <ResultsRankingList entries={displayedEntries} selectedEntryId={selectedEntry?.id} onSelectEntry={handleSelectEntry} getRank={(entry, index) => selectedParticipant?.candidateRanks[entry.candidateId]?.finalRank ?? index + 1} getSeedLabel={(entry) => `Seed ${entry.seed}`} />
             )}
           </section>
 

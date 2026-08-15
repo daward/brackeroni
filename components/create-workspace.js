@@ -70,7 +70,7 @@ export function CreateWorkspace() {
   useEffect(() => {
     startTransition(async () => {
       try {
-        await loadWorkspace();
+        await loadWorkspace({ force: true });
       } catch (error) {
         setErrorMessage(error.message);
       }
@@ -99,7 +99,7 @@ export function CreateWorkspace() {
       [poolId]: emptyCandidateForm
     }));
     setSuccessMessage("Candidate created inside pool.");
-    await loadWorkspace();
+    await loadWorkspace({ force: true });
   }
 
   async function handlePoolSubmit(event) {
@@ -119,7 +119,7 @@ export function CreateWorkspace() {
 
     setPoolForm(emptyPoolForm);
     setSuccessMessage("Pool created.");
-    await loadWorkspace();
+    await loadWorkspace({ force: true });
   }
 
   async function handleTournamentSubmit(event) {
@@ -139,7 +139,7 @@ export function CreateWorkspace() {
 
     setTournamentForm(emptyTournamentForm);
     setSuccessMessage("Draft tournament created.");
-    await loadWorkspace();
+    await loadWorkspace({ force: true });
   }
 
   async function handleStartTournament(tournamentId) {
@@ -154,7 +154,7 @@ export function CreateWorkspace() {
     }
 
     setSuccessMessage("Tournament started.");
-    await loadWorkspace();
+    await loadWorkspace({ force: true });
   }
 
   async function handleArchiveTournament(tournamentId, title) {
@@ -177,7 +177,7 @@ export function CreateWorkspace() {
     }
 
     setSuccessMessage("Tournament archived.");
-    await loadWorkspace();
+    await loadWorkspace({ force: true });
   }
 
   async function handleCloseCurrentRound(tournamentId) {
@@ -192,7 +192,7 @@ export function CreateWorkspace() {
     }
 
     setSuccessMessage("Round closed and bracket advanced.");
-    await loadWorkspace();
+    await loadWorkspace({ force: true });
   }
 
   return (

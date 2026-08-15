@@ -8,8 +8,16 @@ import { AuthControls } from "@/components/auth-controls";
 const baseLinks = [
   { href: "/", label: "Home" },
   { href: "/vote", label: "Vote" },
-  { href: "/create", label: "Create" }
+  { href: "/brackets", label: "Create" }
 ];
+
+function isActiveNavigationLink(pathname, href) {
+  if (href === "/brackets") {
+    return pathname.startsWith("/brackets") || pathname.startsWith("/pools");
+  }
+
+  return pathname === href;
+}
 
 export function MainNav({ user, googleConfigured, isDevShimActive, isAdmin = false }) {
   const pathname = usePathname();
@@ -57,7 +65,7 @@ export function MainNav({ user, googleConfigured, isDevShimActive, isAdmin = fal
         <div className="hidden flex-wrap items-center gap-2 md:flex md:justify-end">
           <nav className="flex flex-wrap gap-2">
             {links.map((link) => {
-              const isActive = pathname === link.href;
+              const isActive = isActiveNavigationLink(pathname, link.href);
 
               if (isActive) {
                 return (
@@ -75,6 +83,7 @@ export function MainNav({ user, googleConfigured, isDevShimActive, isAdmin = fal
                 <Link
                   key={link.href}
                   href={link.href}
+                  prefetch={false}
                   className="main-nav-control main-nav-link display-face px-4 py-3 text-sm font-bold uppercase tracking-[0.18em]"
                 >
                   {link.label}
@@ -109,12 +118,13 @@ export function MainNav({ user, googleConfigured, isDevShimActive, isAdmin = fal
         >
           <nav className="grid gap-2" aria-label="Mobile navigation">
             {links.map((link) => {
-              const isActive = pathname === link.href;
+              const isActive = isActiveNavigationLink(pathname, link.href);
 
               return (
                 <Link
                   key={link.href}
                   href={link.href}
+                  prefetch={false}
                   onClick={() => setIsMobileMenuOpen(false)}
                   aria-current={isActive ? "page" : undefined}
                   className={

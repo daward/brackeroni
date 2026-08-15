@@ -6,6 +6,7 @@ import {
   getTournamentById,
   updateTournament
 } from "@/lib/data/tournaments";
+import { applyTournamentLifecyclePatch } from "@/lib/services/tournament-lifecycle";
 import { json, publicCacheControl, readJson, withCacheHeaders, withRouteErrorHandling } from "@/lib/api/http";
 import { tournamentUpdateSchema } from "@/lib/validation/tournament";
 
@@ -36,11 +37,11 @@ export const PATCH = withRouteErrorHandling(async function PATCH(request, { para
   const user = await getCurrentUser(request);
   const { tournamentId } = await params;
   const patch = tournamentUpdateSchema.parse(await readJson(request));
-  const tournament = await updateTournament({
-    tournamentId,
-    creatorUserId: user.id,
-    patch
-  });
+  const hasLifecycleAction = patch.closeCurrentRound === true || patch.openNextRound === true;
+  const tournament = hasLifecycleAction
+    ? await applyTournamentLifecyclePatch({ tournamentId, creatorUserId: user.id, patch })
+        .then(() => getTournamentById({ tournamentId, creatorUserId: user.id }))
+    : await updateTournament({ tournamentId, creatorUserId: user.id, patch });
 
   return json({
     item: tournament,

@@ -1,5 +1,7 @@
 "use client";
 
+import { ContentCard } from "@/components/content-card";
+
 export function TournamentManagementCard({
   tournament,
   cardRef,
@@ -13,7 +15,7 @@ export function TournamentManagementCard({
   const isComplete = tournament.status === "complete";
 
   return (
-    <div
+    <ContentCard
       ref={cardRef}
       className={`${
         isComplete
@@ -52,6 +54,6 @@ export function TournamentManagementCard({
         </div>
       </div>
       {children}
-    </div>
+    </ContentCard>
   );
 }
