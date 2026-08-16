@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { SwaggerUiShell } from "@/components/swagger-ui-shell";
+import { SwaggerUiShell } from "@/components/docs/swagger-ui-shell";
 import { getOptionalCurrentUser } from "@/lib/auth/current-user";
 import { isGoogleAuthConfigured } from "@/lib/auth/options";
 

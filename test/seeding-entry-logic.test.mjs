@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { __seedingTestUtils } from "../components/use-seeding-actions.js";
+import { __seedingTestUtils } from "../components/brackets/configuration/use-seeding-actions.js";
 
 function entry(id, seed) {
   return {

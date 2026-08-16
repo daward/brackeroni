@@ -1,4 +1,4 @@
-import { AdminDashboard } from "@/components/admin-dashboard";
+import { AdminDashboard } from "@/components/admin/admin-dashboard";
 import { requireAdminPage } from "@/lib/auth/admin";
 import { listAdminPools, listAdminTournaments } from "@/lib/data/admin";
 

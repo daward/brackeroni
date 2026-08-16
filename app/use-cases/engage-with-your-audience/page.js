@@ -1,5 +1,5 @@
 import { headers } from "next/headers";
-import { UseCasePage } from "@/components/use-case-page";
+import { UseCasePage } from "@/components/use-cases/use-case-page";
 import { resolvePreferredOrigin } from "@/lib/app-origin";
 
 export const metadata = {

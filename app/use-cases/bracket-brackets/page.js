@@ -1,4 +1,4 @@
-import { UseCasePage } from "@/components/use-case-page";
+import { UseCasePage } from "@/components/use-cases/use-case-page";
 
 export const metadata = {
   title: "Bracket Brackets",

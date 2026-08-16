@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { PublicPoolCard } from "@/components/public-pool-card";
+import { PublicPoolCard } from "@/components/pools/shared/public-pool-card";
 import { getOptionalCurrentUser } from "@/lib/auth/current-user";
 import { listPublicPools } from "@/lib/data/pools";
 

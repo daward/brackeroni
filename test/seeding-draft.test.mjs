@@ -7,7 +7,7 @@ import {
   buildSeedingGroups,
   normalizeSeedingStructure,
   updateSubBracketName
-} from "../components/seeding-draft.js";
+} from "../components/brackets/configuration/seeding-draft.js";
 
 function entry(id, seed) {
   return {

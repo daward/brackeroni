@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { ShareLinkWaitingRoom } from "@/components/share-link-waiting-room";
+import { ShareLinkWaitingRoom } from "@/components/sharing/share-link-waiting-room";
 import { getCurrentUser, requireCurrentUserPage } from "@/lib/auth/current-user";
 import { getShareLinkTarget } from "@/lib/data/share-links";
 

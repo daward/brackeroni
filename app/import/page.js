@@ -1,4 +1,4 @@
-import { ImportPoolReview } from "@/components/import-pool-review";
+import { ImportPoolReview } from "@/components/import/import-pool-review";
 import { requireCurrentUserPage } from "@/lib/auth/current-user";
 
 export const metadata = {

@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { PublicPoolCandidates } from "@/components/public-pool-candidates";
-import { CreatePanels } from "@/components/create-panels";
+import { PublicPoolCandidates } from "@/components/pools/shared/public-pool-candidates";
+import { PoolDetailWorkspace } from "@/components/pools/detail/pool-detail-workspace";
 import { getOptionalCurrentUser } from "@/lib/auth/current-user";
 import { getPoolById } from "@/lib/data/pools";
 
@@ -29,7 +29,7 @@ export default async function PublicPoolPage({ params }) {
   });
 
   if (user && pool.isOwned) {
-    return <CreatePanels workspaceView="pools" initialPoolId={pool.id} initialPool={pool} />;
+    return <PoolDetailWorkspace initialPool={pool} />;
   }
 
   return (

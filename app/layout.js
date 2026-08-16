@@ -1,5 +1,5 @@
 import "./globals.css";
-import { MainNav } from "@/components/main-nav";
+import { MainNav } from "@/components/navigation/main-nav";
 import { getOptionalCurrentUser } from "@/lib/auth/current-user";
 import { isAdminUser } from "@/lib/auth/admin";
 import { isGoogleAuthConfigured } from "@/lib/auth/options";

@@ -14,7 +14,7 @@ import {
   listAccessibleTournaments,
   listPublicTournaments
 } from "@/lib/data/tournaments";
-import { VoteScreenPanels } from "@/components/vote-screen-panels";
+import { VoteScreenPanels } from "@/components/voting/vote-screen-panels";
 
 export const metadata = {
   title: "Vote | Brackeroni"

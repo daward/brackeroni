@@ -1,4 +1,4 @@
-import { CreatePanels } from "@/components/create-panels";
+import { CreatePanels } from "@/components/workspace/create-panels";
 import { requireCurrentUserPage } from "@/lib/auth/current-user";
 
 export const metadata = { title: "Brackets | Brackeroni" };
