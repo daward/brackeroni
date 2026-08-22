@@ -35,11 +35,6 @@
     display: none;
   }
 
-  .public-pool-card-content {
-    grid-template-columns: minmax(0, 1fr) 15rem;
-    align-items: start;
-  }
-
   .vote-match-modal-header {
     padding: 1rem 1.25rem 0.95rem;
   }

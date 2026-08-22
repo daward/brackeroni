@@ -1,4 +1,4 @@
-import { BackdropRemoteImage } from "@/components/shared/resilient-remote-image";
+import { BackdropRemoteImage } from "@/components/shared";
 
 export function ResultsRankingList({ entries, selectedEntryId, onSelectEntry, getRank, getSeedLabel }) {
   return (

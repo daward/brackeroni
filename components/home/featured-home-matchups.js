@@ -2,8 +2,7 @@
 
 import Link from "next/link";
 import { useMemo } from "react";
-import { MobileSwipeRail } from "@/components/shared/mobile-swipe-rail";
-import { ResilientRemoteImage } from "@/components/shared/resilient-remote-image";
+import { MobileSwipeRail, ResilientRemoteImage } from "@/components/shared";
 
 function FeaturedCandidateMedia({
   name,

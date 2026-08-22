@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo } from "react";
-import { MobileSwipeRail } from "@/components/shared/mobile-swipe-rail";
-import { PublicPoolCard } from "@/components/pools/shared/public-pool-card";
+import { MobileSwipeRail } from "@/components/shared";
+import { PublicPoolCard } from "@/components/pools/shared";
 
 export function FeaturedHomePools({ pools, signedIn = false }) {
   const safePools = useMemo(() => pools ?? [], [pools]);

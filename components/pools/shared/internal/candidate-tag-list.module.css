@@ -1,0 +1,13 @@
+.list { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+
+.tag {
+  border: 1px solid var(--line);
+  background: var(--panel-3);
+  padding: 0.25rem 0.5rem;
+  color: var(--accent-3);
+  font-size: 0.625rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.remaining { color: var(--muted); }

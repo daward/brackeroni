@@ -1,0 +1,33 @@
+.sections {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.section {
+  border: 1px solid var(--line);
+  background: var(--panel-3);
+  padding: 1rem;
+}
+
+.sectionHeading {
+  color: var(--accent-3);
+}
+
+.tagChoices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.filterButtonActive {
+  border-color: var(--accent-2);
+  background: var(--accent-2);
+  color: #111;
+}
+
+.filterButtonSelected {
+  border-color: var(--accent-3);
+  background: var(--panel-2);
+  color: var(--accent-3);
+}

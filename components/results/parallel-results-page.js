@@ -5,7 +5,7 @@ import { BracketOutcomeHeader } from "@/components/results/shared/bracket-outcom
 import { ResultsHistory } from "@/components/results/results-history";
 import { ResultsTable } from "@/components/results/results-table";
 import { ResultsRankingList } from "@/components/results/results-ranking-list";
-import { BackdropRemoteImage } from "@/components/shared/resilient-remote-image";
+import { BackdropRemoteImage } from "@/components/shared";
 import {
   formatResultModeLabel,
   usesOpenEndedRankingMode

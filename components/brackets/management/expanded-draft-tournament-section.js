@@ -4,12 +4,12 @@ import {
   BracketStyleField,
   ResultModeField
 } from "@/components/brackets/configuration/bracket-config-fields";
-import { CandidateManagerPanel } from "@/components/pools/candidates/candidate-manager-panel";
+import { CandidateManagerPanel } from "@/components/pools/candidates";
 import {
   formatBracketRuleLabel,
   getTournamentAudienceMode,
   getTournamentAudiencePatch
-} from "@/components/brackets/shared/bracket-presentation";
+} from "@/lib/brackets/presentation";
 import { isParallelResultMode } from "@/lib/bracket-modes";
 
 function PoolMenu({
@@ -464,38 +464,11 @@ export function ExpandedDraftTournamentSection({
         </div>
         {isManagingEntrants && hasSourcePool ? (
           <CandidateManagerPanel
-            poolId={bracketDraft.sourcePoolId}
-            candidateDraft={candidateDraft}
-            isCandidateEditorOpen={isCandidateEditorOpen}
-            isEditingCandidate={isEditingCandidate}
-            readOnly={isPublishedTournament}
-            candidates={linkedPoolCandidates}
-            imageSuggestions={imageSuggestions}
-            imageSuggestionLoading={imageSuggestionLoading}
-            onDraftChange={(field, value) => updateCandidateDraft(bracketDraft.sourcePoolId, field, value)}
-            onCreateCandidate={() => openCandidateCreator(bracketDraft.sourcePoolId)}
-            onImportCandidates={() =>
-              handleImportCandidatesIntoPool({
-                id: bracketDraft.sourcePoolId,
-                name: linkedPool?.name || "Selected Pool"
-              })
-            }
-            onSubmit={() =>
-              isEditingCandidate
-                ? handleCandidateEditSubmit(bracketDraft.sourcePoolId)
-                : handleCreateCandidateInPool(bracketDraft.sourcePoolId)
-            }
-            onCloseEditor={() => closeCandidateEditor(bracketDraft.sourcePoolId)}
-            onSuggestImages={() => handleSuggestImages(bracketDraft.sourcePoolId)}
-            onClearImage={() => selectSuggestedImage(bracketDraft.sourcePoolId, "")}
-            onSelectSuggestedImage={(imageUrl) => selectSuggestedImage(bracketDraft.sourcePoolId, imageUrl)}
-            onEditCandidate={(candidate) => openCandidateEditor(bracketDraft.sourcePoolId, candidate)}
-            onRemoveCandidate={(candidate) => handleRemoveCandidateFromPool(bracketDraft.sourcePoolId, candidate)}
-            isCreatePending={isActionPending(`create-candidate:${bracketDraft.sourcePoolId}`)}
-            isSavePending={isActionPending(`save-candidate:${bracketDraft.sourcePoolId}`)}
-            removingCandidateId={removingCandidateId}
-            listHeading="In This Bracket"
-            listEmptyMessage="No entrants in this bracket yet."
+            collection={{ candidates: linkedPoolCandidates, hasNextPage: false, isLoadingMore: false, loadMore: null }}
+            editor={{ isOpen: isCandidateEditorOpen, isEditing: isEditingCandidate, draft: candidateDraft, imageSuggestions, imageSuggestionLoading, isCreatePending: isActionPending(`create-candidate:${bracketDraft.sourcePoolId}`), isSavePending: isActionPending(`save-candidate:${bracketDraft.sourcePoolId}`), onDraftChange: (field, value) => updateCandidateDraft(bracketDraft.sourcePoolId, field, value), onSubmit: () => isEditingCandidate ? handleCandidateEditSubmit(bracketDraft.sourcePoolId) : handleCreateCandidateInPool(bracketDraft.sourcePoolId), onClose: () => closeCandidateEditor(bracketDraft.sourcePoolId), onSuggestImages: () => handleSuggestImages(bracketDraft.sourcePoolId), onClearImage: () => selectSuggestedImage(bracketDraft.sourcePoolId, ""), onSelectSuggestedImage: (imageUrl) => selectSuggestedImage(bracketDraft.sourcePoolId, imageUrl) }}
+            actions={{ onCreate: () => openCandidateCreator(bracketDraft.sourcePoolId), onImport: () => handleImportCandidatesIntoPool({ id: bracketDraft.sourcePoolId, name: linkedPool?.name || "Selected Pool" }), onEdit: (candidate) => openCandidateEditor(bracketDraft.sourcePoolId, candidate), onRemove: (candidate) => handleRemoveCandidateFromPool(bracketDraft.sourcePoolId, candidate), removingCandidateId }}
+            tagManagement={{ showControl: false }}
+            view={{ readOnly: isPublishedTournament, listHeading: "In This Bracket", listEmptyMessage: "No entrants in this bracket yet." }}
           />
         ) : null}
       </div>

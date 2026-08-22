@@ -2,18 +2,16 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CompletedBracketCard } from "@/components/brackets/shared/completed-bracket-card";
+import { CompletedBracketCard } from "@/components/brackets/shared";
 import { ExpandedDraftTournamentSection } from "@/components/brackets/management/expanded-draft-tournament-section";
-import { CreateCard } from "@/components/shared/create-card";
+import { CreateCard } from "@/components/shared";
 import {
   canCopyBracketLink,
   describeTournamentAudienceMode,
   formatBracketDate,
   formatBracketRuleLabel
-} from "@/components/brackets/shared/bracket-presentation";
-import { InlineTitleField } from "@/components/shared/inline-title-field";
-import { SectionCard } from "@/components/shared/section-card";
-import { InfiniteScrollControl } from "@/components/shared/infinite-scroll-control";
+} from "@/lib/brackets/presentation";
+import { InfiniteScrollControl, InlineTitleField } from "@/components/shared";
 import { TournamentMetaRow } from "@/components/brackets/management/tournament-management";
 import { TournamentManagementCard } from "@/components/brackets/management/tournament-management-card";
 import {
@@ -187,6 +185,7 @@ function LiveBracketPicker({
 export function TournamentWorkspaceSection({
   tournaments,
   tournamentStageView,
+  loadedTournamentStage,
   tournamentPage,
   tournamentPagination,
   tournamentStatusCounts,
@@ -751,6 +750,8 @@ export function TournamentWorkspaceSection({
     );
   }
 
+  const isStageLoading = loadedTournamentStage !== tournamentStageView;
+
   function renderStageContent() {
     if (tournamentStageView === "active") {
       return renderLiveWorkspace();
@@ -961,9 +962,16 @@ export function TournamentWorkspaceSection({
         })}
 
       </div>
-      <SectionCard className="results-shell border-0 bg-transparent">
-        <div className="space-y-0">{renderStageContent()}</div>
-      </SectionCard>
+      <section aria-busy={isStageLoading}>
+        {isStageLoading ? (
+          <div className="workspace-stage-loading" role="status">
+            <span aria-hidden="true" className="workspace-stage-loading-spinner" />
+            <span>Loading {tournamentStageView === "active" ? "live" : tournamentStageView} brackets…</span>
+          </div>
+        ) : (
+          <div className="space-y-0">{renderStageContent()}</div>
+        )}
+      </section>
       {canLoadMore ? (
         <InfiniteScrollControl
           enabled={canLoadMore}
@@ -973,6 +981,11 @@ export function TournamentWorkspaceSection({
           className="h-px"
           loadingLabel="Loading more brackets"
         />
+      ) : null}
+      {isStageLoading ? (
+        <p role="status" className="hidden">
+          Loading {tournamentStageView === "active" ? "live" : tournamentStageView} brackets…
+        </p>
       ) : null}
       {tournamentStageView === "draft" ? (
         <button

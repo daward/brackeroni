@@ -1,6 +1,6 @@
 "use client";
 
-import { buildPoolImportPrompt } from "@/components/pools/shared/pool-presentation";
+import { buildPoolImportPrompt } from "@/lib/pools/import-prompt";
 import {
   archivePool,
   createPool,

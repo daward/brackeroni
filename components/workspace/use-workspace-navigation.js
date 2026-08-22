@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 import { normalizePoolNavigationTarget } from "@/lib/create-workspace/pool-navigation";
 
-export function useWorkspaceNavigation({ router, setTournamentPage, setTournamentStageViewState }) {
+export function useWorkspaceNavigation({ router, setTournamentPage, setTournamentStageViewState, showCachedTournamentStage }) {
   const setWorkspaceView = useCallback((nextView) => {
     router.push(nextView === "pools" ? "/pools" : "/brackets");
   }, [router]);
@@ -25,6 +25,7 @@ export function useWorkspaceNavigation({ router, setTournamentPage, setTournamen
   }, [router]);
 
   const setTournamentStageView = useCallback((nextStage, { history = "replace" } = {}) => {
+    showCachedTournamentStage?.(nextStage);
     setTournamentStageViewState(nextStage);
     setTournamentPage(1);
     const href = `/brackets?stage=${encodeURIComponent(nextStage)}`;
@@ -35,7 +36,7 @@ export function useWorkspaceNavigation({ router, setTournamentPage, setTournamen
     }
 
     router.replace(href);
-  }, [router, setTournamentPage, setTournamentStageViewState]);
+  }, [router, setTournamentPage, setTournamentStageViewState, showCachedTournamentStage]);
 
   return { openPool, setTournamentStageView, setWorkspaceView };
 }

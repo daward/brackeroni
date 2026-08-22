@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { PublicPoolCard } from "@/components/pools/shared/public-pool-card";
+import { PublicPoolCard } from "@/components/pools/shared";
 import { getOptionalCurrentUser } from "@/lib/auth/current-user";
 import { listPublicPools } from "@/lib/data/pools";
 
@@ -74,7 +74,13 @@ export default async function PublicPoolsPage({ searchParams }) {
             <div className="public-pool-browse-list">
               {pools.map((pool) => (
                 <div key={pool.id} className="public-pool-browse-list-item">
-                  <PublicPoolCard pool={pool} href={`/pools/${pool.id}`} favoriteMode="inline" signedIn={Boolean(user)} />
+                  <PublicPoolCard
+                    pool={pool}
+                    href={`/pools/${pool.id}`}
+                    favoriteMode="inline"
+                    signedIn={Boolean(user)}
+                    fillContainer
+                  />
                 </div>
               ))}
             </div>

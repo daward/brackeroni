@@ -1,0 +1,8 @@
+.panel {
+  margin-top: 1.5rem;
+}
+
+.panelWithRule {
+  border-top: 1px solid var(--line);
+  padding-top: 1.25rem;
+}

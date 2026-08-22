@@ -1,5 +1,5 @@
 import { BookmarkletInstaller } from "@/components/import/bookmarklet-installer";
-import { SectionCard } from "@/components/shared/section-card";
+import { SectionCard } from "@/components/shared";
 import { requireCurrentUserPage } from "@/lib/auth/current-user";
 import { resolvePreferredOrigin } from "@/lib/app-origin";
 import { headers } from "next/headers";

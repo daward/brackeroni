@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { SectionCard } from "@/components/shared/section-card";
+import { SectionCard } from "@/components/shared";
 import {
   deleteArchivedAdminPool,
   deleteArchivedAdminTournament,

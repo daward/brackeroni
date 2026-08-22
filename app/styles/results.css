@@ -305,6 +305,105 @@
   display: none;
 }
 
+.progress-round-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 2rem;
+}
+
+.progress-round-rail {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding-inline: 1rem;
+}
+
+.progress-round-rail-link {
+  min-width: max-content;
+  flex-shrink: 0;
+  border: 1px solid var(--line);
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  transition: border-color 150ms ease, color 150ms ease, background-color 150ms ease;
+}
+
+.progress-round-rail-link:hover,
+.progress-round-rail-link:focus-visible {
+  border-color: var(--accent-2);
+  color: var(--accent-2);
+}
+
+.progress-round-rail-link[aria-current="true"] {
+  border-color: var(--accent-3);
+  background: rgba(52, 211, 196, 0.08);
+  color: var(--ink);
+}
+
+.progress-round-rail-title {
+  display: block;
+  font-family: "Arial Narrow", Arial, Helvetica, sans-serif;
+  font-size: 1rem;
+  font-weight: 900;
+  line-height: 1.1;
+}
+
+.progress-round-rail-status {
+  display: block;
+  margin-top: 0.25rem;
+  color: var(--muted);
+  font-size: 0.625rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.progress-round-card {
+  scroll-margin-top: 5rem;
+  border-block: 1px solid var(--line);
+  background: transparent;
+  padding-block: 1.5rem;
+}
+
+.progress-round-stat-rail {
+  margin-top: 1.5rem;
+}
+
+.progress-round-stat-grid {
+  display: none;
+  margin-top: 1.5rem;
+  column-gap: 2rem;
+  row-gap: 0.5rem;
+}
+
+.progress-round-results {
+  margin-top: 1.25rem;
+}
+
+.progress-result-row {
+  display: grid;
+  grid-template-columns: 4.5rem minmax(0, 1fr);
+  gap: 1rem;
+  border-top: 1px solid var(--line);
+  padding-block: 1rem;
+}
+
+@media (min-width: 768px) {
+  .progress-round-stat-rail { display: none; }
+  .progress-round-stat-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (min-width: 1280px) {
+  .progress-round-stat-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+@media (min-width: 1024px) {
+  .progress-round-card { scroll-margin-top: 1.5rem; }
+  .progress-round-layout { grid-template-columns: minmax(15rem, 17rem) minmax(0, 1fr); align-items: start; }
+  .progress-round-rail { flex-direction: column; overflow: visible; padding-inline: 0; }
+  .progress-round-rail-link { min-width: 0; }
+  .progress-round-rail-title { font-size: 1.125rem; }
+  .progress-round-rail-status { font-size: 0.6875rem; letter-spacing: 0.16em; }
+}
+
 .results-table.results-scoring-table thead th {
   font-size: 0.95rem;
   letter-spacing: 0.12em;

@@ -5,7 +5,7 @@ import { useState } from "react";
 import { BracketOutcomeHeader } from "@/components/results/shared/bracket-outcome-header";
 import { ResultsHistory } from "@/components/results/results-history";
 import { ResultsRankingList } from "@/components/results/results-ranking-list";
-import { BackdropRemoteImage } from "@/components/shared/resilient-remote-image";
+import { BackdropRemoteImage } from "@/components/shared";
 import {
   formatResultModeLabel,
   usesOpenEndedRankingMode,
@@ -372,7 +372,11 @@ export function TournamentResultsPage({
 
         <div className="results-grid">
           <section className="results-ranking-rail">
-            <h2 className="results-section-title">Final Ranking</h2>
+            <h2 className="results-section-title">
+              {usesOpenEndedRankingMode(tournament.resultMode) && tournament.status !== "complete"
+                ? "Ranking Progress"
+                : "Final Ranking"}
+            </h2>
             <ResultsRankingList entries={orderedEntries} selectedEntryId={selectedEntry?.id} onSelectEntry={handleSelectEntry} getRank={(entry, index) => getDisplayRank(entry, orderedEntries, index)} getSeedLabel={(entry) => formatSeedLabel(seedDisplayByEntryId, entry.id, entry.seed)} />
           </section>
 

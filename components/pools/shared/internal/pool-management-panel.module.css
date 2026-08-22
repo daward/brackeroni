@@ -1,0 +1,201 @@
+.panel { border-top: 1px solid var(--line-strong); }
+.panelWithoutRule { border-top: 0; }
+
+.layout {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.5rem;
+}
+
+.main { min-width: 0; flex: 1; }
+
+.candidateCount {
+  margin-top: 0.5rem;
+  color: var(--accent-3);
+  font-size: 0.875rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.visibilitySummary {
+  margin-top: 0.25rem;
+  color: var(--muted);
+  font-size: 0.75rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.compactDetails {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  column-gap: 1.5rem;
+  row-gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.compactDetailsWithRule {
+  border-top: 1px solid var(--line);
+  padding-top: 0.75rem;
+}
+
+.detailsContent { min-width: 0; flex: 1; }
+
+.compactDescriptionInput,
+.descriptionInput {
+  display: block;
+  width: 100%;
+  color: var(--ink);
+  font-size: 0.875rem;
+  line-height: 1.5rem;
+  outline: none;
+}
+
+.compactDescriptionInput {
+  border: 1px solid var(--accent-3);
+  background: transparent;
+  padding: 0.5rem 0.75rem;
+}
+
+.descriptionInput {
+  margin-top: 0.75rem;
+  border: 1px solid var(--line);
+  background: var(--panel-2);
+  padding: 0.75rem;
+}
+
+.compactDescriptionInput::placeholder,
+.descriptionInput::placeholder { color: var(--muted); }
+.descriptionInput:focus { border-color: var(--accent-3); }
+
+.descriptionButton {
+  display: block;
+  max-width: 48rem;
+  color: var(--muted);
+  font-size: 0.875rem;
+  line-height: 1.5rem;
+  text-align: left;
+  transition: color 150ms ease;
+}
+
+.descriptionButton:hover { color: var(--accent-3); }
+.descriptionButtonFilled:hover { color: var(--ink); }
+.descriptionButton:disabled { cursor: default; }
+
+.actionBar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.actionRail {
+  display: flex;
+  width: 9rem;
+  flex-shrink: 0;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.5rem;
+}
+
+.visibilityPicker {
+  position: relative;
+  max-width: 24rem;
+  margin-top: 0.75rem;
+}
+.visibilityPickerCompact { margin-top: 0; }
+
+.visibilityTrigger {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  border: 1px solid var(--line);
+  background: transparent;
+  padding: 0.75rem;
+  color: var(--ink);
+  font-size: 0.875rem;
+  text-align: left;
+  outline: none;
+  transition: color 150ms ease, border-color 150ms ease;
+}
+
+.visibilityTrigger:hover,
+.visibilityTrigger:focus-visible {
+  border-color: var(--accent-3);
+  color: var(--accent-3);
+}
+
+.visibilityTriggerCompact {
+  width: auto;
+  gap: 0.25rem;
+  border: 0;
+  padding: 0;
+  color: var(--muted);
+  font-size: 0.6875rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.visibilityIcon {
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  transition: transform 150ms ease;
+}
+
+.visibilityIconOpen { transform: rotate(180deg); }
+
+.visibilityOptions {
+  position: absolute;
+  z-index: 30;
+  width: 100%;
+  margin-top: 0.5rem;
+  border: 1px solid var(--line-strong);
+  background: var(--panel);
+  padding: 0.25rem;
+  box-shadow: 0 16px 30px rgb(0 0 0 / 35%);
+}
+
+.visibilityOptionsCompact { right: 0; width: 16rem; }
+
+.visibilityOption {
+  display: block;
+  width: 100%;
+  padding: 0.625rem 0.75rem;
+  color: var(--ink);
+  text-align: left;
+  transition: background-color 150ms ease, color 150ms ease;
+}
+
+.visibilityOption:hover { background: rgb(255 255 255 / 4%); }
+
+.visibilityOptionSelected {
+  background: rgb(52 211 196 / 9%);
+  color: var(--accent-3);
+}
+
+.visibilityOptionLabel {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 900;
+}
+
+.visibilityOptionDescription {
+  display: block;
+  margin-top: 0.25rem;
+  color: var(--muted);
+  font-size: 0.75rem;
+  line-height: 1.25rem;
+}
+
+@media (max-width: 640px) {
+  .layout { gap: 1rem; }
+  .actionRail { width: auto; }
+}

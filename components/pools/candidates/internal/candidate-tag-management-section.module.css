@@ -1,0 +1,73 @@
+.section {
+  border: 1px solid var(--line);
+  background: var(--panel-3);
+  padding: 1rem;
+}
+
+.dangerHeading,
+.individualHeading {
+  color: var(--accent);
+}
+
+.thresholdControl {
+  display: flex;
+  align-items: end;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  padding: 0.75rem;
+}
+
+.thresholdLabel {
+  flex: 1;
+}
+
+.thresholdLabel span {
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.deleteButton:hover,
+.deleteButton:focus-visible {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.individualHeading {
+  margin-top: 1.25rem;
+}
+
+.tagRows {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.tagRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  padding: 0.75rem;
+}
+
+.tagInformation {
+  min-width: 0;
+}
+
+.tagName {
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 0.875rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tagCount {
+  margin-top: 0.25rem;
+  color: var(--muted);
+  font-size: 0.6875rem;
+}

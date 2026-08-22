@@ -2,14 +2,11 @@
 
 import { useState } from "react";
 
-import { CandidateManagerPanel } from "@/components/pools/candidates/candidate-manager-panel";
-import { PoolManagementPanel, PoolVisibilityPicker } from "@/components/pools/shared/pool-management-panel";
-import { PoolSourceInfo } from "@/components/pools/shared/pool-source-info";
-import { getPoolTitlePresentation } from "@/components/pools/shared/pool-header-state";
-import { describePoolVisibility } from "@/components/pools/shared/pool-presentation";
-import { InlineTitleField } from "@/components/shared/inline-title-field";
-import { useInfiniteScroll } from "@/components/shared/use-infinite-scroll";
-import { CreateCard } from "@/components/shared/create-card";
+import { PaginatedCandidateManagerPanel } from "@/components/pools/candidates";
+import { PoolManagementPanel, PoolSourceInfo, PoolVisibilityPicker } from "@/components/pools/shared";
+import { getPoolTitlePresentation } from "@/lib/pools/title-presentation";
+import { describePoolVisibility } from "@/lib/pools/visibility";
+import { CreateCard, InlineTitleField, useInfiniteScroll } from "@/components/shared";
 
 export function PoolWorkspaceSection({
   pools,
@@ -198,58 +195,16 @@ export function PoolWorkspaceSection({
                         pool={pool}
                         draft={inlinePoolDraft}
                         readOnly={poolIsReadOnly}
-                        showTitle={false}
-                        showSummary={false}
-                        compactDetails
-                        showVisibility={false}
+                        presentation={{ title: { show: false }, summary: { show: false, visibility: false }, details: { compact: true } }}
                         onDraftChange={(patch) => onPatchPoolDraft(pool.id, patch)}
                         onDraftCommit={(draft) => onCommitPoolDraft(pool.id, draft)}
                     >
-                      <CandidateManagerPanel
-                        poolId={pool.id}
-                        candidateDraft={candidateDraft}
-                        isCandidateEditorOpen={isCandidateEditorOpen}
-                        isEditingCandidate={isEditingPoolCandidate}
-                        candidates={previewCandidates}
-                        candidatePagination={poolDetails[pool.id]?.candidatePagination}
-                        readOnly={poolIsReadOnly}
-                        imageSuggestions={imageSuggestions[pool.id] || []}
-                        imageSuggestionLoading={Boolean(imageSuggestionLoading[pool.id])}
-                        onDraftChange={(field, value) => updateCandidateDraft(pool.id, field, value)}
-                        onCreateCandidate={() => openCandidateCreator(pool.id)}
-                        onImportCandidates={() => handleImportCandidatesIntoPool(pool)}
-                        onSubmit={() =>
-                          isEditingPoolCandidate
-                            ? handleCandidateEditSubmit(pool.id)
-                            : handleCreateCandidateInPool(pool.id)
-                        }
-                        onCloseEditor={() => closeCandidateEditor(pool.id)}
-                        onSuggestImages={() => handleSuggestImages(pool.id)}
-                        onClearImage={() => selectSuggestedImage(pool.id, "")}
-                        onSelectSuggestedImage={(imageUrl) => selectSuggestedImage(pool.id, imageUrl)}
-                        onEditCandidate={(candidate) => openCandidateEditor(pool.id, candidate)}
-                        onRemoveCandidate={(candidate) =>
-                          handleRemoveCandidateFromPool(pool.id, candidate)
-                        }
-                        onRemoveTagFromPool={onRemoveTagFromPool}
-                        onRemoveLowValueTagsFromPool={onRemoveLowValueTagsFromPool}
-                        isRemoveTagPending={(tag) =>
-                          isActionPending(`remove-pool-tag:${pool.id}:${tag.toLowerCase()}`)
-                        }
-                        isRemoveLowValueTagsPending={(threshold) =>
-                          isActionPending(`remove-low-value-tags:${pool.id}:${threshold}`)
-                        }
-                        isCreatePending={isActionPending(`create-candidate:${pool.id}`)}
-                        isSavePending={isActionPending(`save-candidate:${pool.id}`)}
-                        showTagControl={false}
-                        openTagDrawerRequest={tagDrawerPoolId === pool.id}
-                        onTagDrawerRequestHandled={() => setTagDrawerPoolId(null)}
-                        removingCandidateId={
-                          poolDetails[pool.id]?.candidates?.find((candidate) =>
-                            isActionPending(`remove-candidate:${pool.id}:${candidate.id}`)
-                          )?.id || null
-                        }
-                        listEmptyMessage="No candidates in this pool yet."
+                      <PaginatedCandidateManagerPanel
+                        source={{ poolId: pool.id, candidates: previewCandidates, pagination: poolDetails[pool.id]?.candidatePagination }}
+                        editor={{ isOpen: isCandidateEditorOpen, isEditing: isEditingPoolCandidate, draft: candidateDraft, imageSuggestions: imageSuggestions[pool.id] || [], imageSuggestionLoading: Boolean(imageSuggestionLoading[pool.id]), isCreatePending: isActionPending(`create-candidate:${pool.id}`), isSavePending: isActionPending(`save-candidate:${pool.id}`), onDraftChange: (field, value) => updateCandidateDraft(pool.id, field, value), onSubmit: () => isEditingPoolCandidate ? handleCandidateEditSubmit(pool.id) : handleCreateCandidateInPool(pool.id), onClose: () => closeCandidateEditor(pool.id), onSuggestImages: () => handleSuggestImages(pool.id), onClearImage: () => selectSuggestedImage(pool.id, ""), onSelectSuggestedImage: (imageUrl) => selectSuggestedImage(pool.id, imageUrl) }}
+                        actions={{ onCreate: () => openCandidateCreator(pool.id), onImport: () => handleImportCandidatesIntoPool(pool), onEdit: (candidate) => openCandidateEditor(pool.id, candidate), onRemove: (candidate) => handleRemoveCandidateFromPool(pool.id, candidate), removingCandidateId: poolDetails[pool.id]?.candidates?.find((candidate) => isActionPending(`remove-candidate:${pool.id}:${candidate.id}`))?.id || null }}
+                        tagManagement={{ showControl: false, openDrawerRequest: tagDrawerPoolId === pool.id, onDrawerRequestHandled: () => setTagDrawerPoolId(null), isRemoveTagPending: (tag) => isActionPending(`remove-pool-tag:${pool.id}:${tag.toLowerCase()}`), isRemoveLowValueTagsPending: (threshold) => isActionPending(`remove-low-value-tags:${pool.id}:${threshold}`), onRemoveTag: (tag) => onRemoveTagFromPool(pool.id, tag), onRemoveLowValueTags: (threshold) => onRemoveLowValueTagsFromPool(pool.id, threshold) }}
+                        view={{ readOnly: poolIsReadOnly, listEmptyMessage: "No candidates in this pool yet." }}
                       />
                     </PoolManagementPanel>
                     </>

@@ -1,6 +1,6 @@
 "use client";
 
-import { normalizeParallelBracketItem } from "@/components/brackets/shared/bracket-presentation";
+import { normalizeParallelBracketItem } from "@/lib/brackets/presentation";
 import { isParallelResultMode } from "@/lib/bracket-modes";
 import {
   archiveParallelTournament,

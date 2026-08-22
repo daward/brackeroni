@@ -1,6 +1,6 @@
 "use client";
 
-import { ResilientRemoteImage } from "@/components/shared/resilient-remote-image";
+import { ResilientRemoteImage } from "@/components/shared";
 import { useState } from "react";
 
 export function SeedingModal({

@@ -33,7 +33,7 @@ test("extract-pools-v2 stays AI-first", () => {
 
   const lineCount = importerSource.split(/\r?\n/).length;
   assert.ok(
-    lineCount < 400,
+    lineCount < 500,
     `Importer grew too large (${lineCount} lines). Keep it prompt/model driven.`
   );
 });

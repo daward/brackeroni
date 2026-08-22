@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { mergeInitialCandidatePage } from "../components/pools/candidates/use-paginated-candidates.js";
+import { mergeInitialCandidatePage } from "../lib/pagination/candidates.js";
 
 test("candidate page merge applies saved first-page edits without dropping loaded pages", () => {
   const previousInitialIds = new Set(["a", "b"]);

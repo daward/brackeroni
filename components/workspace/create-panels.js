@@ -8,10 +8,10 @@ import { SeedingModal } from "@/components/brackets/configuration/seeding-modal"
 import { PoolWorkspaceSection } from "@/components/workspace/pool-workspace-section";
 import {
   getTournamentAudienceMode,
-  getTournamentAudiencePatch,
-  TournamentPublishWarning
-} from "@/components/brackets/shared/bracket-presentation";
-import { PoolPublishWarning } from "@/components/pools/shared/pool-presentation";
+  getTournamentAudiencePatch
+} from "@/lib/brackets/presentation";
+import { TournamentPublishWarning } from "@/components/brackets/shared";
+import { PoolPublishWarning } from "@/components/pools/shared";
 import { TournamentWorkspaceSection } from "@/components/workspace/tournament-workspace-section";
 import { useCandidateActions } from "@/components/workspace/use-candidate-actions";
 import { useCreateWorkspaceData } from "@/components/workspace/use-create-workspace-data";
@@ -26,6 +26,7 @@ import { useWorkspaceRouteActions } from "@/components/workspace/use-workspace-r
 import { useWorkspacePoolHydration } from "@/components/workspace/use-workspace-pool-hydration";
 import { useWorkspaceBracketHydration } from "@/components/workspace/use-workspace-bracket-hydration";
 import { WorkspaceSectionTabs } from "@/components/navigation/workspace-section-tabs";
+import { ToastMessages } from "@/components/shared";
 import {
   createPool
 } from "@/lib/client-api/create-workspace";
@@ -111,12 +112,14 @@ export function CreatePanels({ workspaceView: routeWorkspaceView = "tournaments"
     replacePoolInWorkspace,
     replaceTournamentMatchInWorkspace,
     replaceTournamentInWorkspace,
+    showCachedTournamentStage,
     setPoolPage,
     setTournamentPage,
     setTournamentShareLink,
     tournamentInvites,
     tournamentMatches,
     tournaments,
+    loadedTournamentStage,
     tournamentShareLinks
   } = useCreateWorkspaceData({
     setErrorMessage,
@@ -129,7 +132,8 @@ export function CreatePanels({ workspaceView: routeWorkspaceView = "tournaments"
   const { openPool, setTournamentStageView, setWorkspaceView } = useWorkspaceNavigation({
     router,
     setTournamentPage,
-    setTournamentStageViewState
+    setTournamentStageViewState,
+    showCachedTournamentStage
   });
   useWorkspaceRouteSelection({
     ensurePoolInWorkspace,
@@ -520,7 +524,7 @@ export function CreatePanels({ workspaceView: routeWorkspaceView = "tournaments"
 
   return (
     <div className="space-y-6">
-      <FlashMessages errorMessage={errorMessage} successMessage={successMessage} />
+      <ToastMessages errorMessage={errorMessage} successMessage={successMessage} />
 
       <WorkspaceSectionTabs activeView={workspaceView} />
 
@@ -588,6 +592,7 @@ export function CreatePanels({ workspaceView: routeWorkspaceView = "tournaments"
         <TournamentWorkspaceSection
           tournaments={tournaments}
           tournamentStageView={tournamentStageView}
+          loadedTournamentStage={loadedTournamentStage}
           tournamentPage={tournamentPage}
           tournamentPagination={tournamentPagination}
           tournamentStatusCounts={tournamentStatusCounts}
@@ -939,31 +944,3 @@ export function CreatePanels({ workspaceView: routeWorkspaceView = "tournaments"
     </div>
   );
 }
-
-function FlashMessages({ errorMessage, successMessage }) {
-  if (!errorMessage && !successMessage) {
-    return null;
-  }
-
-  return (
-    <div className="pointer-events-none fixed bottom-4 left-4 right-4 z-50 flex flex-col gap-2 sm:left-auto sm:right-4 sm:w-full sm:max-w-sm">
-      {errorMessage ? (
-        <p className="pointer-events-auto border border-[var(--accent)] bg-[var(--panel-3)] px-4 py-3 text-sm text-[var(--accent-2)] shadow-[0_14px_38px_rgba(0,0,0,0.35)]">
-          {errorMessage}
-        </p>
-      ) : null}
-      {successMessage ? (
-        <p className="pointer-events-auto border border-[var(--accent-3)] bg-[var(--panel-3)] px-4 py-3 text-sm text-[var(--accent-3)] shadow-[0_14px_38px_rgba(0,0,0,0.35)]">
-          {successMessage}
-        </p>
-      ) : null}
-    </div>
-  );
-}
-
-
-
-
-
-
-

@@ -3,8 +3,7 @@ import { notFound } from "next/navigation";
 import { getOptionalCurrentUser } from "@/lib/auth/current-user";
 import { cookies } from "next/headers";
 import { ANONYMOUS_VOTER_COOKIE } from "@/lib/auth/viewer";
-import { BracketOutcomeNav } from "@/components/brackets/progress/bracket-outcome-nav";
-import { BracketProgressPage } from "@/components/brackets/progress/bracket-progress-page";
+import { BracketOutcomeNav, BracketProgressPage } from "@/components/brackets/progress";
 import { listMatchesForTournament } from "@/lib/data/matches";
 import { listRoundsForTournament } from "@/lib/data/rounds";
 import { getParallelTournamentAggregateResults } from "@/lib/data/parallel-tournaments";
@@ -14,6 +13,7 @@ import { ResultsLinkedViewSelect } from "@/components/results/results-linked-vie
 import { TournamentScoringPage } from "@/components/results/tournament-scoring-page";
 import { TournamentResultsPage } from "@/components/results/tournament-results-page";
 import { listTournamentVoterScores } from "@/lib/data/matches";
+import { supportsRoundProgressView } from "@/lib/brackets/progress";
 
 export const dynamic = "force-dynamic";
 
@@ -27,14 +27,15 @@ export async function generateMetadata({ params }) {
 
 function normalizeStandardView(view, tournament) {
   const isParallelChildResult = Boolean(tournament.parentParallelTournamentId);
+  const canShowRounds = !isParallelChildResult && supportsRoundProgressView(tournament.resultMode);
   const defaultView =
-    tournament.status === "complete" || isParallelChildResult ? "results" : "rounds";
+    tournament.status === "complete" || !canShowRounds ? "results" : "rounds";
 
   if (view === "results" || view === "scoring") {
     return view;
   }
 
-  if (view === "rounds" && !isParallelChildResult) {
+  if (view === "rounds" && canShowRounds) {
     return view;
   }
 
@@ -59,13 +60,14 @@ export default async function TournamentResultsRoute({ params, searchParams }) {
     const selectedView = normalizeStandardView(requestedView, tournament);
 
     const isParallelChildResult = Boolean(tournament.parentParallelTournamentId);
+    const canShowRounds = !isParallelChildResult && supportsRoundProgressView(tournament.resultMode);
     const canShowScoring = !tournament.parentParallelTournamentId;
     const viewNav = (
       <BracketOutcomeNav
         tournamentId={tournament.id}
         activeView={selectedView}
         showResults
-        showRounds={!isParallelChildResult}
+        showRounds={canShowRounds}
         showScoring={canShowScoring}
         disabledReasonByKey={
           tournament.status === "complete" || selectedView === "results"
@@ -144,8 +146,14 @@ export default async function TournamentResultsRoute({ params, searchParams }) {
         headerNotice={
           !isParallelChildResult && tournament.status === "active" ? (
             <div className="border border-[var(--line)] bg-[var(--panel-2)] px-4 py-3 text-sm leading-6 text-[var(--muted)]">
-              You already voted in the currently available matchup for this bracket.
-              <span className="ml-2">These are the live results while voting continues.</span>
+              {supportsRoundProgressView(tournament.resultMode)
+                ? "You already voted in the currently available matchup for this bracket."
+                : "This ranking is still being decided."}
+              <span className="ml-2">
+                {supportsRoundProgressView(tournament.resultMode)
+                  ? "These are the live results while voting continues."
+                  : "Final positions will appear here when the ranking closes."}
+              </span>
             </div>
           ) : null
         }

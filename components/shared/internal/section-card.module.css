@@ -1,0 +1,6 @@
+.card { border: 1px solid var(--line); background: var(--panel); }
+.header { display: flex; align-items: center; gap: 1rem; border-bottom: 1px solid var(--line); background: var(--panel-3); padding: 0.5rem 1.25rem; }
+.headerSplit { justify-content: space-between; }
+.headerStart { justify-content: flex-start; }
+.headerEnd { justify-content: flex-end; }
+.title { color: var(--accent-2); font-size: 1.125rem; font-weight: 900; letter-spacing: 0.18em; text-transform: uppercase; }

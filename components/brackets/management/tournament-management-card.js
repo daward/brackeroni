@@ -1,6 +1,6 @@
 "use client";
 
-import { ContentCard } from "@/components/shared/content-card";
+import { ContentCard } from "@/components/shared";
 
 export function TournamentManagementCard({
   tournament,

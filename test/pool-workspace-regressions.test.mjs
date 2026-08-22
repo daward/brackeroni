@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { mergeInitialCandidatePage } from "../components/pools/candidates/use-paginated-candidates.js";
-import { getPoolTitlePresentation } from "../components/pools/shared/pool-header-state.js";
+import { mergeInitialCandidatePage } from "../lib/pagination/candidates.js";
+import { getPoolTitlePresentation } from "../lib/pools/title-presentation.js";
+import { isGeneratedPoolSourceDescription } from "../lib/pools/source-description.js";
 
 test("saved candidate image replaces the visible first-page candidate", () => {
   const result = mergeInitialCandidatePage(
@@ -27,4 +28,15 @@ test("saving a first-page candidate retains candidates loaded from later pages",
 test("published pools render a static title", () => {
   assert.equal(getPoolTitlePresentation({ isReadOnly: true }), "static");
   assert.equal(getPoolTitlePresentation({ isReadOnly: false }), "editable");
+});
+
+test("generated import descriptions stay inside source information", () => {
+  assert.equal(
+    isGeneratedPoolSourceDescription("Imported from www.buzzfeed.com", "https://www.buzzfeed.com/list"),
+    true
+  );
+  assert.equal(
+    isGeneratedPoolSourceDescription("A hand-written pool description", "https://www.buzzfeed.com/list"),
+    false
+  );
 });

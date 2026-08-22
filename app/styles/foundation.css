@@ -173,14 +173,6 @@ optgroup {
   padding: 1rem 0 0;
 }
 
-.pool-management-panel {
-  border-top: 1px solid var(--line-strong);
-}
-
-.pool-management-panel-no-rule {
-  border-top: 0;
-}
-
 @media (max-width: 640px) {
   .bracket-setup-header {
     padding-top: 0.25rem;
@@ -247,9 +239,12 @@ optgroup {
   opacity: 0.6;
 }
 
-/* .ui-button-compact {
+.ui-button-compact {
   padding: 0.5rem 1rem;
-} */
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+}
 
 .ui-button-primary {
   border-color: var(--accent-2);
@@ -467,4 +462,34 @@ optgroup {
   font-size: 0.6875rem;
   letter-spacing: 0.22em;
   text-transform: uppercase;
+}
+
+.inline-title-field {
+  width: calc(100% + 1.5rem);
+  margin-left: -0.75rem;
+  border: 1px solid var(--line);
+  background: transparent;
+  padding: 0.5rem 0.75rem;
+  color: var(--ink);
+  font-family: "Arial Narrow", Arial, Helvetica, sans-serif;
+  font-size: 1.5rem;
+  font-weight: 900;
+  line-height: 1;
+  outline: none;
+}
+
+.inline-title-field:focus {
+  border-color: var(--accent-3);
+}
+
+.inline-title-field-heading {
+  width: 100%;
+  margin-left: 0;
+  border: 0;
+  padding: 0.5rem 0;
+  font-size: 1.875rem;
+}
+
+.inline-title-field-heading:focus {
+  color: var(--accent-3);
 }

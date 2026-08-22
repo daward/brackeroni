@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { CirclePlay, Plane, Trophy } from "lucide-react";
-import { CompactRailHeader } from "@/components/shared/compact-rail-header";
+import { CompactRailHeader } from "@/components/shared";
 import { FeaturedHomePools } from "@/components/home/featured-home-pools";
 import { FeaturedHomeVoteSection } from "@/components/home/featured-home-matchups";
 import { getOptionalCurrentUser } from "@/lib/auth/current-user";

@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { PublicPoolCandidates } from "@/components/pools/shared/public-pool-candidates";
-import { PoolDetailWorkspace } from "@/components/pools/detail/pool-detail-workspace";
+import { PublicPoolCandidates } from "@/components/pools/shared";
+import { PoolDetailWorkspace } from "@/components/pools/detail";
 import { getOptionalCurrentUser } from "@/lib/auth/current-user";
 import { getPoolById } from "@/lib/data/pools";
 

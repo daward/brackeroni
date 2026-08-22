@@ -3,7 +3,7 @@
 import {
   buildDirectBracketSharePath,
   isPublicBracketVisibility
-} from "@/components/brackets/shared/bracket-presentation";
+} from "@/lib/brackets/presentation";
 import {
   ensureParallelTournamentShareLink,
   ensureTournamentShareLink

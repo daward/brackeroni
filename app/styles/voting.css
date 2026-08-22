@@ -96,28 +96,6 @@
   padding: 1rem 0;
 }
 
-.candidate-pool-card {
-  position: relative;
-  display: flex;
-  min-height: 12rem;
-  overflow: hidden;
-  border: 1px solid var(--line);
-  background: var(--panel);
-}
-
-.candidate-pool-card-has-image { min-height: 16rem; }
-.candidate-pool-card-action { display: flex; width: 100%; flex: 1; flex-direction: column; text-align: left; }
-.candidate-pool-card-rail { position: relative; width: 100%; margin-top: auto; padding: 0.75rem; background: rgba(55, 52, 47, 0.76); backdrop-filter: blur(2px); }
-.candidate-pool-card-title { font-size: 1rem; font-weight: 900; line-height: 1.05; }
-.candidate-pool-card-source { position: absolute; top: 0.75rem; right: 0.75rem; z-index: 2; display: inline-flex; height: 2.25rem; width: 2.25rem; align-items: center; justify-content: center; border: 1px solid rgba(232, 226, 214, 0.32); background: rgba(55, 52, 47, 0.76); color: var(--muted); transition: color 150ms ease, border-color 150ms ease; backdrop-filter: blur(2px); }
-.candidate-pool-card-source:hover { border-color: var(--accent-3); color: var(--accent-3); }
-.candidate-pool-card-tags { margin-top: 0.45rem; }
-.candidate-pool-card-description { display: -webkit-box; margin-top: 0.45rem; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 1; font-size: 0.75rem; line-height: 1.35; color: var(--muted); }
-.candidate-pool-card-expanded .candidate-pool-card-description { -webkit-line-clamp: unset; }
-.candidate-pool-card-remove { position: absolute; top: 0.75rem; left: 0.75rem; z-index: 2; display: flex; height: 2.25rem; width: 2.25rem; align-items: center; justify-content: center; border: 1px solid rgba(232, 226, 214, 0.32); background: rgba(55, 52, 47, 0.76); color: var(--muted); opacity: 0; transition: opacity 150ms ease, border-color 150ms ease, color 150ms ease; backdrop-filter: blur(2px); }
-.candidate-pool-card:hover .candidate-pool-card-remove, .candidate-pool-card:focus-within .candidate-pool-card-remove { opacity: 1; }
-.candidate-pool-card-remove:hover { border-color: var(--accent); color: var(--accent); }
-
 .vote-desktop-sections {
   flex-direction: column;
   gap: 3rem;

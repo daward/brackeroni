@@ -3,10 +3,8 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { CompletedBracketCard } from "@/components/brackets/shared/completed-bracket-card";
-import { CompactRailHeader } from "@/components/shared/compact-rail-header";
-import { useInfiniteScroll } from "@/components/shared/use-infinite-scroll";
-import { BackdropRemoteImage } from "@/components/shared/resilient-remote-image";
+import { CompletedBracketCard } from "@/components/brackets/shared";
+import { BackdropRemoteImage, CompactRailHeader, useInfiniteScroll } from "@/components/shared";
 import { TournamentResultsPage } from "@/components/results/tournament-results-page";
 import {
   usesOpenEndedRankingMode,
