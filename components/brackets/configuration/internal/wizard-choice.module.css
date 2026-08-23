@@ -1,0 +1,169 @@
+.choiceGrid {
+  display: grid;
+  gap: 0.75rem;
+}
+
+@media (min-width: 640px) {
+  .choiceGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.versusGrid {
+  display: grid;
+  align-items: stretch;
+  gap: 0.5rem;
+}
+
+@media (min-width: 640px) {
+  .versusGrid {
+    grid-template-columns: minmax(0, 1fr) 2.75rem minmax(0, 1fr);
+    gap: 0.75rem;
+  }
+}
+
+.versusDivider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-block: 0.25rem;
+}
+
+@media (min-width: 640px) {
+  .versusDivider {
+    padding-block: 0;
+  }
+}
+
+.versusBadge {
+  display: flex;
+  height: 2.25rem;
+  width: 2.25rem;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--accent-2);
+  border-radius: 9999px;
+  background: var(--panel-3);
+  font-size: 0.75rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  color: var(--accent-2);
+}
+
+.card {
+  padding: 1rem;
+  text-align: left;
+}
+
+.card:hover,
+.resultModeTile:hover {
+  border-color: var(--line);
+  background: transparent;
+}
+
+.card[aria-pressed="true"]:hover,
+.resultModeTile[aria-pressed="true"]:hover {
+  border-color: var(--accent-3);
+  background: rgba(52, 211, 196, 0.06);
+}
+
+.tallCard {
+  min-height: 9rem;
+}
+
+.titleRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.icon {
+  flex-shrink: 0;
+  color: var(--accent-3);
+}
+
+.title {
+  display: block;
+  font-size: 1rem;
+  font-weight: 900;
+  line-height: 1.25;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+
+.standaloneTitle {
+  display: block;
+  margin-top: 1.25rem;
+  font-size: 1rem;
+  font-weight: 900;
+  line-height: 1.25;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+
+.description {
+  display: block;
+  margin-top: 0.75rem;
+  font-size: 0.875rem;
+  line-height: 1.5rem;
+  color: var(--muted);
+}
+
+.compactDescription {
+  margin-top: 0.5rem;
+  line-height: 1.25rem;
+}
+
+.resultModeTile {
+  display: flex;
+  min-height: 11rem;
+  flex-direction: column;
+  padding: 1rem;
+  text-align: left;
+}
+
+.resultModeNote {
+  margin-top: auto;
+  padding-top: 1rem;
+  color: var(--accent-3);
+}
+
+.rankingDetails {
+  border-top: 1px solid var(--line);
+  padding-top: 1.25rem;
+  transition: opacity 150ms ease;
+}
+
+.rankingDetailsActive {
+  opacity: 1;
+}
+
+.rankingDetailsInactive {
+  opacity: 0.4;
+}
+
+.rankingHeading {
+  font-size: 0.875rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--accent-3);
+}
+
+.rankingGrid {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+@media (min-width: 640px) {
+  .rankingGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1280px) {
+  .rankingGrid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}

@@ -21,6 +21,14 @@ export type ManagedPool = {
   importSourceUrl?: string | null;
 };
 
+/** A pool summary suitable for choosing a pool in another feature. */
+export type PoolSelectionOption = {
+  id: string;
+  name: string;
+  candidateCount?: number | null;
+  description?: string | null;
+};
+
 /** Mutable pool fields shared by pool creation and editing flows. */
 export type PoolDraft = {
   name: string;

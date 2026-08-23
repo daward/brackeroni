@@ -32,6 +32,10 @@
   max-width: 42rem;
 }
 
+.drawerXWide {
+  max-width: 48.75rem;
+}
+
 .header {
   display: flex;
   align-items: flex-start;

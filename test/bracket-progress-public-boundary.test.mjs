@@ -5,8 +5,10 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 
 const rootDirectory = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const componentDirectory = path.join(rootDirectory, "components");
-const progressDirectory = path.join(componentDirectory, "brackets", "progress");
+const sourceDirectories = ["app", "components", "lib", "test"].map((directory) => path.join(rootDirectory, directory));
+const boundaryTestPath = fileURLToPath(import.meta.url);
+const internalImportMarker = ["components", "brackets", "progress", "internal"].join("/");
+const progressDirectory = path.join(rootDirectory, "components", "brackets", "progress");
 
 function getSourceFiles(directory) {
   return fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
@@ -17,8 +19,20 @@ function getSourceFiles(directory) {
 }
 
 test("bracket progress internals are not imported outside the progress feature", () => {
-  const violations = getSourceFiles(componentDirectory)
+  const violations = sourceDirectories
+    .flatMap(getSourceFiles)
+    .filter((filePath) => filePath !== boundaryTestPath)
     .filter((filePath) => !filePath.startsWith(progressDirectory))
-    .filter((filePath) => fs.readFileSync(filePath, "utf8").includes("components/brackets/progress/internal"));
+    .filter((filePath) => fs.readFileSync(filePath, "utf8").includes(internalImportMarker));
+
   assert.deepEqual(violations, []);
+});
+
+test("bracket progress keeps only its public API at the feature root", () => {
+  const rootEntries = fs
+    .readdirSync(progressDirectory, { withFileTypes: true })
+    .map((entry) => entry.name)
+    .sort();
+
+  assert.deepEqual(rootEntries, ["index.ts", "internal", "types.ts"]);
 });

@@ -1,0 +1,55 @@
+.page {
+  width: 100%;
+}
+
+.shell {
+  width: 100%;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 0;
+}
+
+.steps {
+  display: flex;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.content {
+  width: 100%;
+  padding: 2rem 0;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  width: 100%;
+  border-top: 1px solid var(--line-strong);
+  padding: 1rem 0 0;
+}
+
+@media (max-width: 640px) {
+  .header {
+    padding-top: 0.25rem;
+  }
+
+  .steps {
+    overflow-x: auto;
+  }
+
+  .steps button {
+    min-width: max-content;
+    padding-inline: 0.75rem;
+  }
+
+  .content {
+    padding-block: 1.5rem;
+  }
+}

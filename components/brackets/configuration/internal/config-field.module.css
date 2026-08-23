@@ -1,0 +1,17 @@
+.label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--accent-3);
+}
+
+.helpButton {
+  cursor: help;
+  border: 1px solid var(--line);
+  padding: 0.125rem 0.5rem;
+  font-size: 0.625rem;
+  color: var(--muted);
+}

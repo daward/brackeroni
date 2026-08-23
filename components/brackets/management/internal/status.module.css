@@ -1,0 +1,277 @@
+.summary,
+.details,
+.accordion {
+  border: 1px solid var(--line-strong);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.summary,
+.details {
+  padding: 1.25rem;
+}
+
+.accordionSummary {
+  cursor: pointer;
+  padding: 1rem 1.25rem;
+  font-family: "Arial Narrow", Arial, Helvetica, sans-serif;
+  font-size: 0.875rem;
+  font-weight: 900;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent-3);
+}
+
+.accordionContent {
+  border-top: 1px solid var(--line-strong);
+  padding: 1.25rem;
+}
+
+.summaryKicker,
+.infoTitle,
+.progressValue,
+.inviteStatus {
+  font-family: "Arial Narrow", Arial, Helvetica, sans-serif;
+  font-weight: 900;
+}
+
+.infoTitle {
+  font-size: 0.875rem;
+}
+
+.progressValue,
+.inviteStatus {
+  font-size: 0.75rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent-2);
+}
+
+.summaryKicker {
+  font-size: 0.875rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent-3);
+}
+
+.summaryBody {
+  margin-top: 0.75rem;
+  font-size: 1rem;
+  line-height: 1.75rem;
+  color: color-mix(in srgb, var(--ink) 88%, transparent);
+}
+
+.summaryContent {
+  min-width: 0;
+}
+
+.summaryActions {
+  width: 100%;
+  margin-top: 1rem;
+}
+
+.dialogBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.72);
+}
+
+.dialogPanel {
+  width: 100%;
+  max-width: 28rem;
+  border: 1px solid var(--line-strong);
+  background: var(--panel);
+  padding: 1.25rem;
+}
+
+.dialogTitle {
+  font-family: "Arial Narrow", Arial, Helvetica, sans-serif;
+  font-size: 1.125rem;
+  font-weight: 900;
+}
+
+.dialogBody {
+  margin-top: 0.75rem;
+  font-size: 0.875rem;
+  line-height: 1.5rem;
+  color: color-mix(in srgb, var(--ink) 88%, transparent);
+}
+
+.dialogActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+}
+
+.closeVotingButton {
+  display: flex;
+  height: 3.25rem;
+  justify-content: center;
+}
+
+.actionRow {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.actionSlot {
+  min-width: 0;
+}
+
+.actionButton {
+  display: flex;
+  width: 100%;
+  height: 3.25rem;
+  justify-content: center;
+}
+
+.mutedSection {
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.015);
+  opacity: 0.65;
+}
+
+.mutedHeading {
+  padding: 1rem 1.25rem;
+  font-family: "Arial Narrow", Arial, Helvetica, sans-serif;
+  font-size: 0.875rem;
+  font-weight: 900;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.mutedBody {
+  border-top: 1px solid var(--line);
+  padding: 1.25rem;
+  font-size: 1rem;
+  line-height: 1.75rem;
+  color: var(--muted);
+}
+
+.infoRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.055);
+  padding: 1rem;
+}
+
+.infoContent {
+  min-width: 0;
+  flex: 1;
+}
+
+.infoMeta,
+.progressState,
+.emptyMessage,
+.detailsMeta {
+  font-size: 0.6875rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.infoMeta,
+.progressState {
+  margin-top: 0.25rem;
+}
+
+.infoAction {
+  flex-shrink: 0;
+}
+
+.progress {
+  text-align: right;
+}
+
+.trackerList {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.emptyMessage {
+  font-size: 0.875rem;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+.detailsMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  color: color-mix(in srgb, var(--ink) 80%, transparent);
+}
+
+.manualQueue {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.manualMatch {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.manualCandidate {
+  border: 1px solid var(--line-strong);
+  padding: 0.75rem 1rem;
+  text-align: left;
+  transition: border-color 150ms ease;
+}
+
+.manualCandidate:hover {
+  border-color: var(--accent-3);
+}
+
+.manualCandidateSelected {
+  border-color: var(--accent-2);
+  background: rgba(255, 216, 77, 0.08);
+}
+
+.manualCandidateName {
+  font-family: "Arial Narrow", Arial, Helvetica, sans-serif;
+  font-size: 0.875rem;
+  font-weight: 900;
+}
+
+.manualCandidateSeed {
+  margin-top: 0.25rem;
+  font-size: 0.6875rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.manualEmpty {
+  font-size: 0.875rem;
+  color: var(--muted);
+}
+
+@media (min-width: 640px) {
+  .manualMatch {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1024px) {
+  .actionRow {
+    display: flex;
+    flex-wrap: wrap;
+  }
+
+  .actionSlot,
+  .actionButton {
+    width: auto;
+  }
+}

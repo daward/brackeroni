@@ -1,0 +1,7 @@
+.question {
+  color: var(--accent-3);
+  font-size: 0.875rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+}

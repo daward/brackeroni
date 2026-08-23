@@ -5,8 +5,10 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 
 const rootDirectory = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const componentDirectory = path.join(rootDirectory, "components");
-const sharedDirectory = path.join(componentDirectory, "brackets", "shared");
+const sourceDirectories = ["app", "components", "lib", "test"].map((directory) => path.join(rootDirectory, directory));
+const boundaryTestPath = fileURLToPath(import.meta.url);
+const internalImportMarker = ["components", "brackets", "shared", "internal"].join("/");
+const sharedDirectory = path.join(rootDirectory, "components", "brackets", "shared");
 
 function getSourceFiles(directory) {
   return fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
@@ -17,9 +19,20 @@ function getSourceFiles(directory) {
 }
 
 test("bracket shared internals are not imported outside the shared feature", () => {
-  const violations = getSourceFiles(componentDirectory)
+  const violations = sourceDirectories
+    .flatMap(getSourceFiles)
+    .filter((filePath) => filePath !== boundaryTestPath)
     .filter((filePath) => !filePath.startsWith(sharedDirectory))
-    .filter((filePath) => fs.readFileSync(filePath, "utf8").includes("components/brackets/shared/internal"));
+    .filter((filePath) => fs.readFileSync(filePath, "utf8").includes(internalImportMarker));
 
   assert.deepEqual(violations, []);
+});
+
+test("bracket shared keeps only its public API at the feature root", () => {
+  const rootEntries = fs
+    .readdirSync(sharedDirectory, { withFileTypes: true })
+    .map((entry) => entry.name)
+    .sort();
+
+  assert.deepEqual(rootEntries, ["index.ts", "internal", "types.ts"]);
 });

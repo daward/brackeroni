@@ -6,23 +6,24 @@ type ShareRound = ShareCardPayload["round"];
 type ShareCardItem = { label: string; value: string; detail: string; imageUrl: string | null };
 
 export function buildCreatorPrompt({ tournament, round, stats }: { tournament: ShareTournament; round: ShareRound; stats: RoundStats }) {
-  const bracketUrl =
-    typeof window === "undefined"
-      ? `/results/${tournament.id}?view=rounds`
-      : `${window.location.origin}/results/${tournament.id}?view=rounds`;
+  const bracketUrl = getBracketRoundsUrl(tournament.id);
   const lines = [
     `${formatRoundTitle(round, tournament)} is in the books for ${tournament.title}.`,
-    stats.biggestUpset
-      ? `Biggest upset: ${stats.biggestUpset.winnerName} knocked out ${stats.biggestUpset.loserName}.`
-      : null,
+    stats.biggestUpset ? `Biggest upset: ${stats.biggestUpset.winnerName} knocked out ${stats.biggestUpset.loserName}.` : null,
     stats.closestMatch
       ? `Closest call: ${stats.closestMatch.winnerName} over ${stats.closestMatch.loserName}, ${stats.closestMatch.winnerVotes}-${stats.closestMatch.loserVotes}.`
       : null,
     `Follow the bracket here: ${bracketUrl}`,
-    "After you vote in the next round, come back here and tell us who you're rooting for."
+    "After you vote in the next round, come back here and tell us who you're rooting for.",
   ].filter(Boolean);
 
   return lines.join("\n\n");
+}
+
+function getBracketRoundsUrl(tournamentId: string) {
+  const path = `/results/${tournamentId}?view=rounds`;
+  if (typeof window === "undefined") return path;
+  return `${window.location.origin}${path}`;
 }
 
 export function buildShareCardTitle(round: ShareRound, tournament: ShareTournament, isFinalResults: boolean) {
@@ -35,32 +36,26 @@ export function getShareCardItems(stats: RoundStats): ShareCardItem[] {
       label: "Most Votes",
       value: stats.voteLeader?.name || "No votes yet",
       detail: stats.voteLeader ? `${stats.voteLeader.votes} votes` : "",
-      imageUrl: stats.voteLeader?.imageUrl || null
+      imageUrl: stats.voteLeader?.imageUrl || null,
     },
     {
       label: "Closest Match",
       value: stats.closestMatch?.winnerName || "No closed match yet",
-      detail: stats.closestMatch
-        ? `Beat ${stats.closestMatch.loserName} by ${stats.closestMatch.margin}`
-        : "",
-      imageUrl: stats.closestMatch?.winnerImageUrl || null
+      detail: stats.closestMatch ? `Beat ${stats.closestMatch.loserName} by ${stats.closestMatch.margin}` : "",
+      imageUrl: stats.closestMatch?.winnerImageUrl || null,
     },
     {
       label: "Biggest Blowout",
       value: stats.biggestBlowout?.winnerName || "No closed match yet",
-      detail: stats.biggestBlowout
-        ? `${formatPercent(stats.biggestBlowout.winnerPercent)} over ${stats.biggestBlowout.loserName}`
-        : "",
-      imageUrl: stats.biggestBlowout?.winnerImageUrl || null
+      detail: stats.biggestBlowout ? `${formatPercent(stats.biggestBlowout.winnerPercent)} over ${stats.biggestBlowout.loserName}` : "",
+      imageUrl: stats.biggestBlowout?.winnerImageUrl || null,
     },
     {
       label: "Biggest Upset",
       value: stats.biggestUpset?.winnerName || "No seed upset",
-      detail: stats.biggestUpset
-        ? `Seed ${stats.biggestUpset.winnerSeed} beat seed ${stats.biggestUpset.loserSeed}`
-        : "",
-      imageUrl: stats.biggestUpset?.winnerImageUrl || null
-    }
+      detail: stats.biggestUpset ? `Seed ${stats.biggestUpset.winnerSeed} beat seed ${stats.biggestUpset.loserSeed}` : "",
+      imageUrl: stats.biggestUpset?.winnerImageUrl || null,
+    },
   ];
 }
 
@@ -76,7 +71,9 @@ function escapeSvgAttribute(value: unknown) {
 }
 
 function wrapSvgText(value: unknown, maxLength: number) {
-  const words = String(value || "").split(/\s+/).filter(Boolean);
+  const words = String(value || "")
+    .split(/\s+/)
+    .filter(Boolean);
   const lines = [];
   let current = "";
 
@@ -112,17 +109,26 @@ export function buildShareCardSvg({ tournament, round, stats, isFinalResults }: 
         ? `<image href="${escapeSvgAttribute(item.imageUrl)}" x="${x + 24}" y="${y + 48}" width="72" height="72" preserveAspectRatio="xMidYMid slice"/>`
         : "";
       const textX = item.imageUrl ? x + 116 : x + 24;
+      const labelText = buildShareCardLabelText({
+        label: item.label,
+        x: x + 24,
+        y: y + 36,
+      });
+      const valueText = valueLines
+        .map((line, lineIndex) =>
+          buildShareCardValueText({
+            line,
+            x: textX,
+            y: y + 72 + lineIndex * 26,
+          }),
+        )
+        .join("");
 
       return `
         <rect x="${x}" y="${y}" width="472" height="132" fill="none" stroke="${stroke}" stroke-width="3"/>
-        <text x="${x + 24}" y="${y + 36}" fill="#34d3c4" font-size="18" font-family="Georgia, serif" font-weight="700" letter-spacing="4">${escapeSvgText(item.label.toUpperCase())}</text>
+        ${labelText}
         ${imageSvg}
-        ${valueLines
-          .map(
-            (line, lineIndex) =>
-              `<text x="${textX}" y="${y + 72 + lineIndex * 26}" fill="#f6f2e8" font-size="25" font-family="Arial Narrow, Arial, sans-serif" font-weight="900">${escapeSvgText(line)}</text>`
-          )
-          .join("")}
+        ${valueText}
         <text x="${textX}" y="${y + 114}" fill="#b7b0a0" font-size="17" font-family="Georgia, serif">${escapeSvgText(item.detail)}</text>
       `;
     })
@@ -136,10 +142,20 @@ export function buildShareCardSvg({ tournament, round, stats, isFinalResults }: 
     ${titleLines
       .map(
         (line, index) =>
-          `<text x="64" y="${236 + index * 42}" fill="#f6f2e8" font-size="40" font-family="Arial Narrow, Arial, sans-serif" font-weight="900">${escapeSvgText(line)}</text>`
+          `<text x="64" y="${236 + index * 42}" fill="#f6f2e8" font-size="40" font-family="Arial Narrow, Arial, sans-serif" font-weight="900">${escapeSvgText(line)}</text>`,
       )
       .join("")}
     ${itemSvg}
     <text x="64" y="625" fill="#b7b0a0" font-size="20" font-family="Georgia, serif">Vote, then come back and tell us who you're rooting for.</text>
-  </svg>`;
+    </svg>`;
+}
+
+function buildShareCardLabelText({ label, x, y }: { label: string; x: number; y: number }) {
+  const text = escapeSvgText(label.toUpperCase());
+  return [`<text x="${x}" y="${y}"`, 'fill="#34d3c4"', 'font-size="18"', 'font-family="Georgia, serif"', 'font-weight="700"', 'letter-spacing="4"', `>${text}</text>`].join(" ");
+}
+
+function buildShareCardValueText({ line, x, y }: { line: string; x: number; y: number }) {
+  const text = escapeSvgText(line);
+  return [`<text x="${x}" y="${y}"`, 'fill="#f6f2e8"', 'font-size="25"', 'font-family="Arial Narrow, Arial, sans-serif"', 'font-weight="900"', `>${text}</text>`].join(" ");
 }

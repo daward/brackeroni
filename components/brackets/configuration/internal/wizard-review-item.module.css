@@ -1,0 +1,28 @@
+.item {
+  min-height: 8rem;
+  border: 1px solid var(--line);
+  padding: 1rem;
+}
+
+.labelRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--accent-3);
+}
+
+.value {
+  margin-top: 1rem;
+  color: var(--ink);
+  font-size: 1.125rem;
+  font-weight: 900;
+  line-height: 1.25;
+  text-transform: uppercase;
+}
+
+.detail {
+  margin-top: 0.5rem;
+  color: var(--muted);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}

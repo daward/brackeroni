@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "test": "node --loader ./test-alias-loader.mjs --test test/extract-pools-v2.guard.test.js test/import-fixtures.test.mjs test/bracket-voting-engine.test.mjs test/parallel-results-policy.test.mjs test/openapi-parallel-contract.test.mjs test/seeding-draft.test.mjs test/seeding-entry-logic.test.mjs test/seeding-response-fallback.test.mjs test/workspace-request-safety.test.mjs test/paginated-collection.test.mjs test/paginated-candidates.test.mjs test/candidate-tags.test.mjs test/bracket-shared-public-boundary.test.mjs test/bracket-progress-public-boundary.test.mjs test/candidate-public-boundary.test.mjs test/pool-shared-public-boundary.test.mjs test/shared-public-boundary.test.mjs test/pool-detail-public-boundary.test.mjs test/pool-detail-image-suggestions.test.mjs test/pool-detail-menu.test.mjs test/pool-workspace-regressions.test.mjs test/repository-read-smoke.test.mjs",
+    "format:check": "prettier --check components/brackets/configuration",
+    "test": "node --loader ./test-alias-loader.mjs --test test/extract-pools-v2.guard.test.js test/import-fixtures.test.mjs test/bracket-voting-engine.test.mjs test/parallel-results-policy.test.mjs test/openapi-parallel-contract.test.mjs test/workspace-request-safety.test.mjs test/paginated-collection.test.mjs test/paginated-candidates.test.mjs test/candidate-tags.test.mjs test/tournament-access.test.mjs test/bracket-shared-public-boundary.test.mjs test/bracket-progress-public-boundary.test.mjs test/bracket-configuration-public-boundary.test.mjs test/candidate-public-boundary.test.mjs test/pool-shared-public-boundary.test.mjs test/pool-detail-public-boundary.test.mjs test/pool-detail-image-suggestions.test.mjs test/pool-detail-menu.test.mjs test/pool-workspace-regressions.test.mjs test/repository-read-smoke.test.mjs && vitest run test/seeding-draft.test.ts test/seeding-entry-logic.test.ts test/seeding-response-fallback.test.ts test/seeding-autosave-queue.test.ts",
     "test:ui": "vitest run",
     "typecheck": "tsc --noEmit",
     "test:db": "node --loader ./test-alias-loader.mjs --test test/repository-read-smoke.test.mjs",
@@ -38,6 +39,7 @@
     "@types/react-dom": "^19.2.4",
     "@vitejs/plugin-react": "^6.0.5",
     "jsdom": "^29.1.1",
+    "prettier": "3.9.6",
     "tailwindcss": "^4.1.13",
     "typescript": "^5.9.3",
     "vitest": "^4.1.10"

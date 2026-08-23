@@ -1,0 +1,197 @@
+.groupHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid var(--line);
+  background: var(--panel-3);
+  padding: 0.75rem;
+}
+
+.form {
+  display: grid;
+  gap: 1rem;
+}
+
+.groups {
+  display: grid;
+  gap: 0.75rem;
+}
+.copy {
+  color: var(--muted);
+  font-size: 0.875rem;
+  line-height: 1.5rem;
+}
+.group {
+  border: 1px solid var(--line);
+}
+.groupName {
+  width: 100%;
+  background: transparent;
+  color: var(--text);
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  outline: none;
+}
+.groupBody {
+  padding: 0.5rem;
+}
+.emptyGroup {
+  border: 1px dashed var(--line);
+  background: var(--panel-2);
+  padding: 1.5rem 0.75rem;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+.entry {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border: 1px solid var(--line);
+  background: var(--panel-2);
+  padding: 0.5rem;
+  transition:
+    border-color 150ms,
+    background 150ms;
+}
+.entrySeedColumn {
+  display: flex;
+  width: 2.5rem;
+  flex-shrink: 0;
+  flex-direction: column;
+}
+.entryImage {
+  height: 2.5rem;
+  width: 2.5rem;
+  flex-shrink: 0;
+  border-radius: 0.125rem;
+  object-fit: cover;
+}
+.entryContent {
+  min-width: 0;
+  flex: 1;
+}
+.entryActionCell {
+  position: relative;
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+}
+.entryMenuButton {
+  display: flex;
+  height: 2.5rem;
+  width: 2.5rem;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  font-size: 1rem;
+  line-height: 1;
+  letter-spacing: 0;
+}
+.entry:hover {
+  border-color: var(--accent-2);
+}
+.entryDragging {
+  border-color: var(--accent-3);
+  background: var(--panel-3);
+}
+.entryEmpty {
+  cursor: default;
+  border-style: dashed;
+}
+.entryDraggable {
+  cursor: move;
+}
+.menu {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  z-index: 20;
+  width: 13rem;
+  margin-top: 0.5rem;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  padding: 0.5rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+}
+.menuAction {
+  display: block;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  color: var(--accent-2);
+  font-size: 0.75rem;
+  letter-spacing: 0.12em;
+  text-align: left;
+  text-transform: uppercase;
+  transition: background 150ms;
+}
+.menuAction:hover {
+  background: var(--panel-3);
+}
+.menuActionNeutral {
+  color: var(--text);
+}
+.menuActionBordered {
+  border-top: 1px solid var(--line);
+}
+.entrySeed {
+  color: var(--accent-2);
+  font-size: 1rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+.entryFlag {
+  color: var(--muted);
+  font-size: 0.625rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.entryName {
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 0.875rem;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.entryDescription {
+  display: none;
+  margin-top: 0.25rem;
+  color: var(--muted);
+  font-size: 0.75rem;
+  line-height: 1.25rem;
+}
+.entryMenuItems {
+  display: grid;
+  gap: 0.25rem;
+}
+.menuSeparator {
+  margin-block: 0.25rem;
+  border-top: 1px solid var(--line);
+}
+
+@media (min-width: 768px) {
+  .entry {
+    gap: 0.75rem;
+    padding: 0.75rem;
+  }
+  .entrySeedColumn {
+    width: 4rem;
+  }
+  .entryImage {
+    height: 3rem;
+    width: 3rem;
+  }
+  .entrySeed {
+    font-size: 1.125rem;
+  }
+  .entryDescription {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+}

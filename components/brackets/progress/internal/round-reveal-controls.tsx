@@ -22,6 +22,9 @@ export function RoundRevealControls({ tournament, round, canReveal, onReveal, is
   const isRevealable = canReveal && round.status === "closed" && !round.revealedAt;
   const isPublicBracket = ["public_listed", "public_unlisted"].includes(tournament.visibility ?? "");
   const actionLabel = isFinalRound ? "Reveal Final Results" : "Open Next Round";
+  const pendingLabel = isPublicBracket ? "Opening" : "Revealing";
+  const buttonLabel = getRevealButtonLabel({ isPending, isPublicBracket, actionLabel });
+  const publicCopy = getPublicRevealCopy(isFinalRound);
 
   function handleReveal() {
     startTransition(async () => {
@@ -36,20 +39,39 @@ export function RoundRevealControls({ tournament, round, canReveal, onReveal, is
         onReveal(data.item);
         setMessage("Round revealed.");
       } catch (error) {
-        setMessage(error instanceof Error ? error.message : isPublicBracket ? "Failed to open the next round." : "Failed to reveal round.");
+        setMessage(getRevealErrorMessage(error, isPublicBracket));
       }
     });
   }
 
-  return <div className="flex flex-wrap items-center gap-3">
-    {isRevealable ? <div>
-      <button type="button" onClick={handleReveal} disabled={isPending} className="ui-button ui-button-primary">
-        {isPending ? (isPublicBracket ? "Opening" : "Revealing") : isPublicBracket ? actionLabel : "Reveal Round"}
-      </button>
-      {isPublicBracket ? <p className="mt-2 max-w-md text-xs leading-5 text-[var(--muted)]">
-        {isFinalRound ? "Makes the final result visible to everyone." : "Makes these results visible and opens voting for the next round."}
-      </p> : null}
-    </div> : null}
-    {message ? <p className="text-sm text-[var(--muted)]">{message}</p> : null}
-  </div>;
+  return (
+    <>
+      {isRevealable ? (
+        <div>
+          <button type="button" onClick={handleReveal} disabled={isPending} className="ui-button ui-button-primary">
+            {isPending ? pendingLabel : buttonLabel}
+          </button>
+          {isPublicBracket ? <p className="progress-round-reveal-copy">{publicCopy}</p> : null}
+        </div>
+      ) : null}
+      {message ? <p className="progress-round-message">{message}</p> : null}
+    </>
+  );
+}
+
+function getRevealButtonLabel({ isPending, isPublicBracket, actionLabel }: { isPending: boolean; isPublicBracket: boolean; actionLabel: string }) {
+  if (isPending) return "";
+  if (isPublicBracket) return actionLabel;
+  return "Reveal Round";
+}
+
+function getPublicRevealCopy(isFinalRound: boolean) {
+  if (isFinalRound) return "Makes the final result visible to everyone.";
+  return "Makes these results visible and opens voting for the next round.";
+}
+
+function getRevealErrorMessage(error: unknown, isPublicBracket: boolean) {
+  if (error instanceof Error) return error.message;
+  if (isPublicBracket) return "Failed to open the next round.";
+  return "Failed to reveal round.";
 }

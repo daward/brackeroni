@@ -57,9 +57,7 @@
 .results-scoring-header-select {
   min-width: 15rem;
   border-color: rgba(86, 80, 72, 0.9);
-  background:
-    linear-gradient(180deg, rgba(63, 57, 51, 0.82), rgba(45, 41, 37, 0.96)),
-    var(--panel-2);
+  background: linear-gradient(180deg, rgba(63, 57, 51, 0.82), rgba(45, 41, 37, 0.96)), var(--panel-2);
   color: var(--ink);
   box-shadow: inset 0 -1px 0 rgba(255, 211, 77, 0.18);
 }
@@ -89,9 +87,7 @@
 .results-scoring-header-select:hover,
 .results-scoring-header-select:focus {
   border-color: var(--accent-2);
-  background:
-    linear-gradient(180deg, rgba(71, 65, 58, 0.88), rgba(49, 44, 39, 0.98)),
-    var(--panel-2);
+  background: linear-gradient(180deg, rgba(71, 65, 58, 0.88), rgba(49, 44, 39, 0.98)), var(--panel-2);
 }
 
 .results-outcome-nav {
@@ -156,6 +152,44 @@
   align-items: center;
 }
 
+.results-outcome-dialog-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.72);
+  padding-inline: 1rem;
+}
+
+.results-outcome-dialog {
+  width: 100%;
+  max-width: 24rem;
+  border: 1px solid var(--line-strong);
+  background: var(--panel);
+  padding: 1.25rem;
+}
+
+.results-outcome-dialog-title {
+  font-family: "Arial Narrow", Arial, Helvetica, sans-serif;
+  font-size: 1.125rem;
+  font-weight: 900;
+}
+
+.results-outcome-dialog-copy {
+  margin-top: 0.75rem;
+  color: rgba(246, 242, 232, 0.88);
+  font-size: 0.875rem;
+  line-height: 1.5rem;
+}
+
+.results-outcome-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 1.25rem;
+}
+
 .results-header::after {
   content: "";
   position: absolute;
@@ -163,17 +197,16 @@
   right: 0;
   bottom: 0;
   height: 6px;
-  background:
-    linear-gradient(
-      to bottom,
-      var(--line-strong) 0,
-      var(--line-strong) 1px,
-      transparent 1px,
-      transparent 4px,
-      rgba(86, 80, 72, 0.82) 4px,
-      rgba(86, 80, 72, 0.82) 5px,
-      transparent 5px
-    );
+  background: linear-gradient(
+    to bottom,
+    var(--line-strong) 0,
+    var(--line-strong) 1px,
+    transparent 1px,
+    transparent 4px,
+    rgba(86, 80, 72, 0.82) 4px,
+    rgba(86, 80, 72, 0.82) 5px,
+    transparent 5px
+  );
 }
 
 .results-kicker,
@@ -300,7 +333,6 @@
   scrollbar-width: none;
 }
 
-
 .rounds-navigation-rail::-webkit-scrollbar {
   display: none;
 }
@@ -318,13 +350,44 @@
   padding-inline: 1rem;
 }
 
+.progress-round-sidebar-heading {
+  display: none;
+  border-top: 1px solid var(--line);
+  padding-top: 1rem;
+}
+
+.progress-round-rail-anchor {
+  height: 5rem;
+}
+
+.progress-round-rail-shell {
+  isolation: isolate;
+  margin-inline: -1rem;
+  padding-block: 0.5rem;
+  position: relative;
+}
+
+.progress-round-rail-shell-pinned {
+  position: fixed;
+  inset-inline: 0;
+  top: 0;
+  z-index: 40;
+  background:
+    linear-gradient(180deg, rgba(255, 90, 54, 0.07), transparent 18rem), linear-gradient(90deg, rgba(52, 211, 196, 0.07), transparent 24rem),
+    linear-gradient(180deg, var(--page-bg-2) 0%, var(--page-bg) 100%);
+  background-attachment: fixed;
+}
+
 .progress-round-rail-link {
   min-width: max-content;
   flex-shrink: 0;
   border: 1px solid var(--line);
   padding: 0.5rem 0.75rem;
   text-align: left;
-  transition: border-color 150ms ease, color 150ms ease, background-color 150ms ease;
+  transition:
+    border-color 150ms ease,
+    color 150ms ease,
+    background-color 150ms ease;
 }
 
 .progress-round-rail-link:hover,
@@ -378,6 +441,26 @@
   margin-top: 1.25rem;
 }
 
+.progress-round-results-heading {
+  color: var(--accent-3);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+}
+
+.progress-round-result-grid {
+  display: grid;
+  gap: 0 2rem;
+  margin-top: 0.75rem;
+}
+
+.progress-round-empty {
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
 .progress-result-row {
   display: grid;
   grid-template-columns: 4.5rem minmax(0, 1fr);
@@ -386,22 +469,408 @@
   padding-block: 1rem;
 }
 
+.progress-result-image,
+.progress-result-image-fallback {
+  height: 4.5rem;
+  width: 4.5rem;
+  border: 1px solid var(--line);
+}
+
+.progress-result-image-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--panel-2);
+}
+
+.progress-result-image-label {
+  color: var(--accent-2);
+  font-family: "Arial Narrow", Arial, Helvetica, sans-serif;
+  font-size: 1.25rem;
+  font-weight: 900;
+}
+
+.progress-result-copy {
+  min-width: 0;
+}
+
+.progress-result-title {
+  overflow: hidden;
+  color: var(--ink);
+  font-family: "Arial Narrow", Arial, Helvetica, sans-serif;
+  font-size: 1.25rem;
+  font-weight: 900;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.progress-result-accent,
+.progress-result-meta {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 0.875rem;
+  line-height: 1.5rem;
+}
+
+.progress-result-accent {
+  margin-top: 0.5rem;
+  color: var(--accent-3);
+}
+
+.progress-result-meta {
+  margin-top: 0.25rem;
+  color: var(--muted);
+}
+
+.progress-stat-card {
+  border: 1px solid var(--accent-3);
+  background: transparent;
+  padding: 1rem;
+  box-shadow: inset 0 0 0 1px rgba(52, 211, 196, 0.18);
+}
+
+.progress-stat-card-yellow {
+  border-color: var(--accent-2);
+  box-shadow: inset 0 0 0 1px rgba(255, 216, 77, 0.18);
+}
+
+.progress-stat-label {
+  color: var(--accent-3);
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+.progress-stat-value {
+  margin-top: 0.75rem;
+  color: var(--ink);
+  font-family: "Arial Narrow", Arial, Helvetica, sans-serif;
+  font-size: 1.25rem;
+  font-weight: 900;
+  line-height: 1.03;
+}
+
+.progress-stat-tie {
+  display: block;
+  margin-top: 0.25rem;
+  color: var(--muted);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: lowercase;
+}
+
+.progress-stat-detail {
+  margin-top: 0.75rem;
+  color: var(--muted);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 0.875rem;
+  line-height: 1.5rem;
+}
+
+.progress-round-actions {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.progress-round-share {
+  position: relative;
+}
+
+.progress-round-share-button {
+  display: inline-flex;
+  height: 3rem;
+  align-items: center;
+  gap: 0.5rem;
+  padding-inline: 1rem;
+  font-size: 0.875rem;
+}
+
+.progress-round-share-icon {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.progress-round-share-dot {
+  width: 0.25rem;
+  height: 0.25rem;
+  border-radius: 9999px;
+  background: currentColor;
+}
+
+.progress-round-share-menu,
+.progress-round-share-message {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 0.5rem);
+  z-index: 20;
+  border: 1px solid var(--line);
+  background: var(--panel);
+}
+
+.progress-round-share-menu {
+  width: 14rem;
+  border-color: var(--line-strong);
+  padding: 0.5rem;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.3);
+}
+
+.progress-round-share-message {
+  width: 12rem;
+  padding: 0.5rem 0.75rem;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.progress-round-share-action {
+  display: block;
+  width: 100%;
+  padding: 0.75rem;
+  color: var(--muted);
+  font-size: 0.875rem;
+  text-align: left;
+}
+
+.progress-round-share-action:hover,
+.progress-round-share-action:focus-visible {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--ink);
+}
+
+.progress-round-share-action-accent {
+  color: var(--accent-3);
+}
+
+.progress-round-reveal-copy,
+.progress-round-message {
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.progress-round-reveal-copy {
+  max-width: 28rem;
+  margin-top: 0.5rem;
+  font-size: 0.75rem;
+  line-height: 1.25rem;
+}
+
+.progress-share-card-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.75);
+  padding: 1.5rem 1rem;
+}
+
+.progress-share-card-dialog {
+  width: 100%;
+  max-width: 64rem;
+  max-height: calc(100vh - 2rem);
+  overflow-y: auto;
+  border: 1px solid var(--line);
+  background: var(--page-bg);
+  padding: 1rem;
+  box-shadow: 0 20px 80px rgba(0, 0, 0, 0.55);
+}
+
+.progress-share-card-header,
+.progress-share-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.progress-share-card-header {
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.progress-share-card-title {
+  margin-top: 0.5rem;
+  font-family: "Arial Narrow", Arial, Helvetica, sans-serif;
+  font-size: 1.5rem;
+  font-weight: 900;
+}
+
+.progress-share-card-preview {
+  aspect-ratio: 16 / 9;
+  margin-top: 1rem;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  padding: 1.5rem;
+}
+
+.progress-share-card-canvas {
+  display: grid;
+  height: 100%;
+  grid-template-rows: auto 1fr auto;
+  border: 1px solid var(--line-strong);
+  padding: 1.5rem;
+}
+
+.progress-share-card-brand,
+.progress-share-card-kicker,
+.progress-share-card-heading,
+.progress-share-card-value {
+  font-family: "Arial Narrow", Arial, Helvetica, sans-serif;
+  font-weight: 900;
+}
+
+.progress-share-card-brand,
+.progress-share-card-kicker {
+  font-size: 1.875rem;
+}
+
+.progress-share-card-kicker {
+  margin-top: 2rem;
+  color: var(--accent-2);
+}
+
+.progress-share-card-heading {
+  max-width: 48rem;
+  margin-top: 0.75rem;
+  font-size: 2.25rem;
+  line-height: 1;
+}
+
+.progress-share-card-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.progress-share-card-item {
+  min-height: 8rem;
+  border: 1px solid var(--accent-3);
+  padding: 1rem;
+}
+
+.progress-share-card-item-yellow {
+  border-color: var(--accent-2);
+}
+
+.progress-share-card-label {
+  color: var(--accent-3);
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.progress-share-card-item-body {
+  display: grid;
+  grid-template-columns: 4.25rem minmax(0, 1fr);
+  gap: 1rem;
+  margin-top: 0.75rem;
+}
+
+.progress-share-card-image,
+.progress-share-card-image-fallback {
+  width: 4.25rem;
+  height: 4.25rem;
+  border: 1px solid var(--line);
+}
+
+.progress-share-card-image-fallback {
+  background: var(--panel-2);
+}
+
+.progress-share-card-copy {
+  min-width: 0;
+}
+
+.progress-share-card-value {
+  font-size: 1.5rem;
+  line-height: 1.05;
+}
+
+.progress-share-card-detail {
+  overflow: hidden;
+  margin-top: 0.5rem;
+  color: var(--muted);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.progress-share-card-actions {
+  align-items: center;
+  margin-top: 1rem;
+}
+
+.progress-share-card-message {
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
 @media (min-width: 768px) {
-  .progress-round-stat-rail { display: none; }
-  .progress-round-stat-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .progress-round-stat-rail {
+    display: none;
+  }
+  .progress-round-stat-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .progress-round-result-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .progress-share-card-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (min-width: 1280px) {
-  .progress-round-stat-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .progress-round-stat-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
 }
 
 @media (min-width: 1024px) {
-  .progress-round-card { scroll-margin-top: 1.5rem; }
-  .progress-round-layout { grid-template-columns: minmax(15rem, 17rem) minmax(0, 1fr); align-items: start; }
-  .progress-round-rail { flex-direction: column; overflow: visible; padding-inline: 0; }
-  .progress-round-rail-link { min-width: 0; }
-  .progress-round-rail-title { font-size: 1.125rem; }
-  .progress-round-rail-status { font-size: 0.6875rem; letter-spacing: 0.16em; }
+  .progress-round-card {
+    scroll-margin-top: 1.5rem;
+  }
+  .progress-round-layout {
+    grid-template-columns: minmax(15rem, 17rem) minmax(0, 1fr);
+    align-items: start;
+  }
+  .progress-round-sidebar-heading {
+    display: block;
+    border-block: 1px solid var(--line);
+    padding-block: 1rem;
+  }
+  .progress-round-rail-anchor {
+    height: auto;
+  }
+  .progress-round-rail-shell {
+    margin-inline: 0;
+    margin-top: 0.75rem;
+    padding-block: 0;
+    position: static;
+  }
+  .progress-round-rail {
+    flex-direction: column;
+    overflow: visible;
+    padding-inline: 0;
+  }
+  .progress-round-rail-link {
+    min-width: 0;
+  }
+  .progress-round-rail-title {
+    font-size: 1.125rem;
+  }
+  .progress-round-rail-status {
+    font-size: 0.6875rem;
+    letter-spacing: 0.16em;
+  }
 }
 
 .results-table.results-scoring-table thead th {

@@ -7,7 +7,7 @@ import type {
   ImgHTMLAttributes,
   KeyboardEventHandler,
   ReactNode,
-  RefAttributes
+  RefAttributes,
 } from "react";
 
 /** Merge a primitive's own props with the props of its chosen rendered element. */
@@ -142,7 +142,7 @@ export type StatusPillProps = { children?: ReactNode };
 
 /** The modal drawer shell shared by temporary editing and management surfaces. */
 export type SideDrawerProps = {
-  size?: "narrow" | "wide";
+  size?: "narrow" | "wide" | "xwide";
   title: string;
   description?: string;
   onClose: () => void;

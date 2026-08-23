@@ -1,6 +1,6 @@
+/** Public contracts for reusable bracket presentation components. */
 import type { ElementType, MouseEvent } from "react";
 
-/** Public contracts for reusable bracket presentation components. */
 export type CompletedBracketCardProps = {
   tournament: {
     title: string;

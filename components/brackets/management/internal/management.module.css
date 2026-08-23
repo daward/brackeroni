@@ -1,0 +1,152 @@
+.statusStack {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.managementCard {
+  transition: opacity 150ms ease;
+}
+
+.managementCardActive {
+  border-bottom: 1px solid var(--line);
+  background: var(--panel-2);
+  padding: 1.25rem;
+}
+
+.managementCardActive:last-child,
+.managementCardComplete:last-child {
+  border-bottom: 0;
+}
+
+.managementCardComplete {
+  border-bottom: 1px solid rgba(86, 80, 72, 0.9);
+  background: transparent;
+  padding: 1.25rem;
+}
+
+.managementCardMuted {
+  opacity: 0.45;
+}
+
+.managementCardHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.managementCardTitle {
+  min-width: 0;
+}
+
+.managementCardMeta {
+  text-align: right;
+}
+
+.managementCardStatus {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.managementCardStatusDot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 999px;
+}
+
+.managementCardStatusSaved,
+.managementCardStatusActive {
+  background: var(--accent-3);
+}
+
+.managementCardStatusMuted {
+  background: var(--muted);
+}
+
+.managementCardAudience,
+.managementCardCompleted {
+  margin-top: 0.5rem;
+  font-size: 0.6875rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.managementCardAudience {
+  color: var(--accent-3);
+}
+
+.managementCardAudienceComplete {
+  margin-top: 0;
+}
+
+.managementCardCompleted {
+  color: var(--muted);
+}
+.collapsedDraft {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1.25rem;
+  margin-top: 1rem;
+}
+.collapsedMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.completedSection {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+.completedContent {
+  min-width: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+.resultsMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.draftActions {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 1rem;
+  border-top: 1px solid var(--line);
+  padding-top: 1rem;
+}
+.draftActionButtons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+@media (min-width: 1024px) {
+  .completedSection {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+@media (min-width: 1280px) {
+  .draftActions {
+    flex-direction: row;
+    align-items: flex-end;
+    justify-content: space-between;
+  }
+  .draftActionButtons {
+    justify-content: flex-end;
+  }
+}

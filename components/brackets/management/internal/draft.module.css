@@ -1,0 +1,262 @@
+.surface {
+  border: 1px solid var(--line);
+  background: var(--panel);
+  padding: 1rem;
+}
+
+.section {
+  margin-top: 1rem;
+}
+
+.heading {
+  font-family: "Arial Narrow", Arial, Helvetica, sans-serif;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent-3);
+}
+
+.helper {
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+  line-height: 1.5rem;
+  color: var(--muted);
+}
+
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.poolActions {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.inviteRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border: 1px solid var(--line);
+  background: var(--panel-2);
+  padding: 1rem;
+}
+
+.lobbyHeading,
+.lobbySubheading,
+.inviteName,
+.inviteStatus {
+  font-family: "Arial Narrow", Arial, Helvetica, sans-serif;
+}
+
+.lobbyHeading {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--accent-3);
+}
+
+.lobbyContent {
+  margin-top: 0.75rem;
+}
+
+.lobbyEmpty {
+  font-size: 0.875rem;
+  color: var(--muted);
+}
+
+.lobbySubheading {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent-3);
+}
+
+.inviteList {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.inviteIdentity {
+  min-width: 0;
+}
+
+.inviteName {
+  overflow: hidden;
+  font-size: 0.875rem;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.inviteEmail {
+  overflow: hidden;
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muted);
+}
+
+.inviteStatus {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent-2);
+}
+
+.settingsGrid {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.headingWithMargin {
+  margin-bottom: 0.75rem;
+}
+
+.settingsHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.ruleSummary,
+.lockedNotice {
+  font-size: 0.6875rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.ruleSummary {
+  color: var(--muted);
+}
+
+.lockedNotice {
+  margin-top: 0.5rem;
+  color: var(--accent-2);
+}
+
+.editRulesButton {
+  border: 1px solid var(--line);
+  padding: 0.5rem 0.75rem;
+  font-family: "Arial Narrow", Arial, Helvetica, sans-serif;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+  transition:
+    border-color 150ms ease,
+    color 150ms ease;
+}
+
+.editRulesButton:hover {
+  border-color: var(--accent);
+  color: var(--accent-2);
+}
+
+.rulesGrid {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.fieldGroup {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.poolMenu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  z-index: 20;
+  width: 16rem;
+  margin-top: 0.5rem;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  padding: 0.5rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+}
+
+.poolMenuList {
+  max-height: 18rem;
+  overflow-y: auto;
+}
+
+.poolMenuItem {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  text-align: left;
+  transition: background-color 150ms ease;
+}
+
+.poolMenuItem:hover {
+  background: var(--panel-3);
+}
+
+.poolMenuCreate {
+  border-bottom: 1px solid var(--line);
+}
+
+.poolMenuItem:disabled {
+  opacity: 0.6;
+}
+
+.poolMenuCurrent {
+  background: var(--panel-3);
+  color: var(--accent-3);
+}
+
+.poolMenuName {
+  display: block;
+  font-size: 0.875rem;
+}
+
+.poolMenuMeta {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.6875rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.poolMenuCurrentLabel {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+}
+
+@media (min-width: 640px) {
+  .rulesGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1280px) {
+  .settingsGrid {
+    grid-template-columns: minmax(0, 18rem) minmax(0, 1fr);
+    align-items: stretch;
+  }
+
+  .rulesGrid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
