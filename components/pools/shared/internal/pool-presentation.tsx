@@ -6,10 +6,5 @@ export function PoolPublishWarning({ visibility }: PoolPublishWarningProps) {
     return null;
   }
 
-  return (
-    <p className={styles.publishWarning}>
-      Publishing locks this pool. After it is published, only an admin can change its contents or
-      settings.
-    </p>
-  );
+  return <p className={styles.publishWarning}>Publishing locks this pool. After it is published, only an admin can change its contents or settings.</p>;
 }

@@ -10,19 +10,8 @@ import { useCandidateTags } from "./use-candidate-tags";
 import styles from "./candidate-manager-panel.module.css";
 import type { CandidateManagerProps, PoolCandidate } from "../types";
 
-export function CandidateManagerPanel({
-  collection,
-  editor,
-  actions,
-  tagManagement,
-  view
-}: CandidateManagerProps) {
-  const {
-    readOnly = false,
-    showTopRule = true,
-    listHeading = null,
-    listEmptyMessage = "No candidates in this pool yet."
-  } = view;
+export function CandidateManagerPanel({ collection, editor, actions, tagManagement, view }: CandidateManagerProps) {
+  const { readOnly = false, showTopRule = true, listHeading = null, listEmptyMessage = "No candidates in this pool yet." } = view;
   const {
     showControl = true,
     openDrawerRequest = false,
@@ -30,20 +19,14 @@ export function CandidateManagerPanel({
     isRemoveTagPending,
     isRemoveLowValueTagsPending,
     onRemoveTag,
-    onRemoveLowValueTags
+    onRemoveLowValueTags,
   } = tagManagement;
-  const {
-    onCreate,
-    onImport,
-    onEdit,
-    onRemove,
-    removingCandidateId = null
-  } = actions;
+  const { onCreate, onImport, onEdit, onRemove, removingCandidateId = null } = actions;
   const [expandedReadOnlyCandidateId, setExpandedReadOnlyCandidateId] = useState<string | null>(null);
   const tags = useCandidateTags({
     candidates: collection.candidates,
     openDrawerRequest,
-    onDrawerRequestHandled
+    onDrawerRequestHandled,
   });
 
   return (
@@ -55,7 +38,7 @@ export function CandidateManagerPanel({
             enabled: showControl,
             count: tags.sortedTags.length,
             readOnly,
-            onOpen: () => tags.setIsDrawerOpen(true)
+            onOpen: () => tags.setIsDrawerOpen(true),
           }}
         />
         <CandidateList
@@ -64,7 +47,7 @@ export function CandidateManagerPanel({
             emptyMessage: listEmptyMessage,
             hasNextPage: collection.hasNextPage,
             isLoadingMore: collection.isLoadingMore,
-            loadMore: collection.loadMore
+            loadMore: collection.loadMore,
           }}
           interaction={{
             readOnly,
@@ -73,13 +56,13 @@ export function CandidateManagerPanel({
             removingCandidateId,
             onCandidateActivate: (candidate: PoolCandidate) => {
               if (readOnly) {
-                setExpandedReadOnlyCandidateId((current) => current === candidate.id ? null : candidate.id);
+                setExpandedReadOnlyCandidateId((current) => (current === candidate.id ? null : candidate.id));
                 return;
               }
 
               onEdit(candidate);
             },
-            onRemoveCandidate: onRemove
+            onRemoveCandidate: onRemove,
           }}
         >
           {!readOnly ? <CandidateCreationCards actions={{ onCreate, onImport }} /> : null}
@@ -93,19 +76,17 @@ export function CandidateManagerPanel({
           lowValueThreshold: tags.lowValueThreshold,
           onClose: () => tags.setIsDrawerOpen(false),
           onActiveFilterChange: tags.setActiveFilter,
-          onLowValueThresholdChange: tags.setLowValueThreshold
+          onLowValueThresholdChange: tags.setLowValueThreshold,
         }}
         management={{
           readOnly,
           isRemoveTagPending,
           isRemoveLowValueTagsPending,
           onRemoveTag,
-          onRemoveLowValueTags
+          onRemoveLowValueTags,
         }}
       />
-      <CandidateEditorForm
-        editor={{ ...editor, readOnly }}
-      />
+      <CandidateEditorForm editor={{ ...editor, readOnly }} />
     </>
   );
 }

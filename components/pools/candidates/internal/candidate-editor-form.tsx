@@ -23,8 +23,10 @@ export function CandidateEditorForm({ editor }: { editor: CandidateEditor & { re
     onClose,
     onSuggestImages,
     onClearImage,
-    onSelectSuggestedImage
+    onSelectSuggestedImage,
   } = editor;
+  const submitLabel = isEditing ? (isSavePending ? "Saving" : "Save Candidate") : isCreatePending ? "Creating" : "Create Candidate";
+
   useEffect(() => {
     if (!isOpen || readOnly) return;
 
@@ -58,20 +60,63 @@ export function CandidateEditorForm({ editor }: { editor: CandidateEditor & { re
       <SideDrawerBody>
         <div className={styles.layout}>
           <form className={styles.formPanel} onSubmit={handleSubmit}>
-            <label className="sr-only" htmlFor="candidate-name">Candidate name</label>
-            <input ref={nameInputRef} id="candidate-name" value={draft.name} onChange={handleNameChange} placeholder="Candidate name" aria-invalid={Boolean(nameError)} aria-describedby={nameError ? nameErrorId : undefined} aria-required="true" className="ui-field ui-field-panel" />
-            {nameError ? <p id={nameErrorId} role="alert" className={styles.validationMessage}>{nameError}</p> : null}
-            <label className="sr-only" htmlFor="candidate-description">Description</label>
-            <textarea id="candidate-description" value={draft.description} onChange={(event) => onDraftChange("description", event.target.value)} placeholder="Description" rows={5} className="ui-field ui-field-panel" />
-            <label className="sr-only" htmlFor="candidate-image-url">Image URL</label>
-            <input id="candidate-image-url" value={draft.imageUrl} onChange={(event) => onDraftChange("imageUrl", event.target.value)} placeholder="Image URL" className="ui-field ui-field-panel" />
-            <label className="sr-only" htmlFor="candidate-tags">Tags, comma-separated</label>
-            <input id="candidate-tags" value={draft.tagsText} onChange={(event) => onDraftChange("tagsText", event.target.value)} placeholder="Tags (comma-separated)" className="ui-field ui-field-panel" />
+            <label className="sr-only" htmlFor="candidate-name">
+              Candidate name
+            </label>
+            <input
+              ref={nameInputRef}
+              id="candidate-name"
+              value={draft.name}
+              onChange={handleNameChange}
+              placeholder="Candidate name"
+              aria-invalid={Boolean(nameError)}
+              aria-describedby={nameError ? nameErrorId : undefined}
+              aria-required="true"
+              className="ui-field ui-field-panel"
+            />
+            {nameError ? (
+              <p id={nameErrorId} role="alert" className={styles.validationMessage}>
+                {nameError}
+              </p>
+            ) : null}
+            <label className="sr-only" htmlFor="candidate-description">
+              Description
+            </label>
+            <textarea
+              id="candidate-description"
+              value={draft.description}
+              onChange={(event) => onDraftChange("description", event.target.value)}
+              placeholder="Description"
+              rows={5}
+              className="ui-field ui-field-panel"
+            />
+            <label className="sr-only" htmlFor="candidate-image-url">
+              Image URL
+            </label>
+            <input
+              id="candidate-image-url"
+              value={draft.imageUrl}
+              onChange={(event) => onDraftChange("imageUrl", event.target.value)}
+              placeholder="Image URL"
+              className="ui-field ui-field-panel"
+            />
+            <label className="sr-only" htmlFor="candidate-tags">
+              Tags, comma-separated
+            </label>
+            <input
+              id="candidate-tags"
+              value={draft.tagsText}
+              onChange={(event) => onDraftChange("tagsText", event.target.value)}
+              placeholder="Tags (comma-separated)"
+              className="ui-field ui-field-panel"
+            />
             <div className={styles.actions}>
               <button type="submit" disabled={isEditing ? isSavePending : isCreatePending} className="ui-button ui-button-primary">
-                {isEditing ? (isSavePending ? "Saving" : "Save Candidate") : isCreatePending ? "Creating" : "Create Candidate"}
+                {submitLabel}
               </button>
-              <button type="button" onClick={onClose} className="ui-button ui-button-muted">Cancel</button>
+              <button type="button" onClick={onClose} className="ui-button ui-button-muted">
+                Cancel
+              </button>
             </div>
             {draft.imageUrl ? (
               <div className={styles.preview}>
@@ -90,7 +135,11 @@ export function CandidateEditorForm({ editor }: { editor: CandidateEditor & { re
                 <button type="button" onClick={onSuggestImages} disabled={imageSuggestionLoading} className="ui-button ui-button-accent">
                   {imageSuggestionLoading ? "Searching" : "Suggest"}
                 </button>
-                {draft.imageUrl ? <button type="button" onClick={onClearImage} className="ui-button ui-button-muted ui-button-compact">Clear</button> : null}
+                {draft.imageUrl ? (
+                  <button type="button" onClick={onClearImage} className="ui-button ui-button-muted ui-button-compact">
+                    Clear
+                  </button>
+                ) : null}
               </div>
             </div>
             {imageSuggestions.length > 0 ? (

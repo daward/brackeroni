@@ -12,7 +12,7 @@ function toDraft(candidate: PoolCandidate): CandidateDraft {
     name: candidate.name,
     description: candidate.description || "",
     imageUrl: candidate.imageUrl || "",
-    tagsText: (candidate.tags || []).join(", ")
+    tagsText: (candidate.tags || []).join(", "),
   };
 }
 

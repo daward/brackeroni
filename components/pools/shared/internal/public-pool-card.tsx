@@ -1,18 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import {
-  useEffect,
-  useState,
-  useTransition,
-  type MouseEvent
-} from "react";
+import { useEffect, useState, useTransition, type MouseEvent } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { ContentCard, ResilientRemoteImage } from "@/components/shared";
-import {
-  addPoolToFavorites,
-  createAndStartFavoriteBracket
-} from "@/lib/client-api/public-pools";
+import { addPoolToFavorites, createAndStartFavoriteBracket } from "@/lib/client-api/public-pools";
 import styles from "./public-pool-card.module.css";
 import type { PublicPoolCardProps } from "../types";
 
@@ -23,17 +15,11 @@ type PreviewOverlay = {
 
 function FavoriteStar({ isFavorited }: { isFavorited: boolean }) {
   return (
-    <span
-      className={`${styles.favoriteStar} ${
-        isFavorited ? styles.favoriteStarFilled : styles.favoriteStarEmpty
-      }`}
-    >
+    <span className={`${styles.favoriteStar} ${isFavorited ? styles.favoriteStarFilled : styles.favoriteStarEmpty}`}>
       <svg
         viewBox="0 0 24 24"
         aria-hidden="true"
-        className={`${styles.favoriteStarOutlineIcon} ${
-          isFavorited ? styles.favoriteStarOutlineHidden : styles.favoriteStarOutlineVisible
-        }`}
+        className={`${styles.favoriteStarOutlineIcon} ${isFavorited ? styles.favoriteStarOutlineHidden : styles.favoriteStarOutlineVisible}`}
         fill="none"
         stroke="currentColor"
         strokeWidth="1.7"
@@ -44,9 +30,7 @@ function FavoriteStar({ isFavorited }: { isFavorited: boolean }) {
       <svg
         viewBox="0 0 24 24"
         aria-hidden="true"
-        className={`${styles.favoriteStarFillIcon} ${
-          isFavorited ? styles.favoriteStarFillVisible : styles.favoriteStarFillHidden
-        }`}
+        className={`${styles.favoriteStarFillIcon} ${isFavorited ? styles.favoriteStarFillVisible : styles.favoriteStarFillHidden}`}
         fill="currentColor"
       >
         <path d="M12 2.8l2.82 5.72 6.31.92-4.56 4.45 1.08 6.29L12 17.2l-5.65 2.98 1.08-6.29L2.87 9.44l6.31-.92L12 2.8z" />
@@ -55,21 +39,13 @@ function FavoriteStar({ isFavorited }: { isFavorited: boolean }) {
   );
 }
 
-export function PublicPoolCard({
-  pool,
-  href = null,
-  favoriteMode = "create",
-  signedIn = false,
-  fillContainer = false
-}: PublicPoolCardProps) {
+export function PublicPoolCard({ pool, href = null, favoriteMode = "create", signedIn = false, fillContainer = false }: PublicPoolCardProps) {
   const router = useRouter();
   const pathname = usePathname();
   const [isFavoriting, startFavoriting] = useTransition();
   const [isCreatingFavoriteBracket, startCreatingFavoriteBracket] = useTransition();
   const previewCandidates = pool.previewCandidates || [];
-  const [visibleIndexes, setVisibleIndexes] = useState(() =>
-    previewCandidates.slice(0, 4).map((_, index) => index)
-  );
+  const [visibleIndexes, setVisibleIndexes] = useState(() => previewCandidates.slice(0, 4).map((_, index) => index));
   const [activeOverlay, setActiveOverlay] = useState<PreviewOverlay | null>(null);
   const [isOverlayVisible, setIsOverlayVisible] = useState(false);
 
@@ -93,21 +69,13 @@ export function PublicPoolCard({
       timeoutId = window.setTimeout(() => {
         const slotPosition = Math.floor(Math.random() * visibleIndexes.length);
         const currentVisibleIndexes = new Set(visibleIndexes);
-        const hiddenIndexes = previewCandidates
-          .map((_, index) => index)
-          .filter((index) => !currentVisibleIndexes.has(index));
-        const replacementPool =
-          hiddenIndexes.length > 0
-            ? hiddenIndexes
-            : previewCandidates
-                .map((_, index) => index)
-                .filter((index) => index !== visibleIndexes[slotPosition]);
-        const nextIndex =
-          replacementPool[Math.floor(Math.random() * replacementPool.length)];
+        const hiddenIndexes = previewCandidates.map((_, index) => index).filter((index) => !currentVisibleIndexes.has(index));
+        const replacementPool = hiddenIndexes.length > 0 ? hiddenIndexes : previewCandidates.map((_, index) => index).filter((index) => index !== visibleIndexes[slotPosition]);
+        const nextIndex = replacementPool[Math.floor(Math.random() * replacementPool.length)];
 
         setActiveOverlay({
           slotPosition,
-          nextIndex
+          nextIndex,
         });
         setIsOverlayVisible(false);
 
@@ -116,11 +84,7 @@ export function PublicPoolCard({
         });
 
         timeoutId = window.setTimeout(() => {
-          setVisibleIndexes((current) =>
-            current.map((candidateIndex, index) =>
-              index === slotPosition ? nextIndex : candidateIndex
-            )
-          );
+          setVisibleIndexes((current) => current.map((candidateIndex, index) => (index === slotPosition ? nextIndex : candidateIndex)));
           setActiveOverlay(null);
           setIsOverlayVisible(false);
           scheduleNext(3200, 5800);
@@ -141,9 +105,7 @@ export function PublicPoolCard({
     };
   }, [previewCandidates, visibleIndexes]);
 
-  const visibleCandidates = visibleIndexes
-    .map((candidateIndex) => previewCandidates[candidateIndex])
-    .filter(Boolean);
+  const visibleCandidates = visibleIndexes.map((candidateIndex) => previewCandidates[candidateIndex]).filter(Boolean);
   const primaryHref = href || `/pools/${pool.id}`;
   const signInHref = `/api/auth/signin?callbackUrl=${encodeURIComponent(pathname || `/pools/${pool.id}`)}`;
 
@@ -188,53 +150,27 @@ export function PublicPoolCard({
 
   return (
     <ContentCard className={`${styles.card} ${fillContainer ? styles.cardFillContainer : ""}`}>
-      <Link
-        href={primaryHref}
-        aria-label={href ? `View ${pool.name}` : `Make bracket from ${pool.name}`}
-        className={styles.primaryLink}
-      />
+      <Link href={primaryHref} aria-label={href ? `View ${pool.name}` : `Make bracket from ${pool.name}`} className={styles.primaryLink} />
       <div className={styles.content}>
         <div className={styles.main}>
           <div className={styles.topline}>
             <p className={styles.meta}>{pool.candidateCount} candidates</p>
             {pool.isFavorited ? (
-              <Link
-                href={`/pools/${pool.favoritePoolId}`}
-                aria-label="Open saved pool"
-                title="Saved in your pools"
-                className={styles.starLink}
-              >
+              <Link href={`/pools/${pool.favoritePoolId}`} aria-label="Open saved pool" title="Saved in your pools" className={styles.starLink}>
                 <FavoriteStar isFavorited />
               </Link>
             ) : favoriteMode === "inline" ? (
               signedIn ? (
-                <button
-                  type="button"
-                  onClick={handleFavorite}
-                  disabled={isFavoriting}
-                  aria-label="Add to favorites"
-                  title="Add to favorites"
-                  className={styles.starButton}
-                >
+                <button type="button" onClick={handleFavorite} disabled={isFavoriting} aria-label="Add to favorites" title="Add to favorites" className={styles.starButton}>
                   <FavoriteStar isFavorited={false} />
                 </button>
               ) : (
-                <Link
-                  href={signInHref}
-                  aria-label="Sign in to add to favorites"
-                  title="Sign in to add to favorites"
-                  className={styles.starLink}
-                >
+                <Link href={signInHref} aria-label="Sign in to add to favorites" title="Sign in to add to favorites" className={styles.starLink}>
                   <FavoriteStar isFavorited={false} />
                 </Link>
               )
             ) : (
-              <Link
-                href={`/pools/${pool.id}`}
-                aria-label="Add to favorites"
-                title="Add to favorites"
-                className={styles.starLink}
-              >
+              <Link href={`/pools/${pool.id}`} aria-label="Add to favorites" title="Add to favorites" className={styles.starLink}>
                 <FavoriteStar isFavorited={false} />
               </Link>
             )}
@@ -242,27 +178,15 @@ export function PublicPoolCard({
           <div className={styles.titleRow}>
             <h3 className={`${styles.title} display-face`}>{pool.name}</h3>
           </div>
-          <p className={styles.description}>
-            {pool.description || "A published pool ready to be turned into new brackets."}
-          </p>
-          <p className={styles.byline}>
-            By {pool.creatorName || pool.creatorEmail}
-          </p>
+          <p className={styles.description}>{pool.description || "A published pool ready to be turned into new brackets."}</p>
+          <p className={styles.byline}>By {pool.creatorName || pool.creatorEmail}</p>
           <div className={styles.actions}>
             {signedIn ? (
-              <button
-                type="button"
-                onClick={handleChooseFavorite}
-                disabled={isCreatingFavoriteBracket}
-                className={`${styles.action} ui-button ui-button-highlight`}
-              >
+              <button type="button" onClick={handleChooseFavorite} disabled={isCreatingFavoriteBracket} className={`${styles.action} ui-button ui-button-highlight`}>
                 {isCreatingFavoriteBracket ? "Creating" : "Find Your Favorite"}
               </button>
             ) : (
-              <Link
-                href={signInHref}
-                className={`${styles.action} ui-button ui-button-highlight`}
-              >
+              <Link href={signInHref} className={`${styles.action} ui-button ui-button-highlight`}>
                 Find Your Favorite
               </Link>
             )}
@@ -270,21 +194,12 @@ export function PublicPoolCard({
         </div>
         <div className={styles.previewGrid}>
           {visibleCandidates.map((candidate, index) => (
-            <div
-              key={`${candidate.id}:${index}`}
-              className={styles.previewTile}
-            >
+            <div key={`${candidate.id}:${index}`} className={styles.previewTile}>
               {candidate.imageUrl ? (
-                <ResilientRemoteImage
-                  src={candidate.imageUrl}
-                  alt={candidate.name}
-                  className={styles.previewImage}
-                />
+                <ResilientRemoteImage src={candidate.imageUrl} alt={candidate.name} className={styles.previewImage} />
               ) : (
                 <div className={styles.previewFallback}>
-                  <p className={styles.previewFallbackName}>
-                    {candidate.name}
-                  </p>
+                  <p className={styles.previewFallbackName}>{candidate.name}</p>
                 </div>
               )}
               {activeOverlay?.slotPosition === index ? (
@@ -292,19 +207,11 @@ export function PublicPoolCard({
                   <ResilientRemoteImage
                     src={previewCandidates[activeOverlay.nextIndex].imageUrl}
                     alt={previewCandidates[activeOverlay.nextIndex].name}
-                    className={`${styles.previewOverlayImage} ${
-                      isOverlayVisible ? styles.previewVisible : styles.previewHidden
-                    }`}
+                    className={`${styles.previewOverlayImage} ${isOverlayVisible ? styles.previewVisible : styles.previewHidden}`}
                   />
                 ) : (
-                  <div
-                    className={`${styles.previewOverlayFallback} ${
-                      isOverlayVisible ? styles.previewVisible : styles.previewHidden
-                    }`}
-                  >
-                    <p className={styles.previewFallbackName}>
-                      {previewCandidates[activeOverlay.nextIndex]?.name}
-                    </p>
+                  <div className={`${styles.previewOverlayFallback} ${isOverlayVisible ? styles.previewVisible : styles.previewHidden}`}>
+                    <p className={styles.previewFallbackName}>{previewCandidates[activeOverlay.nextIndex]?.name}</p>
                   </div>
                 )
               ) : null}

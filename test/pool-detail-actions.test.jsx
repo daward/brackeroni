@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import { PoolDetailActions } from "@/components/pools/detail/internal/pool-detail-actions";
+import { PoolDetailActions } from "@/components/pools/detail";
 
 const pool = {
   id: "pool-1",
@@ -10,14 +10,20 @@ const pool = {
   visibility: "private",
   candidates: [
     { id: "one", name: "Care Bears", tags: ["classic"], sourceUrl: "https://example.com", imageUrl: null },
-    { id: "two", name: "Jem", tags: ["classic", "music"], imageUrl: "https://example.com/jem.jpg" }
-  ]
+    { id: "two", name: "Jem", tags: ["classic", "music"], imageUrl: "https://example.com/jem.jpg" },
+  ],
 };
 
 function renderActions(overrides = {}) {
   const actions = {
-    onViewTags: vi.fn(), onCopyLink: vi.fn(), onImport: vi.fn(), onEnrich: vi.fn(),
-    onFillMissingImages: vi.fn(), onOpenMerge: vi.fn(), onMerge: vi.fn(), onArchive: vi.fn()
+    onViewTags: vi.fn(),
+    onCopyLink: vi.fn(),
+    onImport: vi.fn(),
+    onEnrich: vi.fn(),
+    onFillMissingImages: vi.fn(),
+    onOpenMerge: vi.fn(),
+    onMerge: vi.fn(),
+    onArchive: vi.fn(),
   };
   render(<PoolDetailActions pool={pool} readOnly={false} isPending={() => false} isMergeOpen={false} mergePools={[]} {...actions} {...overrides} />);
   return actions;

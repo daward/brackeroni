@@ -18,7 +18,9 @@
   transition: color 150ms ease;
 }
 
-.trigger:hover { color: var(--accent-2); }
+.trigger:hover {
+  color: var(--accent-2);
+}
 
 .trigger:focus-visible {
   outline: 2px solid var(--accent-2);
@@ -59,7 +61,9 @@
   text-underline-offset: 0.25rem;
 }
 
-.link:hover { color: var(--accent-2); }
+.link:hover {
+  color: var(--accent-2);
+}
 
 .host {
   margin-top: 0.5rem;

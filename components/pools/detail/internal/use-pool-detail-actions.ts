@@ -12,7 +12,7 @@ import {
   removeLowValueTagsFromPoolCandidates,
   removeTagFromPoolCandidates,
   suggestImages,
-  updateCandidateInPool
+  updateCandidateInPool,
 } from "@/lib/client-api/create-workspace";
 
 export type MergePoolOption = {
@@ -51,32 +51,55 @@ function getErrorText(error: unknown, fallback: string) {
 }
 
 /** Pool-level mutations kept separate from the main detail composition hook. */
-export function usePoolDetailActions({ pool, onArchive, onImportFallback, replacePool, updateCandidate, begin, end, isPending, setErrorMessage, setSuccessMessage }: PoolDetailActionOptions) {
+export function usePoolDetailActions({
+  pool,
+  onArchive,
+  onImportFallback,
+  replacePool,
+  updateCandidate,
+  begin,
+  end,
+  isPending,
+  setErrorMessage,
+  setSuccessMessage,
+}: PoolDetailActionOptions) {
   const [mergePools, setMergePools] = useState<MergePoolOption[]>([]);
   const [isMergeOpen, setIsMergeOpen] = useState(false);
 
-  const applyPoolResponse = useCallback(async (request: () => Promise<PoolMutationResponse>, successMessage: (data: PoolMutationResponse) => string) => {
-    try {
-      const data = await request();
-      replacePool(data.item);
-      setSuccessMessage(successMessage(data));
-    } catch (error) {
-      setErrorMessage(getErrorText(error, "Failed to update pool."));
-    }
-  }, [replacePool, setErrorMessage, setSuccessMessage]);
+  const applyPoolResponse = useCallback(
+    async (request: () => Promise<PoolMutationResponse>, successMessage: (data: PoolMutationResponse) => string) => {
+      try {
+        const data = await request();
+        replacePool(data.item);
+        setSuccessMessage(successMessage(data));
+      } catch (error) {
+        setErrorMessage(getErrorText(error, "Failed to update pool."));
+      }
+    },
+    [replacePool, setErrorMessage, setSuccessMessage],
+  );
 
-  const removeTag = useCallback(async (tag: string) => {
-    if (!window.confirm(`Remove the tag "${tag}" from every candidate in this pool?`)) return;
-    await applyPoolResponse(() => removeTagFromPoolCandidates(pool.id, tag), () => `Removed "${tag}" from this pool.`);
-  }, [applyPoolResponse, pool.id]);
+  const removeTag = useCallback(
+    async (tag: string) => {
+      if (!window.confirm(`Remove the tag "${tag}" from every candidate in this pool?`)) return;
+      await applyPoolResponse(
+        () => removeTagFromPoolCandidates(pool.id, tag),
+        () => `Removed "${tag}" from this pool.`,
+      );
+    },
+    [applyPoolResponse, pool.id],
+  );
 
-  const removeLowValueTags = useCallback(async (threshold: number) => {
-    if (!window.confirm(`Remove every tag used by ${threshold} candidate${threshold === 1 ? "" : "s"} or fewer?`)) return;
-    await applyPoolResponse(
-      () => removeLowValueTagsFromPoolCandidates(pool.id, threshold),
-      (data) => data.meta?.removedTagCount ? `Removed ${data.meta.removedTagCount} low-value tags.` : "No tags matched that threshold."
-    );
-  }, [applyPoolResponse, pool.id]);
+  const removeLowValueTags = useCallback(
+    async (threshold: number) => {
+      if (!window.confirm(`Remove every tag used by ${threshold} candidate${threshold === 1 ? "" : "s"} or fewer?`)) return;
+      await applyPoolResponse(
+        () => removeLowValueTagsFromPoolCandidates(pool.id, threshold),
+        (data) => (data.meta?.removedTagCount ? `Removed ${data.meta.removedTagCount} low-value tags.` : "No tags matched that threshold."),
+      );
+    },
+    [applyPoolResponse, pool.id],
+  );
 
   const enrichCandidates = useCallback(async () => {
     const action = "enrich-candidates";
@@ -145,21 +168,24 @@ export function usePoolDetailActions({ pool, onArchive, onImportFallback, replac
     }
   }, [begin, end, isMergeOpen, isPending, pool.id, setErrorMessage]);
 
-  const mergePool = useCallback(async (sourcePoolId: string) => {
-    const action = "merge-pool";
-    if (!sourcePoolId || isPending(action)) return;
-    begin(action);
-    try {
-      const data: PoolMutationResponse = await mergePoolIntoPool(pool.id, sourcePoolId);
-      replacePool(data.item);
-      setIsMergeOpen(false);
-      setSuccessMessage("Pool merged.");
-    } catch (error) {
-      setErrorMessage(getErrorText(error, "Failed to merge pool."));
-    } finally {
-      end(action);
-    }
-  }, [begin, end, isPending, pool.id, replacePool, setErrorMessage, setSuccessMessage]);
+  const mergePool = useCallback(
+    async (sourcePoolId: string) => {
+      const action = "merge-pool";
+      if (!sourcePoolId || isPending(action)) return;
+      begin(action);
+      try {
+        const data: PoolMutationResponse = await mergePoolIntoPool(pool.id, sourcePoolId);
+        replacePool(data.item);
+        setIsMergeOpen(false);
+        setSuccessMessage("Pool merged.");
+      } catch (error) {
+        setErrorMessage(getErrorText(error, "Failed to merge pool."));
+      } finally {
+        end(action);
+      }
+    },
+    [begin, end, isPending, pool.id, replacePool, setErrorMessage, setSuccessMessage],
+  );
 
   const autoFillMissingImages = useCallback(async () => {
     const candidates = pool.candidates.filter((candidate) => !candidate.imageUrl);

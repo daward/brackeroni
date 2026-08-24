@@ -4,13 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { WorkspaceSectionTabs } from "@/components/navigation/workspace-section-tabs";
-import {
-  CandidateManagerPanel,
-  type CandidateActions,
-  type CandidateEditor,
-  type CandidateManagerView,
-  type CandidateTagManagement
-} from "@/components/pools/candidates";
+import { CandidateManagerPanel, type CandidateActions, type CandidateEditor, type CandidateManagerView, type CandidateTagManagement } from "@/components/pools/candidates";
 import { ToastMessages } from "@/components/shared";
 import type { PoolDetailWorkspaceProps } from "../types";
 import { PoolDetailActions } from "./pool-detail-actions";
@@ -24,7 +18,7 @@ export function PoolDetailWorkspace({ initialPool }: PoolDetailWorkspaceProps) {
   const detail = usePoolDetail({
     initialPool,
     onArchive: () => router.push("/pools"),
-    onImportFallback: () => router.push(`/tools/import?poolId=${encodeURIComponent(initialPool.id)}&poolName=${encodeURIComponent(initialPool.name)}`)
+    onImportFallback: () => router.push(`/tools/import?poolId=${encodeURIComponent(initialPool.id)}&poolName=${encodeURIComponent(initialPool.name)}`),
   });
   const { pool } = detail;
   const readOnly = Boolean(pool.isReadOnly);
@@ -42,26 +36,26 @@ export function PoolDetailWorkspace({ initialPool }: PoolDetailWorkspaceProps) {
     onClose: () => detail.setCandidateEditor(null),
     onSuggestImages: () => detail.suggestCandidateImages({ force: true }),
     onClearImage: () => detail.setCandidateDraft((current) => ({ ...current, imageUrl: "" })),
-    onSelectSuggestedImage: (imageUrl) => detail.setCandidateDraft((current) => ({ ...current, imageUrl }))
+    onSelectSuggestedImage: (imageUrl) => detail.setCandidateDraft((current) => ({ ...current, imageUrl })),
   };
   const actions: CandidateActions = {
     onCreate: detail.openCandidateCreator,
     onImport: detail.continueImport,
     onEdit: detail.openCandidateEditor,
     onRemove: detail.removeCandidate,
-    removingCandidateId: detail.candidateCollection.candidates.find((candidate) => detail.isPending(`remove-candidate:${candidate.id}`))?.id || null
+    removingCandidateId: detail.candidateCollection.candidates.find((candidate) => detail.isPending(`remove-candidate:${candidate.id}`))?.id || null,
   };
   const tagManagement: CandidateTagManagement = {
     showControl: false,
     openDrawerRequest: tagRequest,
     onDrawerRequestHandled: () => setTagRequest(false),
     onRemoveTag: detail.removeTag,
-    onRemoveLowValueTags: detail.removeLowValueTags
+    onRemoveLowValueTags: detail.removeLowValueTags,
   };
   const view: CandidateManagerView = {
     readOnly,
     showTopRule: false,
-    listEmptyMessage: "No candidates in this pool yet. Add one or import a list to begin."
+    listEmptyMessage: "No candidates in this pool yet. Add one or import a list to begin.",
   };
 
   return (
@@ -69,7 +63,11 @@ export function PoolDetailWorkspace({ initialPool }: PoolDetailWorkspaceProps) {
       <ToastMessages errorMessage={detail.errorMessage} successMessage={detail.successMessage} />
       <WorkspaceSectionTabs activeView="pools" />
       <PoolDetailHeader pool={pool} draft={detail.poolDraft} readOnly={readOnly} onDraftChange={detail.setPoolDraft} onDraftCommit={detail.savePool}>
-        {pool.candidateCount >= 2 ? <Link href={`/brackets/configuration?poolId=${pool.id}&step=structure`} className="ui-button ui-button-primary">Set up bracket</Link> : null}
+        {pool.candidateCount >= 2 ? (
+          <Link href={`/brackets/configuration?poolId=${pool.id}&step=structure`} className="ui-button ui-button-primary">
+            Set up bracket
+          </Link>
+        ) : null}
         <PoolDetailActions
           pool={pool}
           readOnly={readOnly}

@@ -5,6 +5,7 @@
  * stays private so the workspace can keep a stable, narrow feature boundary.
  */
 export { ExpandedDraftTournamentSection } from "./internal/expanded-draft-tournament-section";
+export { BracketManagementWorkspace } from "./internal/bracket-management-workspace";
 export { TournamentManagementCard } from "./internal/tournament-management-card";
 export { TournamentActionGroup, TournamentMetaRow } from "./internal/tournament-management";
 export { CloseVotingButton, StatusActionRow } from "./internal/status-actions";

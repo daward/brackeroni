@@ -1,4 +1,4 @@
-import { CreatePanels } from "@/components/workspace/create-panels";
+import { BracketManagementWorkspace } from "@/components/brackets";
 import { requireCurrentUserPage } from "@/lib/auth/current-user";
 
 export const metadata = { title: "Brackets | Brackeroni" };
@@ -6,5 +6,5 @@ export const dynamic = "force-dynamic";
 
 export default async function BracketsWorkspacePage() {
   await requireCurrentUserPage("/brackets");
-  return <CreatePanels workspaceView="tournaments" />;
+  return <BracketManagementWorkspace />;
 }

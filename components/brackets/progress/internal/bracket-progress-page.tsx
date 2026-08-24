@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
-import { BracketOutcomeHeader } from "@/components/results/shared/bracket-outcome-header";
+import { BracketOutcomeHeader } from "@/components/brackets/results";
 import { ShareCardModal } from "./share-card-modal";
 import { formatResultModeLabel } from "@/lib/bracket-modes";
 import { formatRoundTitle } from "@/lib/brackets/progress";

@@ -5,13 +5,7 @@ import { parseCandidateTagText } from "@/lib/candidate-tags";
 import { usePaginatedCandidates } from "@/components/pools/candidates";
 import type { CandidateDraft, PoolCandidate } from "@/components/pools/candidates";
 import type { PoolDetail, PoolDraft } from "@/lib/pools/types";
-import {
-  createCandidateInPool,
-  getPool,
-  removeCandidateFromPool,
-  updateCandidateInPool,
-  updatePool
-} from "@/lib/client-api/create-workspace";
+import { createCandidateInPool, getPool, removeCandidateFromPool, updateCandidateInPool, updatePool } from "@/lib/client-api/create-workspace";
 import { usePoolDetailStatus } from "./use-pool-detail-status";
 import { useCandidateImageSuggestions } from "./use-candidate-image-suggestions";
 import { useCandidateEditorState } from "./use-candidate-editor-state";
@@ -34,7 +28,7 @@ export function usePoolDetail({ initialPool, onArchive, onImportFallback }: UseP
   const [poolDraft, setPoolDraft] = useState<PoolDraft>(() => ({
     name: initialPool.name,
     description: initialPool.description || "",
-    visibility: initialPool.visibility || "private"
+    visibility: initialPool.visibility || "private",
   }));
   const editorState = useCandidateEditorState();
   const { candidateDraft, candidateEditor, setCandidateDraft, setCandidateEditor } = editorState;
@@ -42,14 +36,23 @@ export function usePoolDetail({ initialPool, onArchive, onImportFallback }: UseP
   const { imageSuggestions, isImageSuggestionLoading, resetImageSuggestions, suggestCandidateImages } = useCandidateImageSuggestions({
     candidateId: candidateEditor?.id,
     candidateName: candidateDraft.name,
-    onError: setErrorMessage
+    onError: setErrorMessage,
   });
-  const openCandidateCreator = useCallback(() => { editorState.openCandidateCreator(); resetImageSuggestions(); }, [editorState, resetImageSuggestions]);
-  const openCandidateEditor = useCallback((candidate: PoolCandidate) => { editorState.openCandidateEditor(candidate); resetImageSuggestions(); }, [editorState, resetImageSuggestions]);
+  const openCandidateCreator = useCallback(() => {
+    editorState.openCandidateCreator();
+    resetImageSuggestions();
+  }, [editorState, resetImageSuggestions]);
+  const openCandidateEditor = useCallback(
+    (candidate: PoolCandidate) => {
+      editorState.openCandidateEditor(candidate);
+      resetImageSuggestions();
+    },
+    [editorState, resetImageSuggestions],
+  );
   const candidateCollection = usePaginatedCandidates({
     poolId: pool.id,
     candidates: pool.candidates,
-    pagination: pool.candidatePagination
+    pagination: pool.candidatePagination,
   });
 
   const replacePool = useCallback((nextPool: PoolDetail | null | undefined) => {
@@ -58,7 +61,7 @@ export function usePoolDetail({ initialPool, onArchive, onImportFallback }: UseP
     setPoolDraft({
       name: nextPool.name,
       description: nextPool.description || "",
-      visibility: nextPool.visibility || "private"
+      visibility: nextPool.visibility || "private",
     });
   }, []);
 
@@ -72,38 +75,39 @@ export function usePoolDetail({ initialPool, onArchive, onImportFallback }: UseP
     refreshPool().catch((error) => setErrorMessage(error.message || "Failed to load pool."));
   }, [refreshPool]);
 
-  const savePool = useCallback(async (draftOverride?: PoolDraft) => {
-    const draft = draftOverride || poolDraft;
-    const name = draft.name?.trim();
-    const description = draft.description?.trim() || "";
-    const visibility = draft.visibility || pool.visibility || "private";
-    if (!name) {
-      setPoolDraft((current) => ({ ...current, name: pool.name }));
-      return;
-    }
-    if (name === pool.name && description === (pool.description || "") && visibility === pool.visibility) return;
+  const savePool = useCallback(
+    async (draftOverride?: PoolDraft) => {
+      const draft = draftOverride || poolDraft;
+      const name = draft.name?.trim();
+      const description = draft.description?.trim() || "";
+      const visibility = draft.visibility || pool.visibility || "private";
+      if (!name) {
+        setPoolDraft((current) => ({ ...current, name: pool.name }));
+        return;
+      }
+      if (name === pool.name && description === (pool.description || "") && visibility === pool.visibility) return;
 
-    const action = "save-pool";
-    if (isPending(action)) return;
-    begin(action);
-    setErrorMessage("");
-    try {
-      const data = await updatePool(pool.id, { name, description: description || null, visibility });
-      replacePool(data.item);
-      setSuccessMessage("Pool updated.");
-    } catch (error) {
-      setErrorMessage(getErrorText(error, "Failed to update pool."));
-    } finally {
-      end(action);
-    }
-  }, [begin, end, isPending, pool, poolDraft, replacePool]);
+      const action = "save-pool";
+      if (isPending(action)) return;
+      begin(action);
+      setErrorMessage("");
+      try {
+        const data = await updatePool(pool.id, { name, description: description || null, visibility });
+        replacePool(data.item);
+        setSuccessMessage("Pool updated.");
+      } catch (error) {
+        setErrorMessage(getErrorText(error, "Failed to update pool."));
+      } finally {
+        end(action);
+      }
+    },
+    [begin, end, isPending, pool, poolDraft, replacePool],
+  );
 
   const updateCandidate = useCallback((candidateId: string, patch: Partial<PoolCandidate>) => {
     setPool((current) => ({
       ...current,
-      candidates: current.candidates.map((candidate) =>
-        candidate.id === candidateId ? { ...candidate, ...patch } : candidate
-      )
+      candidates: current.candidates.map((candidate) => (candidate.id === candidateId ? { ...candidate, ...patch } : candidate)),
     }));
   }, []);
 
@@ -117,7 +121,7 @@ export function usePoolDetail({ initialPool, onArchive, onImportFallback }: UseP
         name: candidateDraft.name,
         description: candidateDraft.description || null,
         imageUrl: candidateDraft.imageUrl || null,
-        tags: parseCandidateTagText(candidateDraft.tagsText)
+        tags: parseCandidateTagText(candidateDraft.tagsText),
       });
       replacePool(data.item);
       setCandidateDraft({ name: "", description: "", imageUrl: "", tagsText: "" });
@@ -142,7 +146,7 @@ export function usePoolDetail({ initialPool, onArchive, onImportFallback }: UseP
         name: candidateDraft.name,
         description: candidateDraft.description || null,
         imageUrl: candidateDraft.imageUrl || null,
-        tags: parseCandidateTagText(candidateDraft.tagsText)
+        tags: parseCandidateTagText(candidateDraft.tagsText),
       });
       updateCandidate(candidateEditor.id, data.item);
       setCandidateEditor(null);
@@ -154,26 +158,29 @@ export function usePoolDetail({ initialPool, onArchive, onImportFallback }: UseP
     }
   }, [begin, candidateDraft, candidateEditor, end, isPending, pool.id, updateCandidate]);
 
-  const removeCandidate = useCallback(async (candidate: PoolCandidate) => {
-    const action = `remove-candidate:${candidate.id}`;
-    if (isPending(action)) return;
-    begin(action);
-    setErrorMessage("");
-    try {
-      await removeCandidateFromPool(pool.id, candidate.id);
-      setPool((current) => ({
-        ...current,
-        candidateCount: Math.max(current.candidateCount - 1, 0),
-        candidates: current.candidates.filter((item) => item.id !== candidate.id)
-      }));
-      if (candidateEditor?.id === candidate.id) setCandidateEditor(null);
-      setSuccessMessage("Candidate removed.");
-    } catch (error) {
-      setErrorMessage(getErrorText(error, "Failed to remove candidate."));
-    } finally {
-      end(action);
-    }
-  }, [begin, candidateEditor?.id, end, isPending, pool.id]);
+  const removeCandidate = useCallback(
+    async (candidate: PoolCandidate) => {
+      const action = `remove-candidate:${candidate.id}`;
+      if (isPending(action)) return;
+      begin(action);
+      setErrorMessage("");
+      try {
+        await removeCandidateFromPool(pool.id, candidate.id);
+        setPool((current) => ({
+          ...current,
+          candidateCount: Math.max(current.candidateCount - 1, 0),
+          candidates: current.candidates.filter((item) => item.id !== candidate.id),
+        }));
+        if (candidateEditor?.id === candidate.id) setCandidateEditor(null);
+        setSuccessMessage("Candidate removed.");
+      } catch (error) {
+        setErrorMessage(getErrorText(error, "Failed to remove candidate."));
+      } finally {
+        end(action);
+      }
+    },
+    [begin, candidateEditor?.id, end, isPending, pool.id],
+  );
 
   const poolActions = usePoolDetailActions({
     pool,
@@ -185,7 +192,7 @@ export function usePoolDetail({ initialPool, onArchive, onImportFallback }: UseP
     end,
     isPending,
     setErrorMessage,
-    setSuccessMessage
+    setSuccessMessage,
   });
 
   return {
@@ -209,6 +216,6 @@ export function usePoolDetail({ initialPool, onArchive, onImportFallback }: UseP
     setCandidateEditor,
     setPoolDraft,
     successMessage,
-    suggestCandidateImages
+    suggestCandidateImages,
   };
 }

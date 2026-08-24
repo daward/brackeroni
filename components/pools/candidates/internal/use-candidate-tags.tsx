@@ -13,10 +13,7 @@ export function useCandidateTags({ candidates, openDrawerRequest, onDrawerReques
   const sortedTags = useMemo(() => getCandidateTagSummary(candidates), [candidates]);
   const tagCounts = useMemo(() => Object.fromEntries(sortedTags), [sortedTags]);
   const activeTagFilter = activeFilter && tagCounts[activeFilter] ? activeFilter : "";
-  const visibleCandidates = useMemo(
-    () => filterCandidatesByTag(candidates, activeTagFilter),
-    [activeTagFilter, candidates]
-  );
+  const visibleCandidates = useMemo(() => filterCandidatesByTag(candidates, activeTagFilter), [activeTagFilter, candidates]);
 
   useEffect(() => {
     if (!openDrawerRequest) {
@@ -36,6 +33,6 @@ export function useCandidateTags({ candidates, openDrawerRequest, onDrawerReques
     setLowValueThreshold,
     sortedTags,
     tagCounts,
-    visibleCandidates
+    visibleCandidates,
   };
 }

@@ -1,4 +1,4 @@
-import { NewBracketSetupPage } from "@/components/brackets/configuration";
+import { NewBracketSetupPage } from "@/components/brackets";
 import { requireCurrentUserPage } from "@/lib/auth/current-user";
 
 export const metadata = { title: "Bracket Configuration | Brackeroni" };

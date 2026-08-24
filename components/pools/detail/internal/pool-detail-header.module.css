@@ -27,7 +27,9 @@
   color: var(--accent-3);
   text-decoration: underline rgba(52, 211, 196, 0.4);
   text-underline-offset: 0.25rem;
-  transition: color 150ms ease, text-decoration-color 150ms ease;
+  transition:
+    color 150ms ease,
+    text-decoration-color 150ms ease;
 }
 
 .poolsLink:hover {

@@ -12,18 +12,11 @@ export function CandidateTagList({ tags = [], className = "", limit = null }: Ca
   return (
     <div className={`${styles.list} ${className}`.trim()}>
       {visibleTags.map((tag) => (
-        <span
-          key={tag}
-          className={styles.tag}
-        >
+        <span key={tag} className={styles.tag}>
           {tag}
         </span>
       ))}
-      {remainingCount ? (
-        <span className={`${styles.tag} ${styles.remaining}`}>
-          +{remainingCount}
-        </span>
-      ) : null}
+      {remainingCount ? <span className={`${styles.tag} ${styles.remaining}`}>+{remainingCount}</span> : null}
     </div>
   );
 }

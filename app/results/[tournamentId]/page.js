@@ -3,15 +3,12 @@ import { notFound } from "next/navigation";
 import { getOptionalCurrentUser } from "@/lib/auth/current-user";
 import { cookies } from "next/headers";
 import { ANONYMOUS_VOTER_COOKIE } from "@/lib/auth/viewer";
-import { BracketOutcomeNav, BracketProgressPage } from "@/components/brackets/progress";
+import { BracketOutcomeNav, BracketProgressPage } from "@/components/brackets";
 import { listMatchesForTournament } from "@/lib/data/matches";
 import { listRoundsForTournament } from "@/lib/data/rounds";
 import { getParallelTournamentAggregateResults } from "@/lib/data/parallel-tournaments";
 import { getAccessibleTournamentById } from "@/lib/data/tournaments";
-import { ParallelResultsPage } from "@/components/results/parallel-results-page";
-import { ResultsLinkedViewSelect } from "@/components/results/results-linked-view-select";
-import { TournamentScoringPage } from "@/components/results/tournament-scoring-page";
-import { TournamentResultsPage } from "@/components/results/tournament-results-page";
+import { ParallelResultsPage, ResultsLinkedViewSelect, TournamentScoringPage, TournamentResultsPage } from "@/components/brackets";
 import { listTournamentVoterScores } from "@/lib/data/matches";
 import { supportsRoundProgressView } from "@/lib/brackets/progress";
 
@@ -21,15 +18,14 @@ export async function generateMetadata({ params }) {
   const { tournamentId } = await params;
 
   return {
-    title: `Results | ${tournamentId} | Brackeroni`
+    title: `Results | ${tournamentId} | Brackeroni`,
   };
 }
 
 function normalizeStandardView(view, tournament) {
   const isParallelChildResult = Boolean(tournament.parentParallelTournamentId);
   const canShowRounds = !isParallelChildResult && supportsRoundProgressView(tournament.resultMode);
-  const defaultView =
-    tournament.status === "complete" || !canShowRounds ? "results" : "rounds";
+  const defaultView = tournament.status === "complete" || !canShowRounds ? "results" : "rounds";
 
   if (view === "results" || view === "scoring") {
     return view;
@@ -45,8 +41,7 @@ function normalizeStandardView(view, tournament) {
 export default async function TournamentResultsRoute({ params, searchParams }) {
   const { tournamentId } = await params;
   const resolvedSearchParams = (await searchParams) ?? {};
-  const requestedView =
-    typeof resolvedSearchParams.view === "string" ? resolvedSearchParams.view : null;
+  const requestedView = typeof resolvedSearchParams.view === "string" ? resolvedSearchParams.view : null;
   const user = await getOptionalCurrentUser();
   const cookieStore = await cookies();
   const anonymousVoterToken = cookieStore.get(ANONYMOUS_VOTER_COOKIE)?.value ?? null;
@@ -55,7 +50,7 @@ export default async function TournamentResultsRoute({ params, searchParams }) {
     const tournament = await getAccessibleTournamentById({
       tournamentId,
       userId: user?.id ?? null,
-      anonymousVoterToken
+      anonymousVoterToken,
     });
     const selectedView = normalizeStandardView(requestedView, tournament);
 
@@ -73,8 +68,7 @@ export default async function TournamentResultsRoute({ params, searchParams }) {
           tournament.status === "complete" || selectedView === "results"
             ? {}
             : {
-                results:
-                  "Bracket results are only available after the bracket closes. Use Rounds while voting is still in progress."
+                results: "Bracket results are only available after the bracket closes. Use Rounds while voting is still in progress.",
               }
         }
       />
@@ -84,7 +78,7 @@ export default async function TournamentResultsRoute({ params, searchParams }) {
         tournament,
         userId: user?.id ?? null,
         anonymousVoterToken,
-        includeVoteHistory: true
+        includeVoteHistory: true,
       });
 
       return (
@@ -102,25 +96,17 @@ export default async function TournamentResultsRoute({ params, searchParams }) {
     const matchResult = await listMatchesForTournament({
       tournamentId,
       userId: user?.id ?? null,
-      anonymousVoterToken
+      anonymousVoterToken,
     });
 
     if (selectedView === "rounds") {
       const rounds = await listRoundsForTournament({
         tournamentId,
-        userId: user?.id ?? null
+        userId: user?.id ?? null,
       });
       const isCreator = Boolean(user?.id && tournament.creatorUserId === user.id);
 
-      return (
-        <BracketProgressPage
-          tournament={tournament}
-          rounds={rounds}
-          matches={matchResult.matches ?? []}
-          isCreator={isCreator}
-          outcomeNav={viewNav}
-        />
-      );
+      return <BracketProgressPage tournament={tournament} rounds={rounds} matches={matchResult.matches ?? []} isCreator={isCreator} outcomeNav={viewNav} />;
     }
 
     return (
@@ -137,8 +123,8 @@ export default async function TournamentResultsRoute({ params, searchParams }) {
                 {
                   value: "overall",
                   label: "Overall Bracket",
-                  href: `/results/${tournament.parentParallelTournamentId}`
-                }
+                  href: `/results/${tournament.parentParallelTournamentId}`,
+                },
               ]}
             />
           ) : null
@@ -146,9 +132,7 @@ export default async function TournamentResultsRoute({ params, searchParams }) {
         headerNotice={
           !isParallelChildResult && tournament.status === "active" ? (
             <div className="border border-[var(--line)] bg-[var(--panel-2)] px-4 py-3 text-sm leading-6 text-[var(--muted)]">
-              {supportsRoundProgressView(tournament.resultMode)
-                ? "You already voted in the currently available matchup for this bracket."
-                : "This ranking is still being decided."}
+              {supportsRoundProgressView(tournament.resultMode) ? "You already voted in the currently available matchup for this bracket." : "This ranking is still being decided."}
               <span className="ml-2">
                 {supportsRoundProgressView(tournament.resultMode)
                   ? "These are the live results while voting continues."
@@ -165,7 +149,7 @@ export default async function TournamentResultsRoute({ params, searchParams }) {
         tournamentId,
         requestedView,
         hasAuthenticatedUser: Boolean(user?.id),
-        hasAnonymousVoterToken: Boolean(anonymousVoterToken)
+        hasAnonymousVoterToken: Boolean(anonymousVoterToken),
       });
     }
 
@@ -177,7 +161,7 @@ export default async function TournamentResultsRoute({ params, searchParams }) {
       const parallelResults = await getParallelTournamentAggregateResults({
         parallelTournamentId: tournamentId,
         userId: user?.id ?? null,
-        anonymousVoterToken
+        anonymousVoterToken,
       });
 
       return (

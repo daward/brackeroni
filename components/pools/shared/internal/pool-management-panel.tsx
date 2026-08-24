@@ -1,22 +1,17 @@
 "use client";
 
 import { useState, type ChangeEvent } from "react";
-import {
-  describePoolVisibility
-} from "@/lib/pools/visibility";
+import { describePoolVisibility } from "@/lib/pools/visibility";
 import { isGeneratedPoolSourceDescription } from "@/lib/pools/source-description";
 import { InlineTitleField } from "@/components/shared";
-import type {
-  PoolManagementPanelProps,
-  PoolVisibilityPickerProps
-} from "../types";
+import type { PoolManagementPanelProps, PoolVisibilityPickerProps } from "../types";
 import type { PoolDraft, PoolVisibility } from "@/lib/pools/types";
 import styles from "./pool-management-panel.module.css";
 
 const VISIBILITY_OPTIONS: Array<{ value: PoolVisibility; label: string; description: string }> = [
   { value: "private", label: "Private Draft", description: "Only you can see and edit this pool." },
   { value: "public_listed", label: "Publish", description: "Anyone can find this pool." },
-  { value: "public_unlisted", label: "Publish unlisted", description: "Only people with the link can find it." }
+  { value: "public_unlisted", label: "Publish unlisted", description: "Only people with the link can find it." },
 ];
 
 export function PoolVisibilityPicker({ value, onChange, compact = false }: PoolVisibilityPickerProps) {
@@ -79,7 +74,7 @@ export function PoolManagementPanel({
   actionRail = null,
   actionBar = null,
   children,
-  className = ""
+  className = "",
 }: PoolManagementPanelProps) {
   const showTitle = presentation.title?.show ?? true;
   const titlePlaceholder = presentation.title?.placeholder ?? "";
@@ -94,7 +89,7 @@ export function PoolManagementPanel({
     name: draft?.name ?? pool?.name ?? "",
     description: draft?.description ?? pool?.description ?? "",
     visibility: draft?.visibility ?? pool?.visibility ?? "private",
-    ...next
+    ...next,
   });
   const patch = (next: Partial<PoolDraft>) => onDraftChange?.(buildDraft(next));
   const commit = (next: Partial<PoolDraft>) => {
@@ -102,10 +97,7 @@ export function PoolManagementPanel({
     onDraftChange?.(nextDraft);
     onDraftCommit?.(nextDraft);
   };
-  const shouldShowDescription = !isGeneratedPoolSourceDescription(
-    draft?.description ?? pool?.description,
-    pool?.importSourceUrl
-  );
+  const shouldShowDescription = !isGeneratedPoolSourceDescription(draft?.description ?? pool?.description, pool?.importSourceUrl);
 
   return (
     <section className={`${styles.panel} ${showPanelRule ? "" : styles.panelWithoutRule} ${className}`.trim()}>
@@ -117,17 +109,16 @@ export function PoolManagementPanel({
                 value={draft?.name ?? pool.name}
                 placeholder={titlePlaceholder}
                 onChange={(event: ChangeEvent<HTMLInputElement>) => patch({ name: event.target.value })}
-              onBlur={(event: ChangeEvent<HTMLInputElement>) => commit({ name: event.target.value })}
+                onBlur={(event: ChangeEvent<HTMLInputElement>) => commit({ name: event.target.value })}
               />
             ) : null}
             {showSummary ? (
               <>
-                <p className={styles.candidateCount}>
-                  {pool.candidateCount} candidates
-                </p>
+                <p className={styles.candidateCount}>{pool.candidateCount} candidates</p>
                 {showVisibility ? (
                   <p className={styles.visibilitySummary}>
-                    {describePoolVisibility(pool.visibility)}{readOnly ? " · locked" : ""}
+                    {describePoolVisibility(pool.visibility)}
+                    {readOnly ? " · locked" : ""}
                   </p>
                 ) : null}
               </>
@@ -159,13 +150,7 @@ export function PoolManagementPanel({
                     </button>
                   )}
                 </div>
-                {!readOnly && showVisibility ? (
-                  <PoolVisibilityPicker
-                    compact
-                    value={draft?.visibility ?? "private"}
-                      onChange={(visibility) => commit({ visibility })}
-                  />
-                ) : null}
+                {!readOnly && showVisibility ? <PoolVisibilityPicker compact value={draft?.visibility ?? "private"} onChange={(visibility) => commit({ visibility })} /> : null}
               </div>
             ) : !compactDetails ? (
               <div>
@@ -178,12 +163,7 @@ export function PoolManagementPanel({
                   placeholder="Pool description"
                   className={styles.descriptionInput}
                 />
-                {!readOnly && showVisibility ? (
-                  <PoolVisibilityPicker
-                    value={draft?.visibility ?? "private"}
-                    onChange={(visibility) => commit({ visibility })}
-                  />
-                ) : null}
+                {!readOnly && showVisibility ? <PoolVisibilityPicker value={draft?.visibility ?? "private"} onChange={(visibility) => commit({ visibility })} /> : null}
               </div>
             ) : null}
             {actionBar ? <div className={styles.actionBar}>{actionBar}</div> : null}

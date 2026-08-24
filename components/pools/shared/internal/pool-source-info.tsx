@@ -36,12 +36,7 @@ export function PoolSourceInfo({ sourceUrl, sourceTitle }: PoolSourceInfoProps) 
   } catch {}
 
   return (
-    <div
-      ref={containerRef}
-      className={styles.container}
-      onMouseEnter={() => setIsOpen(true)}
-      onMouseLeave={() => setIsOpen(false)}
-    >
+    <div ref={containerRef} className={styles.container} onMouseEnter={() => setIsOpen(true)} onMouseLeave={() => setIsOpen(false)}>
       <button
         type="button"
         aria-label="View import source"
@@ -54,21 +49,9 @@ export function PoolSourceInfo({ sourceUrl, sourceTitle }: PoolSourceInfoProps) 
         i
       </button>
       {isOpen ? (
-        <div
-          id="pool-import-source"
-          role="dialog"
-          aria-label="Import source"
-          className={styles.popover}
-        >
-          <p className={`${styles.label} display-face`}>
-            Imported from
-          </p>
-          <a
-            href={sourceUrl}
-            target="_blank"
-            rel="noreferrer"
-            className={`${styles.link} ui-copy`}
-          >
+        <div id="pool-import-source" role="dialog" aria-label="Import source" className={styles.popover}>
+          <p className={`${styles.label} display-face`}>Imported from</p>
+          <a href={sourceUrl} target="_blank" rel="noreferrer" className={`${styles.link} ui-copy`}>
             {sourceTitle || sourceHost}
           </a>
           {sourceTitle ? <p className={styles.host}>{sourceHost}</p> : null}

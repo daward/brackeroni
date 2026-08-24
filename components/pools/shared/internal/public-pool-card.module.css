@@ -7,8 +7,15 @@
   transition: color 150ms ease;
 }
 
-.cardFillContainer { height: 100%; border-bottom: 0; }
-.primaryLink { position: absolute; z-index: 0; inset: 0; }
+.cardFillContainer {
+  height: 100%;
+  border-bottom: 0;
+}
+.primaryLink {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+}
 
 .content {
   position: relative;
@@ -20,7 +27,11 @@
   pointer-events: none;
 }
 
-.main { display: flex; min-width: 0; flex-direction: column; }
+.main {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
 
 .topline {
   display: flex;
@@ -37,9 +48,17 @@
 }
 
 .starLink,
-.starButton { pointer-events: auto; }
-.starButton { border: 0; padding: 0; background: transparent; }
-.starButton:disabled { opacity: 0.6; }
+.starButton {
+  pointer-events: auto;
+}
+.starButton {
+  border: 0;
+  padding: 0;
+  background: transparent;
+}
+.starButton:disabled {
+  opacity: 0.6;
+}
 
 .favoriteStar {
   position: relative;
@@ -48,12 +67,20 @@
   height: 2rem;
   transition: color 150ms ease;
 }
-.favoriteStarFilled { color: var(--accent-2); }
+.favoriteStarFilled {
+  color: var(--accent-2);
+}
 .favoriteStarFilled:hover,
-.favoriteStarFilled:focus-visible { color: var(--accent-3); }
-.favoriteStarEmpty { color: var(--muted); }
+.favoriteStarFilled:focus-visible {
+  color: var(--accent-3);
+}
+.favoriteStarEmpty {
+  color: var(--muted);
+}
 .favoriteStarEmpty:hover,
-.favoriteStarEmpty:focus-visible { color: var(--accent-2); }
+.favoriteStarEmpty:focus-visible {
+  color: var(--accent-2);
+}
 
 .favoriteStarOutlineIcon,
 .favoriteStarFillIcon {
@@ -64,17 +91,25 @@
   transition: opacity 150ms ease;
 }
 .favoriteStarOutlineVisible,
-.favoriteStarFillVisible { opacity: 1; }
+.favoriteStarFillVisible {
+  opacity: 1;
+}
 .favoriteStarOutlineHidden,
-.favoriteStarFillHidden { opacity: 0; }
+.favoriteStarFillHidden {
+  opacity: 0;
+}
 .starButton:hover .favoriteStarOutlineVisible,
 .starButton:focus-visible .favoriteStarOutlineVisible,
 .starLink:hover .favoriteStarOutlineVisible,
-.starLink:focus-visible .favoriteStarOutlineVisible { opacity: 0; }
+.starLink:focus-visible .favoriteStarOutlineVisible {
+  opacity: 0;
+}
 .starButton:hover .favoriteStarFillHidden,
 .starButton:focus-visible .favoriteStarFillHidden,
 .starLink:hover .favoriteStarFillHidden,
-.starLink:focus-visible .favoriteStarFillHidden { opacity: 1; }
+.starLink:focus-visible .favoriteStarFillHidden {
+  opacity: 1;
+}
 
 .titleRow {
   display: flex;
@@ -83,7 +118,11 @@
   gap: 1rem;
   margin-top: 0.75rem;
 }
-.title { font-size: 1.08rem; font-weight: 900; line-height: 1.08; }
+.title {
+  font-size: 1.08rem;
+  font-weight: 900;
+  line-height: 1.08;
+}
 .description {
   margin-top: 0.75rem;
   color: var(--muted);
@@ -98,7 +137,10 @@
   letter-spacing: 0.16em;
   text-transform: uppercase;
 }
-.actions { margin-top: auto; padding-top: 1rem; }
+.actions {
+  margin-top: auto;
+  padding-top: 1rem;
+}
 .action {
   position: relative;
   z-index: 20;
@@ -109,16 +151,30 @@
   pointer-events: auto;
 }
 
-.previewGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem; }
+.previewGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+}
 .previewTile {
   position: relative;
   overflow: hidden;
   border: 1px solid var(--line-strong);
   background: transparent;
 }
-.previewImage { width: 100%; height: 100%; aspect-ratio: 1; object-fit: cover; }
+.previewImage {
+  width: 100%;
+  height: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+}
 .previewFallback,
-.previewOverlayFallback { display: flex; aspect-ratio: 1; align-items: flex-end; padding: 0.5rem; }
+.previewOverlayFallback {
+  display: flex;
+  aspect-ratio: 1;
+  align-items: flex-end;
+  padding: 0.5rem;
+}
 .previewFallback {
   background: linear-gradient(180deg, rgb(52 211 196 / 8%), rgb(15 15 15 / 90%));
 }
@@ -150,9 +206,16 @@
   object-fit: cover;
   transition: opacity 900ms ease;
 }
-.previewVisible { opacity: 1; }
-.previewHidden { opacity: 0; }
+.previewVisible {
+  opacity: 1;
+}
+.previewHidden {
+  opacity: 0;
+}
 
 @media (min-width: 768px) {
-  .content { grid-template-columns: minmax(0, 1fr) 15rem; align-items: start; }
+  .content {
+    grid-template-columns: minmax(0, 1fr) 15rem;
+    align-items: start;
+  }
 }

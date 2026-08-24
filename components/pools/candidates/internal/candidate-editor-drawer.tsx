@@ -11,11 +11,7 @@ export function CandidateEditorDrawer({ isOpen, isEditing, description, onClose,
   }
 
   return (
-    <SideDrawer
-      title={isEditing ? "Edit Candidate" : "Create Candidate"}
-      description={description ?? undefined}
-      onClose={onClose}
-    >
+    <SideDrawer title={isEditing ? "Edit Candidate" : "Create Candidate"} description={description ?? undefined} onClose={onClose}>
       {children}
     </SideDrawer>
   );

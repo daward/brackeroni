@@ -11,11 +11,7 @@ export function CandidateListToolbar({ list, tags }: Props) {
   return (
     <div className={styles.toolbar}>
       <div>
-        {list.heading ? (
-          <p className={`display-face ${styles.heading}`}>
-            {list.activeFilter ? `${list.heading} · ${list.activeFilter}` : list.heading}
-          </p>
-        ) : null}
+        {list.heading ? <p className={`display-face ${styles.heading}`}>{list.activeFilter ? `${list.heading} · ${list.activeFilter}` : list.heading}</p> : null}
         {list.activeFilter ? <p className={`ui-meta ${styles.filterStatus}`}>Filtered by tag</p> : null}
       </div>
       {tags.enabled && tags.count > 0 ? (

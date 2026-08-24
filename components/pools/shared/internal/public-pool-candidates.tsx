@@ -12,11 +12,7 @@ type CandidatePageResponse = {
   meta?: { hasNextPage?: boolean };
 };
 
-export function PublicPoolCandidates({
-  poolId,
-  initialCandidates,
-  initialPagination
-}: PublicPoolCandidatesProps) {
+export function PublicPoolCandidates({ poolId, initialCandidates, initialPagination }: PublicPoolCandidatesProps) {
   const [candidates, setCandidates] = useState(initialCandidates);
   const [hasNextPage, setHasNextPage] = useState(Boolean(initialPagination?.hasNextPage));
   const [loading, setLoading] = useState(false);
@@ -25,17 +21,11 @@ export function PublicPoolCandidates({
     if (loading || !hasNextPage) return;
     setLoading(true);
     try {
-      const response = await fetch(
-        `/api/pools/${poolId}/candidates?limit=24&offset=${offsetRef.current}`,
-        { cache: "no-store" }
-      );
+      const response = await fetch(`/api/pools/${poolId}/candidates?limit=24&offset=${offsetRef.current}`, { cache: "no-store" });
       if (!response.ok) throw new Error("Failed to load candidates.");
       const data = (await response.json()) as CandidatePageResponse;
       const items = data.items ?? [];
-      setCandidates((current) => [
-        ...current,
-        ...items.filter((item) => !current.some((candidate) => candidate.id === item.id))
-      ]);
+      setCandidates((current) => [...current, ...items.filter((item) => !current.some((candidate) => candidate.id === item.id))]);
       offsetRef.current += items.length;
       setHasNextPage(Boolean(data.meta?.hasNextPage) && items.length > 0);
     } finally {
@@ -48,15 +38,11 @@ export function PublicPoolCandidates({
       <div className={styles.grid}>
         {candidates.map((candidate) => (
           <article key={candidate.id} className={styles.card}>
-            {candidate.imageUrl ? (
-              <ResilientRemoteImage src={candidate.imageUrl} alt={candidate.name} className={styles.image} />
-            ) : null}
+            {candidate.imageUrl ? <ResilientRemoteImage src={candidate.imageUrl} alt={candidate.name} className={styles.image} /> : null}
             <div className={styles.content}>
               <p className={`${styles.name} display-face`}>{candidate.name}</p>
               <CandidateTagList tags={candidate.tags} className={styles.tags} />
-              {candidate.description ? (
-                <p className={styles.description}>{candidate.description}</p>
-              ) : null}
+              {candidate.description ? <p className={styles.description}>{candidate.description}</p> : null}
             </div>
           </article>
         ))}

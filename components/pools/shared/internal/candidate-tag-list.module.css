@@ -1,4 +1,8 @@
-.list { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
 
 .tag {
   border: 1px solid var(--line);
@@ -10,4 +14,6 @@
   text-transform: uppercase;
 }
 
-.remaining { color: var(--muted); }
+.remaining {
+  color: var(--muted);
+}

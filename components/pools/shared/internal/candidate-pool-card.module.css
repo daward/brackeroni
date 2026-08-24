@@ -10,7 +10,9 @@
   background: var(--panel);
 }
 
-.hasImage { min-height: 16rem; }
+.hasImage {
+  min-height: 16rem;
+}
 
 .action {
   flex: 1;
@@ -27,7 +29,11 @@
   backdrop-filter: blur(2px);
 }
 
-.title { font-size: 1rem; font-weight: 900; line-height: 1.05; }
+.title {
+  font-size: 1rem;
+  font-weight: 900;
+  line-height: 1.05;
+}
 
 .source,
 .remove {
@@ -45,9 +51,19 @@
   backdrop-filter: blur(2px);
 }
 
-.source { right: 0.75rem; transition: color 150ms ease, border-color 150ms ease; }
-.source:hover { border-color: var(--accent-3); color: var(--accent-3); }
-.tags { margin-top: 0.45rem; }
+.source {
+  right: 0.75rem;
+  transition:
+    color 150ms ease,
+    border-color 150ms ease;
+}
+.source:hover {
+  border-color: var(--accent-3);
+  color: var(--accent-3);
+}
+.tags {
+  margin-top: 0.45rem;
+}
 
 .description {
   display: -webkit-box;
@@ -60,12 +76,28 @@
   line-height: 1.35;
 }
 
-.expanded .description { -webkit-line-clamp: unset; }
+.expanded .description {
+  -webkit-line-clamp: unset;
+}
 .remove {
   left: 0.75rem;
   opacity: 0;
-  transition: opacity 150ms ease, border-color 150ms ease, color 150ms ease;
+  transition:
+    opacity 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease;
 }
 .container:hover .remove,
-.container:focus-within .remove { opacity: 1; }
-.remove:hover { border-color: var(--accent); color: var(--accent); }
+.container:focus-within .remove {
+  opacity: 1;
+}
+.remove:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.removePending {
+  font-size: 0.625rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}

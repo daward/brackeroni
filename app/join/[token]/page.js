@@ -1,31 +1,9 @@
-import { notFound } from "next/navigation";
-import { ShareLinkWaitingRoom } from "@/components/sharing/share-link-waiting-room";
-import { getCurrentUser, requireCurrentUserPage } from "@/lib/auth/current-user";
-import { getShareLinkTarget } from "@/lib/data/share-links";
+import { BracketJoinPage } from "@/components/brackets";
 
 export const metadata = {
-  title: "Join Bracket | Brackeroni"
+  title: "Join Bracket | Brackeroni",
 };
 
 export const dynamic = "force-dynamic";
 
-export default async function JoinBracketPage({ params }) {
-  const { token } = await params;
-  await requireCurrentUserPage(`/join/${token}`);
-  const user = await getCurrentUser();
-
-  try {
-    const item = await getShareLinkTarget({
-      token,
-      userId: user.id
-    });
-
-    return <ShareLinkWaitingRoom token={token} initialItem={item} />;
-  } catch (error) {
-    if (error.message === "NOT_FOUND") {
-      notFound();
-    }
-
-    throw error;
-  }
-}
+export default BracketJoinPage;
