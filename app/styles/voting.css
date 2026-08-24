@@ -44,17 +44,16 @@
   left: 0;
   right: 0;
   height: 6px;
-  background:
-    linear-gradient(
-      to bottom,
-      var(--line-strong) 0,
-      var(--line-strong) 1px,
-      transparent 1px,
-      transparent 4px,
-      rgba(86, 80, 72, 0.82) 4px,
-      rgba(86, 80, 72, 0.82) 5px,
-      transparent 5px
-    );
+  background: linear-gradient(
+    to bottom,
+    var(--line-strong) 0,
+    var(--line-strong) 1px,
+    transparent 1px,
+    transparent 4px,
+    rgba(86, 80, 72, 0.82) 4px,
+    rgba(86, 80, 72, 0.82) 5px,
+    transparent 5px
+  );
 }
 
 .vote-kicker {
@@ -116,59 +115,15 @@
 }
 
 .vote-tournament-choice {
-  display: flex;
-  min-height: 11rem;
-  width: 100%;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: flex-start;
-  border: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.025);
-  padding: 1.25rem;
-  text-align: left;
-  transition:
-    border-color 150ms ease,
-    background-color 150ms ease;
-}
-
-.vote-tournament-choice:hover,
-.vote-tournament-choice:focus-visible {
-  border-color: var(--accent-3);
-  background: rgba(45, 211, 201, 0.06);
-}
-
-.vote-tournament-choice:disabled {
-  cursor: not-allowed;
-  opacity: 0.55;
+  gap: 0;
 }
 
 .vote-tournament-choice-title {
-  font-size: 1.25rem;
-  font-weight: 900;
-  line-height: 1.15;
-  transition: color 150ms ease;
-}
-
-.vote-tournament-choice:hover .vote-tournament-choice-title,
-.vote-tournament-choice:focus-visible .vote-tournament-choice-title {
-  color: var(--accent-3);
+  max-width: 42rem;
 }
 
 .vote-tournament-choice-meta {
-  margin-top: 0.75rem;
-  color: var(--muted);
-  font-size: 0.875rem;
   line-height: 1.5;
-}
-
-.vote-tournament-choice-action {
-  margin-top: auto;
-  padding-top: 1.25rem;
-  color: var(--accent-2);
-  font-size: 0.875rem;
-  font-weight: 900;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
 }
 
 .vote-completed-load-more {
@@ -411,23 +366,6 @@
   font-size: 1.45rem;
   font-weight: 900;
   line-height: 1;
-}
-
-.vote-candidate-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-top: 0.75rem;
-}
-
-.vote-candidate-tag {
-  border: 1px solid var(--line);
-  background: var(--panel-3);
-  padding: 0.25rem 0.5rem;
-  color: var(--accent-3);
-  font-size: 0.625rem;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
 }
 
 .vote-candidate-description {

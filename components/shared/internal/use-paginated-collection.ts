@@ -63,5 +63,5 @@ export function usePaginatedCollection<T>({
     }
   }, [getId, hasNextPage, loadPage, resourceKey]);
 
-  return { items, hasNextPage, isLoadingMore, loadMore };
+  return { items, hasNextPage, isLoadingMore, loadMore, setItems };
 }

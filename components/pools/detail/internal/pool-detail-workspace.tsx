@@ -64,7 +64,7 @@ export function PoolDetailWorkspace({ initialPool }: PoolDetailWorkspaceProps) {
       <WorkspaceSectionTabs activeView="pools" />
       <PoolDetailHeader pool={pool} draft={detail.poolDraft} readOnly={readOnly} onDraftChange={detail.setPoolDraft} onDraftCommit={detail.savePool}>
         {pool.candidateCount >= 2 ? (
-          <Link href={`/brackets/configuration?poolId=${pool.id}&step=structure`} className="ui-button ui-button-primary">
+          <Link href={`/brackets/configuration?poolId=${pool.id}&step=audience`} className="ui-button ui-button-primary">
             Set up bracket
           </Link>
         ) : null}

@@ -13,6 +13,7 @@ export function BracketCreationWizard({
   initialPoolId = "",
   initialConfig = null,
   initialStep = 0,
+  onStepChange,
   fullPage = false,
 }: BracketCreationWizardProps) {
   const wizard = useBracketCreationWizardState({
@@ -20,6 +21,7 @@ export function BracketCreationWizard({
     initialPoolId,
     initialConfig,
     initialStep,
+    onStepChange,
     onCancel,
     onCreate,
   });

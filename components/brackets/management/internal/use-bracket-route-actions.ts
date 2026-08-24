@@ -5,6 +5,16 @@ import type { AppRouterInstance } from "next/dist/shared/lib/app-router-context.
 
 import { favoritePool } from "@/lib/client-api/create-workspace";
 import type {
+  BracketAdvancementMode,
+  BracketPlayStyle,
+  BracketResultMode,
+  BracketSharingMode,
+  BracketTieBreakMode,
+  BracketVisibility,
+} from "@/lib/brackets/types";
+import type { CreatePoolRecordInput } from "./use-bracket-pool-actions";
+import type { DraftBracketOptions } from "./use-tournament-actions";
+import type {
   ActionMarker,
   BracketStageView,
   LoadWorkspace,
@@ -18,9 +28,9 @@ import { getErrorMessage } from "./workspace-internal-types";
 
 type UseBracketRouteActionsProps = {
   beginAction: ActionMarker;
-  createDraftBracket: (options?: Record<string, any>) => Promise<WorkspaceTournament | null>;
+  createDraftBracket: (options?: DraftBracketOptions) => Promise<WorkspaceTournament | null>;
   createDraftBracketFromPool: (pool: WorkspacePool) => Promise<WorkspaceTournament | null>;
-  createPoolRecord: (options?: Record<string, any>) => Promise<WorkspacePool | null>;
+  createPoolRecord: (options?: CreatePoolRecordInput) => Promise<WorkspacePool | null>;
   endAction: ActionMarker;
   loadWorkspace: LoadWorkspace;
   openPool: (poolId: string, options?: { history?: "push" | "replace" }) => void;
@@ -36,6 +46,25 @@ type UseBracketRouteActionsProps = {
   startTransition: TransitionStartFunction;
   tournaments: WorkspaceTournament[];
 };
+
+const SHARING_MODES = new Set<BracketSharingMode>(["private", "with_friends"]);
+const VISIBILITY_MODES = new Set<BracketVisibility>(["private", "public_listed", "public_unlisted"]);
+const RESULT_MODES = new Set<BracketResultMode>([
+  "winner_only",
+  "full_ranking",
+  "partial_ranking",
+  "fast_full_rank",
+  "parallel_full_ranking",
+  "parallel_partial_ranking",
+]);
+const PLAY_STYLES = new Set<BracketPlayStyle>(["fixed_bracket", "reseed"]);
+const TIE_BREAK_MODES = new Set<BracketTieBreakMode>(["higher_seed_wins", "random"]);
+const ADVANCEMENT_MODES = new Set<BracketAdvancementMode>(["vote_winner", "manual_winner"]);
+
+function getSearchParamValue<T extends string>(searchParams: ReadonlyURLSearchParams | null, key: string, allowed: Set<T>, fallback: T): T {
+  const value = searchParams?.get(key);
+  return value && allowed.has(value as T) ? (value as T) : fallback;
+}
 
 export function useBracketRouteActions({
   beginAction,
@@ -190,13 +219,13 @@ export function useBracketRouteActions({
 
     startTransition(async () => {
       const createdBracket = await createDraftBracket({
-        sharingMode: searchParams?.get("sharingMode") || "private",
-        visibility: searchParams?.get("visibility") || "private",
+        sharingMode: getSearchParamValue(searchParams, "sharingMode", SHARING_MODES, "private"),
+        visibility: getSearchParamValue(searchParams, "visibility", VISIBILITY_MODES, "private"),
         votingAccess: searchParams?.get("votingAccess") || "signed_in_only",
-        resultMode: searchParams?.get("resultMode") || "winner_only",
-        advancementMode: searchParams?.get("advancementMode") || "vote_winner",
-        playStyle: searchParams?.get("playStyle") || "fixed_bracket",
-        tieBreakMode: searchParams?.get("tieBreakMode") || "higher_seed_wins",
+        resultMode: getSearchParamValue(searchParams, "resultMode", RESULT_MODES, "winner_only"),
+        advancementMode: getSearchParamValue(searchParams, "advancementMode", ADVANCEMENT_MODES, "vote_winner"),
+        playStyle: getSearchParamValue(searchParams, "playStyle", PLAY_STYLES, "fixed_bracket"),
+        tieBreakMode: getSearchParamValue(searchParams, "tieBreakMode", TIE_BREAK_MODES, "higher_seed_wins"),
       });
 
       if (!createdBracket?.id) {

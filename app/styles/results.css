@@ -329,6 +329,144 @@
   text-transform: uppercase;
 }
 
+.results-scoreboard-table-button {
+  text-align: left;
+}
+
+.results-scoring-summary-shell,
+.results-scoring-body {
+  margin-top: 1.5rem;
+}
+
+.results-score-list,
+.results-voter-history-list {
+  display: block;
+}
+
+.results-score-list > li,
+.results-voter-history-item {
+  border-top: 1px solid var(--line);
+}
+
+.results-score-list > li:last-child,
+.results-voter-history-item:last-child {
+  border-bottom: 1px solid var(--line);
+}
+
+.results-score-list-button {
+  display: grid;
+  width: 100%;
+  grid-template-columns: 2rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.75rem;
+  padding-block: 1rem;
+  text-align: left;
+}
+
+.results-score-list-button-active {
+  color: var(--accent-2);
+}
+
+.results-score-list-rank {
+  color: var(--accent-2);
+  font-size: 1.25rem;
+  font-weight: 900;
+}
+
+.results-score-list-voter {
+  min-width: 0;
+}
+
+.results-score-list-name {
+  display: block;
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 1.125rem;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.results-score-list-email,
+.results-score-list-record {
+  display: block;
+  color: var(--muted);
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.results-score-list-email {
+  overflow: hidden;
+  margin-top: 0.25rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.results-score-list-stats {
+  text-align: right;
+}
+
+.results-score-list-score {
+  display: block;
+  color: var(--ink);
+  font-size: 1.125rem;
+  font-weight: 900;
+}
+
+.results-voter-history-item {
+  padding-block: 1rem;
+}
+
+.results-voter-history-pick {
+  margin-top: 0.5rem;
+  font-size: 1.125rem;
+  font-weight: 900;
+}
+
+.results-voter-history-opponent {
+  margin-top: 0.25rem;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.results-voter-history-result {
+  margin-top: 0.5rem;
+  color: var(--accent-3);
+  font-size: 0.875rem;
+}
+
+.results-voter-summary {
+  border: 1px solid var(--line);
+  background: var(--panel-2);
+  padding: 1rem;
+}
+
+.results-voter-summary-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.5rem 1.25rem;
+  margin-top: 0.5rem;
+}
+
+.results-voter-summary-name {
+  font-size: 1.5rem;
+  font-weight: 900;
+}
+
+.results-voter-summary-email,
+.results-voter-summary-note {
+  margin-top: 0.5rem;
+}
+
+@media (min-width: 768px) {
+  .results-score-list,
+  .results-voter-history-list {
+    display: none;
+  }
+}
+
 .rounds-navigation-rail {
   scrollbar-width: none;
 }

@@ -8,6 +8,17 @@
   position: relative;
   border: 1px solid var(--line);
   background: var(--panel);
+  transition:
+    border-color 150ms ease,
+    background-color 150ms ease;
+}
+
+.action:hover,
+.action:focus-visible {
+  border-color: var(--accent-3);
+  background: rgba(45, 211, 201, 0.06);
+  outline: 2px solid var(--accent-3);
+  outline-offset: 2px;
 }
 
 .hasImage {
@@ -33,6 +44,12 @@
   font-size: 1rem;
   font-weight: 900;
   line-height: 1.05;
+  transition: color 150ms ease;
+}
+
+.action:hover .title,
+.action:focus-visible .title {
+  color: var(--accent-3);
 }
 
 .source,

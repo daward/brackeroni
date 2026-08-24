@@ -6,18 +6,11 @@ import { isParallelResultMode } from "@/lib/bracket-modes";
 import type { BracketDraft, BracketPlayStyle, BracketResultMode, BracketTieBreakMode } from "@/lib/brackets/types";
 import type { WorkspacePool } from "./workspace-internal-types";
 import {
-  archiveParallelTournament,
-  archiveTournament,
-  closeCurrentTournamentRound,
-  openNextTournamentRound,
   createParallelTournament,
   createTournament,
   deleteTournament,
-  rerunTournament,
-  setTournamentMatchWinner,
   startParallelTournament,
   startTournament,
-  syncTournamentWithPool,
   updateParallelTournament,
   updateTournament,
 } from "@/lib/client-api/create-workspace";
@@ -38,8 +31,9 @@ import type {
   WorkspaceTournament,
 } from "./workspace-internal-types";
 import { getErrorMessage } from "./workspace-internal-types";
+import { useTournamentLifecycleActions } from "./use-tournament-lifecycle-actions";
 
-type DraftBracketOptions = Partial<BracketDraft> & {
+export type DraftBracketOptions = Partial<BracketDraft> & {
   seedCandidateIds?: string[] | null;
 };
 
@@ -93,6 +87,12 @@ function inlineDraftFromCreatedTournament(item: WorkspaceTournament): Tournament
   };
 }
 
+function shouldOpenPrivateVoting(tournament: WorkspaceTournament | undefined, draft: TournamentDrafts[string] | null) {
+  const sharingMode = draft?.sharingMode || tournament?.sharingMode || "private";
+  const visibility = draft?.visibility || tournament?.visibility || "private";
+  return sharingMode === "private" && visibility === "private";
+}
+
 export function useTournamentActions({
   router,
   tournaments,
@@ -114,6 +114,23 @@ export function useTournamentActions({
   setSuccessMessage,
   loadWorkspace,
 }: UseTournamentActionsProps) {
+  const lifecycleActions = useTournamentLifecycleActions({
+    tournaments,
+    setWorkspaceView,
+    setTournamentStageView,
+    setExpandedDraftTournamentId,
+    setEditingTournamentTitleId,
+    refreshTournamentMatches,
+    replaceTournamentMatchInWorkspace,
+    replaceTournamentInWorkspace,
+    isActionPending,
+    beginAction,
+    endAction,
+    setErrorMessage,
+    setSuccessMessage,
+    loadWorkspace,
+  });
+
   async function createDraftBracket(options: DraftBracketOptions = {}) {
     if (isActionPending("create-tournament")) {
       return null;
@@ -326,6 +343,7 @@ export function useTournamentActions({
 
     try {
       const data = tournament?.kind === "parallel_parent" ? await startParallelTournament(tournamentId) : await startTournament(tournamentId);
+      const shouldRouteToVoting = shouldOpenPrivateVoting(tournament, bracketDraft);
 
       setTournamentStageView("active");
       setExpandedDraftTournamentId(null);
@@ -335,6 +353,11 @@ export function useTournamentActions({
       }
       setSuccessMessage("Bracket started.");
       await loadWorkspace({ force: true });
+      if (shouldRouteToVoting) {
+        const votePath = tournament?.kind === "parallel_parent" ? `/vote?parallelTournament=${tournamentId}&returnTo=create` : `/vote?tournament=${tournamentId}&returnTo=create`;
+        router.replace(votePath);
+        return;
+      }
       setTimeout(() => {
         tournamentCardRefs.current[tournamentId]?.scrollIntoView({
           behavior: "smooth",
@@ -348,180 +371,11 @@ export function useTournamentActions({
     }
   }
 
-  async function handleSyncTournamentWithPool(tournamentId: string) {
-    const tournament = tournaments.find((entry) => entry.id === tournamentId);
-    if (tournament?.kind === "parallel_parent") {
-      setSuccessMessage("Parallel brackets read directly from their pool. No sync needed.");
-      return;
-    }
-
-    const actionKey = `sync-tournament:${tournamentId}`;
-    if (isActionPending(actionKey)) {
-      return;
-    }
-
-    beginAction(actionKey);
-    setErrorMessage("");
-    setSuccessMessage("");
-
-    try {
-      const data = await syncTournamentWithPool(tournamentId);
-
-      const addedEntryCount = data.meta?.addedEntryCount ?? 0;
-      setSuccessMessage(
-        addedEntryCount > 0
-          ? `Bracket synced with pool. Added ${addedEntryCount} candidate${addedEntryCount === 1 ? "" : "s"}.`
-          : "Bracket synced with pool. No new candidates were added.",
-      );
-      await loadWorkspace({ force: true });
-    } catch (error) {
-      setErrorMessage(getErrorMessage(error, "Failed to sync bracket with pool."));
-    } finally {
-      endAction(actionKey);
-    }
-  }
-
-  async function handleRerunTournament(tournamentId: string) {
-    const actionKey = `rerun-tournament:${tournamentId}`;
-    if (isActionPending(actionKey)) {
-      return;
-    }
-
-    beginAction(actionKey);
-    setErrorMessage("");
-    setSuccessMessage("");
-
-    try {
-      const data = await rerunTournament(tournamentId);
-
-      const rerunId = data.item?.id || null;
-      setWorkspaceView("tournaments");
-      setTournamentStageView("draft");
-      if (rerunId) {
-        setExpandedDraftTournamentId(rerunId);
-        setEditingTournamentTitleId(null);
-      }
-      setSuccessMessage("Rerun draft created.");
-      await loadWorkspace({ force: true });
-    } catch (error) {
-      setErrorMessage(getErrorMessage(error, "Failed to create rerun."));
-    } finally {
-      endAction(actionKey);
-    }
-  }
-
-  async function handleArchiveTournament(tournamentId: string, title: string) {
-    const confirmed = window.confirm(`Archive "${title}"?\n\nThis will hide it from the main views, but keep its data and history.`);
-
-    if (!confirmed) {
-      return;
-    }
-
-    const actionKey = `archive-tournament:${tournamentId}`;
-    if (isActionPending(actionKey)) {
-      return;
-    }
-
-    const tournament = tournaments.find((entry) => entry.id === tournamentId);
-    const isParallelParent = tournament?.kind === "parallel_parent";
-
-    beginAction(actionKey);
-    setErrorMessage("");
-    setSuccessMessage("");
-
-    try {
-      await (isParallelParent ? archiveParallelTournament(tournamentId) : archiveTournament(tournamentId));
-
-      setSuccessMessage("Bracket archived.");
-      await loadWorkspace({ force: true });
-    } catch (error) {
-      setErrorMessage(getErrorMessage(error, "Failed to archive bracket."));
-    } finally {
-      endAction(actionKey);
-    }
-  }
-
-  async function handleCloseCurrentRound(tournamentId: string) {
-    const actionKey = `close-round:${tournamentId}`;
-    if (isActionPending(actionKey)) {
-      return;
-    }
-
-    beginAction(actionKey);
-    setErrorMessage("");
-    setSuccessMessage("");
-
-    try {
-      const data = await closeCurrentTournamentRound(tournamentId);
-      if (data.item) {
-        replaceTournamentInWorkspace(tournamentId, data.item);
-      }
-      await refreshTournamentMatches(tournamentId);
-      setSuccessMessage(data.item?.status === "complete" ? "Bracket complete. Review progress and reveal rounds when ready." : "Round closed and bracket advanced.");
-      await loadWorkspace({ force: true });
-    } catch (error) {
-      setErrorMessage(getErrorMessage(error, "Failed to close the current round."));
-    } finally {
-      endAction(actionKey);
-    }
-  }
-
-  async function handleOpenNextRound(tournamentId: string) {
-    const actionKey = `open-next-round:${tournamentId}`;
-    if (isActionPending(actionKey)) {
-      return;
-    }
-
-    beginAction(actionKey);
-    setErrorMessage("");
-    setSuccessMessage("");
-
-    try {
-      const data = await openNextTournamentRound(tournamentId);
-      if (data.item) {
-        replaceTournamentInWorkspace(tournamentId, data.item);
-      }
-      await refreshTournamentMatches(tournamentId);
-      setSuccessMessage(data.item?.status === "complete" ? "Final results revealed." : "Results revealed and the next round is open.");
-      await loadWorkspace({ force: true });
-    } catch (error) {
-      setErrorMessage(getErrorMessage(error, "Failed to open the next round."));
-    } finally {
-      endAction(actionKey);
-    }
-  }
-  async function handleSetManualMatchWinner(tournamentId: string, matchId: string, winnerEntryId: string | null) {
-    const actionKey = `set-match-winner:${matchId}`;
-    if (isActionPending(actionKey)) {
-      return;
-    }
-
-    beginAction(actionKey);
-    setErrorMessage("");
-    setSuccessMessage("");
-
-    try {
-      const data = await setTournamentMatchWinner(matchId, winnerEntryId);
-      replaceTournamentMatchInWorkspace(tournamentId, data.item);
-      setSuccessMessage("Winner saved.");
-      await loadWorkspace({ force: true });
-    } catch (error) {
-      setErrorMessage(getErrorMessage(error, "Failed to update match winner."));
-    } finally {
-      endAction(actionKey);
-    }
-  }
-
   return {
     createDraftBracket,
     createDraftBracketFromPool,
-    handleArchiveTournament,
-    handleCloseCurrentRound,
-    handleOpenNextRound,
-    handleRerunTournament,
-    handleSetManualMatchWinner,
     handleStartTournament,
-    handleSyncTournamentWithPool,
+    ...lifecycleActions,
     updateTournamentInline,
   };
 }

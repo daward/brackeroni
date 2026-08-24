@@ -1,6 +1,7 @@
 "use client";
 
-import { TournamentActionGroup, TournamentMetaRow } from "./tournament-management";
+import { TournamentActionGroup } from "./tournament-action-group";
+import { TournamentMetaRow } from "./tournament-meta-row";
 import type { CompletedTournamentSectionProps } from "../types";
 import styles from "./management.module.css";
 

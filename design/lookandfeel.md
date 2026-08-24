@@ -24,6 +24,18 @@ Overall style should be flat, sharp, and a little playful. This is not a corpora
 3. Utility panels such as the importer callout can have a stronger outline, but avoid gradients and soft glows.
 4. Filled panels should be reserved for actual content containers, not every heading band.
 
+## Card Families
+
+Cards should be recognizable by product role, not by whichever feature happened to build them first. If a card looks and behaves like an existing family, use that family's shared CSS contract rather than restating its border, hover, title, metadata, and copy rules locally.
+
+1. **List object cards** are for browsable bracket, pool, and voting lists. They should share an object-list style contract: strong title, quiet metadata, readable serif copy, one clear primary click target, and consistent hover/focus behavior. On mobile management pages, this family becomes rule-separated rows on the open canvas.
+2. **Choice cards** are for configuration decisions such as bracket style, result mode, source, access, and versus choices. They use selection state as the main visual signal. Hover should stay minimal and must never compete with selected state.
+3. **Image cards** are for content where imagery carries recognition: completed bracket cards, public pool previews, home matchup cards, and voting candidate cards. These may have stronger image-specific layouts, but title/meta/copy hierarchy should still follow the same type roles.
+4. **History/detail cards** are for results, progress, score history, and round summaries. They can be denser and quieter than list cards because they support reading and comparison rather than primary navigation.
+5. **Utility panels** are for temporary or operational surfaces such as importer callouts, waiting rooms, modals, drawers, and save status panels. They may use stronger outlines, but they should not quietly become another list-card style.
+
+When a new card does not clearly fit one of these families, update this list before introducing the new pattern.
+
 ## Borders and Lines
 
 1. Rules should be crisp and slightly visible; faint lines that disappear are useless.
@@ -103,6 +115,18 @@ Avoid all-caps for:
 4. Editing state should be obvious and should calm down again when editing is finished.
 5. Draft editing should feel persistent and safe, but not permanently expanded.
 
+## Hover And Selection
+
+A hover rule is a design contract, not a decoration. "Define a rule" means both documenting the expected behavior here and implementing it in shared CSS where the pattern is shared. Features should not locally invent hover behavior for shared card, list, tab, or choice patterns.
+
+1. Hover may clarify clickability, but it should not create a second visual meaning.
+2. Selected, active, disabled, loading, and error states always win over hover.
+3. Hover must not dim, remove, or visually contradict the current selected state.
+4. List object cards may use a small border/background/title-color shift on hover and focus-visible. Use the shared list-card contract when available.
+5. Choice cards should use selection as the main signal. Unselected hover should be subtle; selected hover should preserve the selected border and fill.
+6. Management rows on mobile should not gain heavy hover treatments. Touch-first list rows need clear actions and spacing more than desktop hover drama.
+7. Image cards may animate imagery slightly on hover only when it helps recognition and does not cause layout shift.
+
 ## Buttons
 
 1. Save the strongest yellow treatment for the primary action.
@@ -116,6 +140,16 @@ Avoid all-caps for:
 2. Accordions are preferred over long repeated stacks when the user already understands the section labels.
 3. Carousels should behave like normal swipeable mobile rails, not faux carousels with awkward desktop controls.
 4. Indicators for swipeable content should be subtle and familiar. Dots are usually better than clumsy arrows.
+
+## Pagination And Loading
+
+Pagination should be simple, shared, and nearly invisible. Infinite scrolling should not become a feature-specific behavior unless the product interaction is genuinely different.
+
+1. Offset-paginated lists should use the shared pagination collection contract rather than local offset refs and bespoke duplicate filtering.
+2. Infinite-scroll sentinels should use the shared infinite-scroll control. Feature components may pass a semantic class for spacing, but not reimplement the observer.
+3. Loading more items should preserve the existing list layout. Do not insert a large card, modal, or yellow action just to load the next page.
+4. Page size, offset, and `hasNextPage` handling should live in the feature data hook or shared pagination hook, not inside card components.
+5. When pagination appears in brackets, pools, voting, and candidates, the user should experience the same loading rhythm and the same quiet sentinel behavior.
 
 ### Approved create-workspace reference
 
@@ -135,7 +169,7 @@ Treat the current mobile Brackets workspace as the reference composition for man
 Multi-step creation and editing flows are pages, not modals stretched to fit a route.
 
 1. Use the normal page canvas and page hierarchy; do not center a bordered dialog inside it.
-2. A route must have destination-aware navigation such as “Back to Brackets.” Never label route navigation “Close.”
+2. A route must have destination-aware navigation such as "Back to Brackets." Never label route navigation "Close."
 3. Keep step navigation, content, and actions in the normal reading flow. Sticky actions are acceptable when they improve mobile reachability, but modal-style fixed shells are not.
 4. Reuse the established type roles, rules, spacing, and button hierarchy before adding a new pattern.
 5. Before handing off UI work, check the desktop and mobile composition against this document. If a new pattern is needed, document why rather than silently introducing it.
@@ -172,5 +206,9 @@ This is not just a visual preference; it is a maintainability rule.
 3. Do not rely on opaque hashed CSS-module names as the main vocabulary for shared design patterns.
 4. Shared patterns should live in understandable class names such as rails, headers, cards, matchup blocks, and utility button variants.
 5. Utilities are fine for small local adjustments, but the design language should be readable from the class names alone.
+6. Prefer shared CSS contracts for recurring visual objects over a single overgeneralized React component. For example, list cards can share classes for shell, title, meta, copy, action, selected, disabled, and hover states while still being rendered by feature-owned components.
+7. CSS modules are appropriate for feature-only layout, but recurring typography, card, list, rail, tab, button, pagination, and state behavior should graduate to named shared classes.
+8. Arbitrary Tailwind values in JSX are allowed only for genuinely one-off mechanical adjustments. If the value expresses color, type hierarchy, card shape, list spacing, hover behavior, or responsive structure, give it a semantic class.
+9. If a feature needs to break a shared pattern, leave a short reason in the design doc or nearby code. Silent divergence is how the product starts to feel incoherent.
 
 If a pattern appears more than once, give it a real name.

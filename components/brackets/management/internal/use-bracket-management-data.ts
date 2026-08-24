@@ -2,19 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { runSingleFlight } from "@/lib/async/single-flight";
-import { normalizeParallelBracketItem, sortManagedBrackets } from "@/lib/brackets/presentation";
 import { sortManagedPools } from "@/lib/pools/listing";
-import {
-  getParallelTournament,
-  getPool,
-  listParallelTournamentShareLinks,
-  listParallelTournaments,
-  listPools,
-  listTournamentInvites,
-  listTournamentShareLinks,
-  listTournaments,
-} from "@/lib/client-api/create-workspace";
-import { listTournamentMatches } from "@/lib/client-api/voting";
 import type {
   BracketStageView,
   MessageSetter,
@@ -28,19 +16,36 @@ import type {
   WorkspaceTournament,
 } from "./workspace-internal-types";
 import { getErrorMessage } from "./workspace-internal-types";
-
-const POOL_PAGE_SIZE = 24;
-const TOURNAMENT_PAGE_SIZE = 12;
-
-type TournamentPagination = {
-  page: number;
-  pageSize: number;
-  hasNextPage: boolean;
-};
-
-type TournamentStatusCounts = Record<BracketStageView, number>;
-
-type StageCache = Partial<Record<BracketStageView, { items: WorkspaceTournament[]; pagination: TournamentPagination }>>;
+import {
+  appendUniqueTournaments,
+  mergePoolDetailsForList,
+  pruneInvitesForTournaments,
+  pruneMatchesForTournaments,
+  pruneShareLinksForTournaments,
+  removeCandidateFromPoolDetails,
+  removeCandidateFromPoolList,
+  replaceCandidateInPoolDetails,
+  replacePoolInList,
+  replaceTournamentInCache,
+  replaceTournamentInList,
+  replaceTournamentMatch,
+} from "./workspace-data-state";
+import {
+  getParallelTournamentForWorkspace,
+  getPoolForWorkspace,
+  getWorkspaceStatusCounts,
+  hasNextWorkspaceTournamentPage,
+  listParallelTournamentShareLinksForWorkspace,
+  listParallelTournamentsForWorkspace,
+  listTournamentInvitesForWorkspace,
+  listTournamentMatchesForWorkspace,
+  listTournamentShareLinksForWorkspace,
+  listTournamentsForWorkspace,
+  listWorkspacePools,
+  mergeWorkspaceTournaments,
+  TOURNAMENT_PAGE_SIZE,
+} from "./workspace-data-api";
+import type { ListResponse, StageCache, TournamentPagination, TournamentStatusCounts } from "./workspace-data-api";
 
 type UseBracketManagementDataProps = {
   setErrorMessage: MessageSetter;
@@ -86,35 +91,8 @@ export function useBracketManagementData({ setErrorMessage, tournamentStage = "d
   }, [tournamentMatches]);
 
   const removeCandidateFromWorkspace = useCallback((poolId: string, candidateId: string) => {
-    setPools((current) =>
-      sortManagedPools(
-        current.map((pool) =>
-          pool.id === poolId
-            ? {
-                ...pool,
-                candidateCount: Math.max((pool.candidateCount || 0) - 1, 0),
-              }
-            : pool,
-        ),
-      ),
-    );
-
-    setPoolDetails((current) => {
-      const pool = current[poolId];
-
-      if (!pool) {
-        return current;
-      }
-
-      return {
-        ...current,
-        [poolId]: {
-          ...pool,
-          candidateCount: Math.max((pool.candidateCount || 0) - 1, 0),
-          candidates: ("candidates" in pool ? pool.candidates || [] : []).filter((entry) => entry.id !== candidateId),
-        },
-      };
-    });
+    setPools((current) => removeCandidateFromPoolList(current, poolId));
+    setPoolDetails((current) => removeCandidateFromPoolDetails(current, poolId, candidateId));
   }, []);
 
   const replaceCandidateInWorkspace = useCallback((poolId: string, nextCandidate: WorkspacePoolDetail["candidates"][number]) => {
@@ -122,21 +100,7 @@ export function useBracketManagementData({ setErrorMessage, tournamentStage = "d
       return;
     }
 
-    setPoolDetails((current) => {
-      const pool = current[poolId];
-
-      if (!pool) {
-        return current;
-      }
-
-      return {
-        ...current,
-        [poolId]: {
-          ...pool,
-          candidates: ("candidates" in pool ? pool.candidates || [] : []).map((candidate) => (candidate.id === nextCandidate.id ? { ...candidate, ...nextCandidate } : candidate)),
-        },
-      };
-    });
+    setPoolDetails((current) => replaceCandidateInPoolDetails(current, poolId, nextCandidate));
   }, []);
 
   const replacePoolInWorkspace = useCallback((nextPool: WorkspacePool | WorkspacePoolDetail) => {
@@ -144,7 +108,7 @@ export function useBracketManagementData({ setErrorMessage, tournamentStage = "d
       return;
     }
 
-    setPools((current) => sortManagedPools(current.map((pool) => (pool.id === nextPool.id ? { ...pool, ...nextPool } : pool))));
+    setPools((current) => replacePoolInList(current, nextPool));
     setPoolDetails((current) => ({
       ...current,
       [nextPool.id]: nextPool,
@@ -152,16 +116,8 @@ export function useBracketManagementData({ setErrorMessage, tournamentStage = "d
   }, []);
 
   const replaceTournamentInWorkspace = useCallback((tournamentId: string, nextTournament: WorkspaceTournament) => {
-    tournamentStageCacheRef.current = Object.fromEntries(
-      Object.entries(tournamentStageCacheRef.current).map(([stage, cached]) => [
-        stage,
-        {
-          ...cached,
-          items: sortManagedBrackets(cached.items.map((tournament) => (tournament.id === tournamentId ? nextTournament : tournament))),
-        },
-      ]),
-    );
-    setTournaments((current) => sortManagedBrackets(current.map((tournament) => (tournament.id === tournamentId ? nextTournament : tournament))));
+    tournamentStageCacheRef.current = replaceTournamentInCache(tournamentStageCacheRef.current, tournamentId, nextTournament);
+    setTournaments((current) => replaceTournamentInList(current, tournamentId, nextTournament));
   }, []);
 
   const showCachedTournamentStage = useCallback((stage: BracketStageView) => {
@@ -178,18 +134,7 @@ export function useBracketManagementData({ setErrorMessage, tournamentStage = "d
       return;
     }
 
-    setTournamentMatches((current) => {
-      const existingMatches = current[tournamentId] || [];
-
-      if (!existingMatches.length) {
-        return current;
-      }
-
-      return {
-        ...current,
-        [tournamentId]: existingMatches.map((match) => (match.id === nextMatch.id ? { ...match, ...nextMatch } : match)),
-      };
-    });
+    setTournamentMatches((current) => replaceTournamentMatch(current, tournamentId, nextMatch));
   }, []);
 
   const refreshTournamentMatches = useCallback(async (tournamentId: string) => {
@@ -197,7 +142,7 @@ export function useBracketManagementData({ setErrorMessage, tournamentStage = "d
       return [];
     }
 
-    const data = await listTournamentMatches(tournamentId);
+    const data = await listTournamentMatchesForWorkspace(tournamentId);
     const nextMatches = data.items ?? [];
 
     setTournamentMatches((current) => ({
@@ -224,7 +169,7 @@ export function useBracketManagementData({ setErrorMessage, tournamentStage = "d
       withFriendsTournaments
         .filter((tournament) => tournament.kind !== "parallel_parent")
         .map(async (tournament) => {
-          const data = await listTournamentInvites(tournament.id);
+          const data = await listTournamentInvitesForWorkspace(tournament.id);
           return [tournament.id, data.items ?? []];
         }),
     );
@@ -233,7 +178,7 @@ export function useBracketManagementData({ setErrorMessage, tournamentStage = "d
       withFriendsTournaments
         .filter((tournament) => tournament.kind === "parallel_parent")
         .map(async (tournament) => {
-          const data = await getParallelTournament(tournament.id);
+          const data = await getParallelTournamentForWorkspace(tournament.id);
           return [tournament.id, data.item?.participants ?? []];
         }),
     );
@@ -242,7 +187,10 @@ export function useBracketManagementData({ setErrorMessage, tournamentStage = "d
       withFriendsTournaments
         .filter((tournament) => tournament.status === "draft" || tournament.status === "active")
         .map(async (tournament) => {
-          const data = tournament.kind === "parallel_parent" ? await listParallelTournamentShareLinks(tournament.id) : await listTournamentShareLinks(tournament.id);
+          const data =
+            tournament.kind === "parallel_parent"
+              ? await listParallelTournamentShareLinksForWorkspace(tournament.id)
+              : await listTournamentShareLinksForWorkspace(tournament.id);
           return [tournament.id, data.items ?? []];
         }),
     );
@@ -267,7 +215,7 @@ export function useBracketManagementData({ setErrorMessage, tournamentStage = "d
     pendingPoolDetailIdsRef.current.add(poolId);
 
     try {
-      const data = await getPool(poolId, { candidateLimit: 24 } as any);
+      const data = await getPoolForWorkspace(poolId, { candidateLimit: 24 });
       setPoolDetails((current) => ({
         ...current,
         [poolId]: data.item,
@@ -318,7 +266,7 @@ export function useBracketManagementData({ setErrorMessage, tournamentStage = "d
 
       if (needsMatches) {
         tasks.push(
-          listTournamentMatches(tournament.id).then((data: any) => {
+          listTournamentMatchesForWorkspace(tournament.id).then((data) => {
             setTournamentMatches((current) => ({
               ...current,
               [tournament.id]: data.items ?? [],
@@ -330,7 +278,7 @@ export function useBracketManagementData({ setErrorMessage, tournamentStage = "d
       if (needsInvites || needsShareLinks) {
         if (tournament.kind === "parallel_parent") {
           tasks.push(
-            getParallelTournament(tournament.id).then((data: any) => {
+            getParallelTournamentForWorkspace(tournament.id).then((data) => {
               if (needsInvites) {
                 setTournamentInvites((current) => ({
                   ...current,
@@ -341,7 +289,7 @@ export function useBracketManagementData({ setErrorMessage, tournamentStage = "d
           );
         } else if (needsInvites) {
           tasks.push(
-            listTournamentInvites(tournament.id).then((data: any) => {
+            listTournamentInvitesForWorkspace(tournament.id).then((data) => {
               setTournamentInvites((current) => ({
                 ...current,
                 [tournament.id]: data.items ?? [],
@@ -352,7 +300,10 @@ export function useBracketManagementData({ setErrorMessage, tournamentStage = "d
 
         if (needsShareLinks) {
           tasks.push(
-            (tournament.kind === "parallel_parent" ? listParallelTournamentShareLinks(tournament.id) : listTournamentShareLinks(tournament.id)).then((data: any) => {
+            (tournament.kind === "parallel_parent"
+              ? listParallelTournamentShareLinksForWorkspace(tournament.id)
+              : listTournamentShareLinksForWorkspace(tournament.id)
+            ).then((data) => {
               setTournamentShareLinks((current) => ({
                 ...current,
                 [tournament.id]: data.items ?? [],
@@ -390,40 +341,29 @@ export function useBracketManagementData({ setErrorMessage, tournamentStage = "d
 
       return runSingleFlight(workspaceLoadPromiseRef, async () => {
         const tournamentOffset = (tournamentPage - 1) * TOURNAMENT_PAGE_SIZE;
-        const [poolData, tournamentData, parallelTournamentData] = await Promise.all([
-          listPools({ limit: POOL_PAGE_SIZE, offset: 0 }),
-          listTournaments({ limit: TOURNAMENT_PAGE_SIZE, offset: tournamentOffset, status: tournamentStage } as any),
-          listParallelTournaments({
+        const [listedPools, tournamentData, parallelTournamentData] = await Promise.all([
+          listWorkspacePools(),
+          listTournamentsForWorkspace({ limit: TOURNAMENT_PAGE_SIZE, offset: tournamentOffset, status: tournamentStage }),
+          listParallelTournamentsForWorkspace({
             limit: TOURNAMENT_PAGE_SIZE,
             offset: tournamentOffset,
             status: tournamentStage,
-          } as any).catch(() => ({
-            items: [],
-            meta: { hasNextPage: false },
-          })),
+          }).catch(
+            (): ListResponse<WorkspaceTournament> => ({
+              items: [],
+              meta: { hasNextPage: false },
+            }),
+          ),
         ]);
-        const listedPools = sortManagedPools(poolData.items ?? []);
         setPools(listedPools);
-        setPoolDetails((current) => ({
-          ...Object.fromEntries(Object.entries(current).filter(([poolId]) => listedPools.some((pool) => pool.id === poolId))),
-          ...Object.fromEntries(listedPools.map((pool) => [pool.id, current[pool.id] || pool])),
-        }));
+        setPoolDetails((current) => mergePoolDetailsForList(current, listedPools));
         setTournamentPagination({
           page: tournamentPage,
           pageSize: TOURNAMENT_PAGE_SIZE,
-          hasNextPage: Boolean(tournamentData.meta?.hasNextPage || parallelTournamentData.meta?.hasNextPage),
+          hasNextPage: hasNextWorkspaceTournamentPage(tournamentData, parallelTournamentData),
         });
-        const standardCounts = tournamentData.meta?.statusCounts ?? {};
-        const parallelCounts = parallelTournamentData.meta?.statusCounts ?? {};
-        setTournamentStatusCounts({
-          draft: Number(standardCounts.draft ?? 0) + Number(parallelCounts.draft ?? 0),
-          active: Number(standardCounts.active ?? 0) + Number(parallelCounts.active ?? 0),
-          complete: Number(standardCounts.complete ?? 0) + Number(parallelCounts.complete ?? 0),
-        });
-        const normalizedTournaments = sortManagedBrackets([
-          ...(tournamentData.items ?? []).filter((item: any) => !item.parentParallelTournamentId).map((item: any) => ({ ...item, kind: "standard" })),
-          ...(parallelTournamentData.items ?? []).map(normalizeParallelBracketItem),
-        ]);
+        setTournamentStatusCounts(getWorkspaceStatusCounts(tournamentData, parallelTournamentData));
+        const normalizedTournaments = mergeWorkspaceTournaments(tournamentData, parallelTournamentData);
 
         if (tournamentPage === 1) {
           tournamentStageCacheRef.current[tournamentStage] = {
@@ -431,23 +371,17 @@ export function useBracketManagementData({ setErrorMessage, tournamentStage = "d
             pagination: {
               page: tournamentPage,
               pageSize: TOURNAMENT_PAGE_SIZE,
-              hasNextPage: Boolean(tournamentData.meta?.hasNextPage || parallelTournamentData.meta?.hasNextPage),
+              hasNextPage: hasNextWorkspaceTournamentPage(tournamentData, parallelTournamentData),
             },
           };
           setTournaments(normalizedTournaments);
           setLoadedTournamentStage(tournamentStage);
-          setTournamentMatches((current) =>
-            Object.fromEntries(Object.entries(current).filter(([tournamentId]) => normalizedTournaments.some((tournament) => tournament.id === tournamentId))),
-          );
-          setTournamentInvites((current) =>
-            Object.fromEntries(Object.entries(current).filter(([tournamentId]) => normalizedTournaments.some((tournament) => tournament.id === tournamentId))),
-          );
-          setTournamentShareLinks((current) =>
-            Object.fromEntries(Object.entries(current).filter(([tournamentId]) => normalizedTournaments.some((tournament) => tournament.id === tournamentId))),
-          );
+          setTournamentMatches((current) => pruneMatchesForTournaments(current, normalizedTournaments));
+          setTournamentInvites((current) => pruneInvitesForTournaments(current, normalizedTournaments));
+          setTournamentShareLinks((current) => pruneShareLinksForTournaments(current, normalizedTournaments));
         } else {
           setTournaments((current) => {
-            const nextTournaments = sortManagedBrackets([...current, ...normalizedTournaments.filter((tournament) => !current.some((existing) => existing.id === tournament.id))]);
+            const nextTournaments = appendUniqueTournaments(current, normalizedTournaments);
             tournamentStageCacheRef.current[tournamentStage] = {
               items: nextTournaments,
               pagination: {

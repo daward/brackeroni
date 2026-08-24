@@ -1,25 +1,40 @@
 "use client";
 
+import type { BracketPlayStyle } from "@/lib/brackets/types";
 import type { PoolCandidate } from "@/lib/pools/types";
 import { VersusChoice } from "./wizard-choice-controls";
 import { WizardQuestion } from "./wizard-question";
+import choiceStyles from "./wizard-choice.module.css";
 import styles from "./seeding-step.module.css";
 
 type SeedingStepProps = {
+  playStyle: BracketPlayStyle;
   mode: "pool_order" | "custom";
   candidates: PoolCandidate[];
   loading: boolean;
   draggingCandidateId: string | null;
+  onPlayStyleChange: (value: BracketPlayStyle) => void;
   onModeChange: (mode: "pool_order" | "custom") => void;
   onDragStart: (candidateId: string) => void;
   onDragEnd: () => void;
   onDrop: (targetCandidateId: string) => void;
 };
 
-export function SeedingStep({ mode, candidates, loading, draggingCandidateId, onModeChange, onDragStart, onDragEnd, onDrop }: SeedingStepProps) {
+export function SeedingStep({ playStyle, mode, candidates, loading, draggingCandidateId, onPlayStyleChange, onModeChange, onDragStart, onDragEnd, onDrop }: SeedingStepProps) {
   return (
-    <div className="space-y-10">
-      <div className="space-y-3">
+    <div className={choiceStyles.decisionStack}>
+      <div className={choiceStyles.decisionGroup}>
+        <WizardQuestion>How should later rounds be seeded?</WizardQuestion>
+        <VersusChoice
+          value={playStyle}
+          onChange={(value) => onPlayStyleChange(value as BracketPlayStyle)}
+          choices={[
+            { value: "fixed_bracket", title: "Keep the bracket fixed", description: "The original tournament tree stays intact throughout." },
+            { value: "reseed", title: "Reseed each round", description: "The highest seed faces the lowest remaining seed." },
+          ]}
+        />
+      </div>
+      <div className={`${choiceStyles.decisionGroup} ${choiceStyles.decisionGroupSeparated}`}>
         <WizardQuestion>How should entries be seeded?</WizardQuestion>
         <VersusChoice
           value={mode}
@@ -31,8 +46,8 @@ export function SeedingStep({ mode, candidates, loading, draggingCandidateId, on
         />
       </div>
       {mode === "custom" ? (
-        <div className="space-y-4">
-          <div className="space-y-2">
+        <div className={`${choiceStyles.decisionGroup} ${choiceStyles.decisionGroupSeparated}`}>
+          <div className={choiceStyles.decisionGroup}>
             <WizardQuestion>Put contenders in seed order</WizardQuestion>
             <p className={`ui-copy ${styles.helperCopy}`}>Drag a contender onto another to place it before that seed.</p>
           </div>

@@ -2,11 +2,13 @@ import type {
   ChangeEventHandler,
   ComponentPropsWithoutRef,
   ComponentRef,
+  Dispatch,
   ElementType,
   FocusEventHandler,
   ImgHTMLAttributes,
   KeyboardEventHandler,
   ReactNode,
+  SetStateAction,
   RefAttributes,
 } from "react";
 
@@ -93,6 +95,7 @@ export type PaginatedCollection<T> = {
   hasNextPage: boolean;
   isLoadingMore: boolean;
   loadMore: () => Promise<void>;
+  setItems: Dispatch<SetStateAction<T[]>>;
 };
 
 /** Semantic header content with an optional companion action. */

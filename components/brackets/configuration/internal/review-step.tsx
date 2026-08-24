@@ -1,7 +1,7 @@
 "use client";
 
 import { Gauge, Globe2, ListOrdered, LockKeyhole, Trophy, Users } from "lucide-react";
-import type { BracketAdvancementMode, BracketPlayStyle } from "@/lib/brackets/types";
+import type { BracketAdvancementMode, BracketPlayStyle, BracketTieBreakMode } from "@/lib/brackets/types";
 import type { AudienceMode, ResultMode, SeedingMode } from "../types";
 import { WizardQuestion } from "./wizard-question";
 import { WizardReviewItem } from "./wizard-review-item";
@@ -16,21 +16,48 @@ type ReviewStepProps = {
   resultMode: ResultMode;
   seedingMode: SeedingMode;
   advancementMode: BracketAdvancementMode;
+  tieBreakMode: BracketTieBreakMode;
   audienceMode: AudienceMode;
   onTitleChange: (title: string) => void;
+  onStepChange: (step: number) => void;
 };
 
 function getAccessDetails(audienceMode: ReviewStepProps["audienceMode"]) {
   if (audienceMode === "private") {
-    return { icon: LockKeyhole, label: "private", detail: "Only you can see and run it." };
+    return { icon: LockKeyhole, label: "private" };
   }
   if (audienceMode === "friends") {
-    return { icon: Users, label: "Share with friends", detail: "Invite people with a private link." };
+    return { icon: Users, label: "Share with friends" };
   }
-  return { icon: Globe2, label: "public", detail: "Anyone can discover and vote." };
+  return { icon: Globe2, label: "public" };
 }
 
-export function ReviewStep({ title, selectedName, selectedCount, playStyle, resultMode, seedingMode, advancementMode, audienceMode, onTitleChange }: ReviewStepProps) {
+function getWinnersSummary(advancementMode: BracketAdvancementMode, tieBreakMode: BracketTieBreakMode) {
+  if (advancementMode === "manual_winner") {
+    return "You'll choose each winner";
+  }
+  return tieBreakMode === "higher_seed_wins" ? "Highest vote total, with ties broken by higher seed" : "Highest vote total, with ties broken at random";
+}
+
+function getSeedingSummary(playStyle: BracketPlayStyle, seedingMode: SeedingMode) {
+  const laterRounds = playStyle === "reseed" ? "reseed each round" : "fixed bracket";
+  const entries = seedingMode === "custom" ? "custom seed order" : "pool order";
+  return `${laterRounds}, seeded by ${entries}`;
+}
+
+export function ReviewStep({
+  title,
+  selectedName,
+  selectedCount,
+  playStyle,
+  resultMode,
+  seedingMode,
+  advancementMode,
+  tieBreakMode,
+  audienceMode,
+  onTitleChange,
+  onStepChange,
+}: ReviewStepProps) {
   const access = getAccessDetails(audienceMode);
   return (
     <div className={styles.step}>
@@ -46,26 +73,11 @@ export function ReviewStep({ title, selectedName, selectedCount, playStyle, resu
       <div className={styles.reviewSection}>
         <WizardQuestion>Your chosen settings</WizardQuestion>
         <div className={styles.reviewGrid}>
-          <WizardReviewItem icon={Users} label="Contenders" value={selectedName || "New pool"} detail={`${selectedCount} contenders`} />
-          <WizardReviewItem
-            icon={Gauge}
-            label="Format"
-            value={playStyle === "reseed" ? "Reseed each round" : "Keep the bracket fixed"}
-            detail={WIZARD_RESULT_MODE_DETAILS[resultMode].title}
-          />
-          <WizardReviewItem
-            icon={ListOrdered}
-            label="Seeding"
-            value={seedingMode === "custom" ? "Custom seed order" : "Pool order"}
-            detail={seedingMode === "custom" ? "Seed order set in this wizard." : "Candidates begin in their pool order."}
-          />
-          <WizardReviewItem
-            icon={Trophy}
-            label="Winner"
-            value={advancementMode === "vote_winner" ? "Highest vote total" : "You'll choose"}
-            detail={advancementMode === "vote_winner" ? "Votes decide each matchup." : "Record real-world outcomes yourself."}
-          />
-          <WizardReviewItem icon={access.icon} label="Access" value={access.label} detail={access.detail} />
+          <WizardReviewItem icon={Users} label="Contenders" value={selectedName || "New pool"} detail={`${selectedCount} contenders`} onSelect={() => onStepChange(0)} />
+          <WizardReviewItem icon={access.icon} label="Audience" value={access.label} onSelect={() => onStepChange(1)} />
+          <WizardReviewItem icon={Trophy} label="Winners" value={getWinnersSummary(advancementMode, tieBreakMode)} onSelect={() => onStepChange(2)} />
+          <WizardReviewItem icon={ListOrdered} label="Seeding" value={getSeedingSummary(playStyle, seedingMode)} onSelect={() => onStepChange(3)} />
+          <WizardReviewItem icon={Gauge} label="Results" value={WIZARD_RESULT_MODE_DETAILS[resultMode].title} onSelect={() => onStepChange(4)} />
         </div>
       </div>
     </div>

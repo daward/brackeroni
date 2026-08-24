@@ -6,14 +6,13 @@ import type { PoolCandidate } from "@/lib/pools/types";
 import type { AudienceMode, BracketPoolOption, ResultMode, SeedingMode } from "../types";
 import { AccessStep } from "./access-step";
 import { MatchupsStep } from "./matchups-step";
+import { ResultsStep } from "./results-step";
 import { ReviewStep } from "./review-step";
 import { SeedingStep } from "./seeding-step";
 import { SourceSelectionStep } from "./source-selection-step";
-import { StructureStep } from "./structure-step";
 import setupStyles from "./bracket-setup.module.css";
 
-const STEPS = ["Contenders", "Structure", "Matchups", "Seeding", "Access", "Review"];
-const STEP_BUTTON_CLASS = "display-face min-w-0 flex-1 px-2 py-3 text-center text-[10px] font-bold uppercase tracking-[0.12em] sm:text-[11px]";
+const STEPS = ["Contenders", "Audience", "Winners", "Seeding", "Results", "Review"];
 
 type WizardLayoutProps = {
   fullPage: boolean;
@@ -65,17 +64,17 @@ type WizardLayoutProps = {
 export function WizardLayout(props: WizardLayoutProps) {
   const content = getStepContent(props);
   const canContinue = props.step < STEPS.length - 1 && !(props.step === 0 && props.sourceMode === "existing");
-  const shellClassName = props.fullPage ? setupStyles.shell : "max-h-full max-w-2xl border border-[var(--line-strong)] bg-[var(--panel)] shadow-[0_24px_80px_rgba(0,0,0,0.55)]";
+  const shellClassName = props.fullPage ? setupStyles.shell : setupStyles.modalShell;
   return (
-    <div className={props.fullPage ? setupStyles.page : "fixed inset-0 z-50 bg-black/70 px-4 py-4 sm:flex sm:items-center sm:justify-center"}>
-      <section className={`mx-auto flex w-full flex-col overflow-hidden ${shellClassName}`}>
-        <header className={props.fullPage ? setupStyles.header : "flex items-start justify-between gap-4 border-b border-[var(--line)] bg-[var(--panel-3)] px-5 py-4"}>
-          <h1 className="display-face text-2xl font-black uppercase tracking-[0.06em] sm:text-3xl">New bracket</h1>
-          <button type="button" onClick={props.onCancel} className="display-face text-xs font-black uppercase tracking-[0.18em] text-[var(--accent-2)]">
+    <div className={props.fullPage ? setupStyles.page : setupStyles.modalBackdrop}>
+      <section className={`${setupStyles.wizardShell} ${shellClassName}`}>
+        <header className={props.fullPage ? setupStyles.header : setupStyles.modalHeader}>
+          <h1 className={`display-face ${setupStyles.title}`}>New bracket</h1>
+          <button type="button" onClick={props.onCancel} className={`display-face ${setupStyles.cancelButton}`}>
             {props.fullPage ? "Back to Brackets" : "Close"}
           </button>
         </header>
-        <div className={props.fullPage ? setupStyles.steps : "flex border-b border-[var(--line)]"}>
+        <div className={props.fullPage ? setupStyles.steps : setupStyles.modalSteps}>
           {STEPS.map((label, index) => (
             <button
               key={label}
@@ -83,18 +82,18 @@ export function WizardLayout(props: WizardLayoutProps) {
               disabled={index > props.step}
               aria-current={index === props.step ? "step" : undefined}
               onClick={() => index <= props.step && props.onStepChange(index)}
-              className={`${STEP_BUTTON_CLASS} ${getStepClassName(index, props.step)}`}
+              className={`display-face ${setupStyles.stepButton} ${getStepClassName(index, props.step)}`}
             >
               <span className="hidden sm:inline">{index + 1}. </span>
               {label}
             </button>
           ))}
         </div>
-        <div className={props.fullPage ? setupStyles.content : "min-h-0 flex-1 overflow-y-auto px-5 py-5"}>
+        <div className={props.fullPage ? setupStyles.content : setupStyles.modalContent}>
           {content}
-          {props.error ? <p className="mt-4 text-sm text-[var(--accent-2)]">{props.error}</p> : null}
+          {props.error ? <p className={setupStyles.error}>{props.error}</p> : null}
         </div>
-        <footer className={props.fullPage ? setupStyles.actions : "flex items-center justify-between gap-3 border-t border-[var(--line)] px-5 py-4"}>
+        <footer className={props.fullPage ? setupStyles.actions : setupStyles.modalActions}>
           <button type="button" onClick={props.onBack} className="ui-button ui-button-muted">
             {getBackLabel(props.step, props.fullPage)}
           </button>
@@ -115,9 +114,9 @@ export function WizardLayout(props: WizardLayoutProps) {
 }
 
 function getStepClassName(index: number, step: number) {
-  if (index === step) return "border-b-2 border-[var(--accent-2)] text-[var(--ink)]";
-  if (index < step) return "text-[var(--accent-3)] hover:bg-[rgba(52,211,196,0.06)]";
-  return "cursor-default text-[var(--muted)]";
+  if (index === step) return setupStyles.stepActive;
+  if (index < step) return setupStyles.stepComplete;
+  return setupStyles.stepLocked;
 }
 
 function getBackLabel(step: number, fullPage: boolean) {
@@ -146,7 +145,7 @@ function getStepContent(props: WizardLayoutProps) {
         />
       );
     case 1:
-      return <StructureStep playStyle={props.playStyle} resultMode={props.resultMode} onPlayStyleChange={props.onPlayStyleChange} onResultModeChange={props.onResultModeChange} />;
+      return <AccessStep audienceMode={props.audienceMode} onAudienceModeChange={props.onAudienceModeChange} />;
     case 2:
       return (
         <MatchupsStep
@@ -159,10 +158,12 @@ function getStepContent(props: WizardLayoutProps) {
     case 3:
       return (
         <SeedingStep
+          playStyle={props.playStyle}
           mode={props.seedingMode}
           candidates={props.customSeedEntries}
           loading={props.customSeedLoading}
           draggingCandidateId={props.draggingSeedCandidateId}
+          onPlayStyleChange={props.onPlayStyleChange}
           onModeChange={props.onSeedingModeChange}
           onDragStart={props.onSeedDragStart}
           onDragEnd={props.onSeedDragEnd}
@@ -170,7 +171,16 @@ function getStepContent(props: WizardLayoutProps) {
         />
       );
     case 4:
-      return <AccessStep audienceMode={props.audienceMode} onAudienceModeChange={props.onAudienceModeChange} />;
+      return (
+        <ResultsStep
+          playStyle={props.playStyle}
+          resultMode={props.resultMode}
+          advancementMode={props.advancementMode}
+          audienceMode={props.audienceMode}
+          candidateCount={props.selectedCount}
+          onResultModeChange={props.onResultModeChange}
+        />
+      );
     default:
       return (
         <ReviewStep
@@ -181,8 +191,10 @@ function getStepContent(props: WizardLayoutProps) {
           resultMode={props.resultMode}
           seedingMode={props.seedingMode}
           advancementMode={props.advancementMode}
+          tieBreakMode={props.tieBreakMode}
           audienceMode={props.audienceMode}
           onTitleChange={props.onTitleChange}
+          onStepChange={props.onStepChange}
         />
       );
   }

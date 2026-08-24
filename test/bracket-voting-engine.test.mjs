@@ -1,13 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import {
-  buildInitialRound,
-  buildNextRound,
-  buildSwissRound,
-  calculateSwissRoundCount
-} from "../lib/tournament/rounds.js";
+import { buildInitialRound, buildNextRound, buildSwissRound, calculateSwissRoundCount } from "../lib/tournament/rounds.js";
 import { resolveMatchWinner } from "../lib/tournament/match-resolution.js";
+import { estimateTournamentEffort } from "../lib/tournament/effort-estimates.js";
 import { buildSwissStandings } from "../lib/tournament/swiss-standings.js";
 import { advanceTournamentRound } from "../lib/services/tournament-round-progression.js";
 
@@ -34,7 +30,7 @@ function createFakeTx(fixtures) {
       fixtures.updatedMatches.push({
         matchId: values.at(-1),
         winnerEntryId: values[0],
-        resolutionSource: values[1]
+        resolutionSource: values[1],
       });
 
       return [];
@@ -72,7 +68,7 @@ function createFakeTx(fixtures) {
 
       const createdRound = {
         id: fixtures.createdRoundId || "next-round",
-        rankingTargetRank: values[2]
+        rankingTargetRank: values[2],
       };
       fixtures.createdRounds.push(createdRound);
       return [createdRound];
@@ -85,7 +81,7 @@ function createFakeTx(fixtures) {
         status: values[5],
         winnerEntryId: values[6],
         resolutionSource: values[7],
-        pairKey: values[8]
+        pairKey: values[8],
       });
       return [];
     }
@@ -93,7 +89,7 @@ function createFakeTx(fixtures) {
     if (normalizedSql.includes("update tournament_entry set final_rank")) {
       fixtures.finalRankUpdates.push({
         rank: values[0],
-        entryId: values[1]
+        entryId: values[1],
       });
       return [];
     }
@@ -105,12 +101,7 @@ function createFakeTx(fixtures) {
 }
 
 test("initial round pairs top seeds and assigns byes to the strongest seeds", () => {
-  const matches = buildInitialRound([
-    entry("e1", 1),
-    entry("e2", 2),
-    entry("e3", 3),
-    entry("e4", 4)
-  ]);
+  const matches = buildInitialRound([entry("e1", 1), entry("e2", 2), entry("e3", 3), entry("e4", 4)]);
 
   assert.equal(matches.length, 2);
   assert.deepEqual(matches[0], {
@@ -123,7 +114,7 @@ test("initial round pairs top seeds and assigns byes to the strongest seeds", ()
     status: "open",
     resolutionSource: null,
     winnerEntryId: null,
-    pairKey: "round-1-seed-1-4"
+    pairKey: "round-1-seed-1-4",
   });
   assert.deepEqual(matches[1], {
     leftEntryId: "e2",
@@ -135,7 +126,7 @@ test("initial round pairs top seeds and assigns byes to the strongest seeds", ()
     status: "open",
     resolutionSource: null,
     winnerEntryId: null,
-    pairKey: "round-1-seed-2-3"
+    pairKey: "round-1-seed-2-3",
   });
 });
 
@@ -145,20 +136,20 @@ test("initial round pairs entries inside sub-brackets", () => {
       { id: "east-1", seed: 1, subSeed: 0 },
       { id: "east-2", seed: 2, subSeed: 0 },
       { id: "west-1", seed: 3, subSeed: 0 },
-      { id: "west-2", seed: 4, subSeed: 0 }
+      { id: "west-2", seed: 4, subSeed: 0 },
     ],
     {
       subBrackets: [
         { id: "east", index: 0, name: "East" },
-        { id: "west", index: 1, name: "West" }
+        { id: "west", index: 1, name: "West" },
       ],
       entryBrackets: {
         "east-1": "east",
         "east-2": "east",
         "west-1": "west",
-        "west-2": "west"
-      }
-    }
+        "west-2": "west",
+      },
+    },
   );
 
   assert.equal(matches.length, 2);
@@ -172,7 +163,7 @@ test("initial round pairs entries inside sub-brackets", () => {
     status: "open",
     resolutionSource: null,
     winnerEntryId: null,
-    pairKey: "group-east-round-1-seed-1-2"
+    pairKey: "group-east-round-1-seed-1-2",
   });
   assert.deepEqual(matches[1], {
     leftEntryId: "west-1",
@@ -184,7 +175,7 @@ test("initial round pairs entries inside sub-brackets", () => {
     status: "open",
     resolutionSource: null,
     winnerEntryId: null,
-    pairKey: "group-west-round-1-seed-1-2"
+    pairKey: "group-west-round-1-seed-1-2",
   });
 });
 
@@ -193,7 +184,7 @@ test("next round keeps single surviving sub-brackets on bye until cross-bracket 
     [
       { id: "east-winner", seed: 1, subSeed: 0 },
       { id: "west-1", seed: 3, subSeed: 0 },
-      { id: "west-2", seed: 4, subSeed: 0 }
+      { id: "west-2", seed: 4, subSeed: 0 },
     ],
     {
       playStyle: "reseed",
@@ -201,15 +192,15 @@ test("next round keeps single surviving sub-brackets on bye until cross-bracket 
       seedingStructure: {
         subBrackets: [
           { id: "east", index: 0, name: "East" },
-          { id: "west", index: 1, name: "West" }
+          { id: "west", index: 1, name: "West" },
         ],
         entryBrackets: {
           "east-winner": "east",
           "west-1": "west",
-          "west-2": "west"
-        }
-      }
-    }
+          "west-2": "west",
+        },
+      },
+    },
   );
 
   assert.equal(matches.length, 2);
@@ -223,7 +214,7 @@ test("next round keeps single surviving sub-brackets on bye until cross-bracket 
     status: "auto_resolved",
     resolutionSource: "bye",
     winnerEntryId: "east-winner",
-    pairKey: "group-east-round-2-seed-1-bye"
+    pairKey: "group-east-round-2-seed-1-bye",
   });
   assert.deepEqual(matches[1], {
     leftEntryId: "west-1",
@@ -235,7 +226,7 @@ test("next round keeps single surviving sub-brackets on bye until cross-bracket 
     status: "open",
     resolutionSource: null,
     winnerEntryId: null,
-    pairKey: "group-west-round-2-seed-1-2"
+    pairKey: "group-west-round-2-seed-1-2",
   });
 });
 
@@ -243,7 +234,7 @@ test("next round crosses sub-bracket winners once each bracket has one entry lef
   const matches = buildNextRound(
     [
       { id: "east-winner", seed: 1, subSeed: 0 },
-      { id: "west-winner", seed: 3, subSeed: 0 }
+      { id: "west-winner", seed: 3, subSeed: 0 },
     ],
     {
       playStyle: "fixed_bracket",
@@ -251,14 +242,14 @@ test("next round crosses sub-bracket winners once each bracket has one entry lef
       seedingStructure: {
         subBrackets: [
           { id: "east", index: 0, name: "East" },
-          { id: "west", index: 1, name: "West" }
+          { id: "west", index: 1, name: "West" },
         ],
         entryBrackets: {
           "east-winner": "east",
-          "west-winner": "west"
-        }
-      }
-    }
+          "west-winner": "west",
+        },
+      },
+    },
   );
 
   assert.equal(matches.length, 1);
@@ -272,7 +263,7 @@ test("next round crosses sub-bracket winners once each bracket has one entry lef
     status: "open",
     resolutionSource: null,
     winnerEntryId: null,
-    pairKey: "cross-round-3-slot-1-1-2"
+    pairKey: "cross-round-3-slot-1-1-2",
   });
 });
 
@@ -283,7 +274,7 @@ test("Swiss rounds avoid rematches and rotate byes", () => {
       { id: "b", seed: 2, score: 2, buchholz: 3 },
       { id: "c", seed: 3, score: 2, buchholz: 3 },
       { id: "d", seed: 4, score: 2, buchholz: 3 },
-      { id: "e", seed: 5, score: 2, buchholz: 3 }
+      { id: "e", seed: 5, score: 2, buchholz: 3 },
     ],
     {
       roundNumber: 2,
@@ -291,15 +282,15 @@ test("Swiss rounds avoid rematches and rotate byes", () => {
         {
           leftEntryId: "a",
           rightEntryId: "b",
-          winnerEntryId: "a"
+          winnerEntryId: "a",
         },
         {
           leftEntryId: "e",
           rightEntryId: null,
-          winnerEntryId: "e"
-        }
-      ]
-    }
+          winnerEntryId: "e",
+        },
+      ],
+    },
   );
 
   const byeMatch = matches.find((match) => match.rightEntryId === null);
@@ -308,9 +299,7 @@ test("Swiss rounds avoid rematches and rotate byes", () => {
   assert.equal(byeMatch.winnerEntryId, "d");
   assert.equal(byeMatch.status, "auto_resolved");
 
-  const contestedPairs = matches
-    .filter((match) => match.rightEntryId)
-    .map((match) => [match.leftEntryId, match.rightEntryId].sort().join(":"));
+  const contestedPairs = matches.filter((match) => match.rightEntryId).map((match) => [match.leftEntryId, match.rightEntryId].sort().join(":"));
 
   assert.equal(contestedPairs.includes("a:b"), false);
   assert.equal(contestedPairs.length, 2);
@@ -324,21 +313,70 @@ test("Swiss round count stays within the hard cap", () => {
   assert.equal(calculateSwissRoundCount(16), 5);
 });
 
+test("effort estimates count winner-only contested votes and synchronized rounds", () => {
+  assert.deepEqual(
+    estimateTournamentEffort({
+      candidateCount: 24,
+      resultMode: "winner_only",
+      playStyle: "fixed_bracket",
+    }),
+    {
+      candidateCount: 24,
+      resultMode: "winner_only",
+      estimatedVotesPerParticipant: 23,
+      estimatedSynchronizedRounds: 5,
+      synchronized: true,
+      confidence: "high",
+      note: "Byes do not require votes, so the estimate counts only contested matchups.",
+    },
+  );
+});
+
+test("effort estimates use Swiss round count for fast full ranking", () => {
+  const estimate = estimateTournamentEffort({
+    candidateCount: 16,
+    resultMode: "fast_full_rank",
+    playStyle: "fixed_bracket",
+  });
+
+  assert.equal(estimate.estimatedSynchronizedRounds, 5);
+  assert.equal(estimate.estimatedVotesPerParticipant, 40);
+});
+
+test("effort estimates mark parallel ranking as independent", () => {
+  const estimate = estimateTournamentEffort({
+    candidateCount: 8,
+    resultMode: "parallel_full_ranking",
+    playStyle: "fixed_bracket",
+  });
+
+  assert.equal(estimate.estimatedVotesPerParticipant, 16);
+  assert.equal(estimate.estimatedSynchronizedRounds, 0);
+  assert.equal(estimate.synchronized, false);
+});
+
+test("effort estimates keep rounds but clear participant votes for manual advancement", () => {
+  const estimate = estimateTournamentEffort({
+    candidateCount: 8,
+    resultMode: "winner_only",
+    playStyle: "fixed_bracket",
+    advancementMode: "manual_winner",
+  });
+
+  assert.equal(estimate.estimatedVotesPerParticipant, 0);
+  assert.equal(estimate.estimatedSynchronizedRounds, 3);
+});
+
 test("next round uses play style specific pairing rules", () => {
-  const orderedEntries = [
-    entry("a", 1),
-    entry("b", 2),
-    entry("c", 3),
-    entry("d", 4)
-  ];
+  const orderedEntries = [entry("a", 1), entry("b", 2), entry("c", 3), entry("d", 4)];
 
   const fixedBracketMatches = buildNextRound(orderedEntries, {
     playStyle: "fixed_bracket",
-    roundNumber: 2
+    roundNumber: 2,
   });
   const reseedMatches = buildNextRound(orderedEntries, {
     playStyle: "reseed",
-    roundNumber: 2
+    roundNumber: 2,
   });
 
   assert.equal(fixedBracketMatches[0].pairKey, "round-2-slot-1-1-2");
@@ -350,14 +388,14 @@ test("match resolution prefers votes, byes, and configured tie breaks", () => {
     resolveMatchWinner(
       {
         leftEntryId: "a",
-        rightEntryId: null
+        rightEntryId: null,
       },
-      "higher_seed_wins"
+      "higher_seed_wins",
     ),
     {
       winnerEntryId: "a",
-      resolutionSource: "bye"
-    }
+      resolutionSource: "bye",
+    },
   );
 
   assert.deepEqual(
@@ -368,14 +406,14 @@ test("match resolution prefers votes, byes, and configured tie breaks", () => {
         leftVoteCount: 3,
         rightVoteCount: 1,
         leftSeed: 8,
-        rightSeed: 1
+        rightSeed: 1,
       },
-      "higher_seed_wins"
+      "higher_seed_wins",
     ),
     {
       winnerEntryId: "a",
-      resolutionSource: "vote"
-    }
+      resolutionSource: "vote",
+    },
   );
 
   assert.deepEqual(
@@ -386,14 +424,14 @@ test("match resolution prefers votes, byes, and configured tie breaks", () => {
         leftVoteCount: 2,
         rightVoteCount: 2,
         leftSeed: 2,
-        rightSeed: 7
+        rightSeed: 7,
       },
-      "higher_seed_wins"
+      "higher_seed_wins",
     ),
     {
       winnerEntryId: "a",
-      resolutionSource: "tie_break"
-    }
+      resolutionSource: "tie_break",
+    },
   );
 
   const originalRandom = Math.random;
@@ -408,14 +446,14 @@ test("match resolution prefers votes, byes, and configured tie breaks", () => {
           leftVoteCount: 4,
           rightVoteCount: 4,
           leftSeed: 1,
-          rightSeed: 9
+          rightSeed: 9,
         },
-        "random"
+        "random",
       ),
       {
         winnerEntryId: "b",
-        resolutionSource: "tie_break"
-      }
+        resolutionSource: "tie_break",
+      },
     );
   } finally {
     Math.random = originalRandom;
@@ -428,7 +466,7 @@ test("closing an active round completes a winner-only tournament when only one e
       id: "round-1",
       sequenceNumber: 1,
       rankingTargetRank: 1,
-      status: "active"
+      status: "active",
     },
     matchRows: [
       {
@@ -440,8 +478,8 @@ test("closing an active round completes a winner-only tournament when only one e
         leftSeed: 1,
         rightSeed: 2,
         leftVoteCount: 3,
-        rightVoteCount: 1
-      }
+        rightVoteCount: 1,
+      },
     ],
     advancingEntries: [{ id: "entry-a", seed: 1 }],
     nextRoundRows: [],
@@ -450,7 +488,7 @@ test("closing an active round completes a winner-only tournament when only one e
     createdMatches: [],
     finalRankUpdates: [],
     roundClosed: false,
-    tournamentCompleted: false
+    tournamentCompleted: false,
   };
   const { tx, calls } = createFakeTx(fixtures);
 
@@ -461,7 +499,7 @@ test("closing an active round completes a winner-only tournament when only one e
     resultMode: "winner_only",
     tieBreakMode: "higher_seed_wins",
     roundClosureMode: "automatic_when_settled",
-    force: true
+    force: true,
   });
 
   assert.deepEqual(result, { advanced: true, completed: true });
@@ -469,11 +507,14 @@ test("closing an active round completes a winner-only tournament when only one e
   assert.deepEqual(fixtures.updatedMatches[0], {
     matchId: "match-1",
     winnerEntryId: "entry-a",
-    resolutionSource: "vote"
+    resolutionSource: "vote",
   });
   assert.equal(fixtures.roundClosed, true);
   assert.equal(fixtures.tournamentCompleted, true);
-  assert.equal(calls.some((call) => call.sql.startsWith("update match set")), true);
+  assert.equal(
+    calls.some((call) => call.sql.startsWith("update match set")),
+    true,
+  );
 });
 
 test("round closure waits when an open match has no votes and auto-close is not forced", async () => {
@@ -482,7 +523,7 @@ test("round closure waits when an open match has no votes and auto-close is not 
       id: "round-1",
       sequenceNumber: 1,
       rankingTargetRank: 1,
-      status: "active"
+      status: "active",
     },
     matchRows: [
       {
@@ -494,15 +535,15 @@ test("round closure waits when an open match has no votes and auto-close is not 
         leftSeed: 1,
         rightSeed: 2,
         leftVoteCount: 0,
-        rightVoteCount: 0
-      }
+        rightVoteCount: 0,
+      },
     ],
     updatedMatches: [],
     createdRounds: [],
     createdMatches: [],
     finalRankUpdates: [],
     roundClosed: false,
-    tournamentCompleted: false
+    tournamentCompleted: false,
   };
   const { tx, calls } = createFakeTx(fixtures);
 
@@ -513,14 +554,17 @@ test("round closure waits when an open match has no votes and auto-close is not 
     resultMode: "winner_only",
     tieBreakMode: "higher_seed_wins",
     roundClosureMode: "automatic_when_settled",
-    force: false
+    force: false,
   });
 
   assert.deepEqual(result, { advanced: false });
   assert.equal(fixtures.updatedMatches.length, 0);
   assert.equal(fixtures.roundClosed, false);
   assert.equal(fixtures.tournamentCompleted, false);
-  assert.equal(calls.some((call) => call.sql.startsWith("update match set")), false);
+  assert.equal(
+    calls.some((call) => call.sql.startsWith("update match set")),
+    false,
+  );
 });
 
 test("Swiss standings rank wins, Buchholz, and seed deterministically", () => {
@@ -529,9 +573,12 @@ test("Swiss standings rank wins, Buchholz, and seed deterministically", () => {
     [
       { leftEntryId: "a", rightEntryId: "b", winnerEntryId: "a" },
       { leftEntryId: "b", rightEntryId: "c", winnerEntryId: "b" },
-      { leftEntryId: "a", rightEntryId: "c", winnerEntryId: "a" }
-    ]
+      { leftEntryId: "a", rightEntryId: "c", winnerEntryId: "a" },
+    ],
   );
 
-  assert.deepEqual(standings.map((standing) => standing.id), ["a", "b", "c"]);
+  assert.deepEqual(
+    standings.map((standing) => standing.id),
+    ["a", "b", "c"],
+  );
 });

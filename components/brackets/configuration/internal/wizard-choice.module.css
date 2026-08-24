@@ -3,9 +3,39 @@
   gap: 0.75rem;
 }
 
+.decisionStack {
+  display: grid;
+  gap: 2.65rem;
+}
+
+.decisionGroup {
+  display: grid;
+  gap: 1.35rem;
+}
+
+.decisionGroup::after {
+  content: "";
+  order: 1;
+  display: block;
+  border-top: 1px solid var(--line-strong);
+  margin-top: -0.75rem;
+}
+
+.decisionGroup > :not(:first-child) {
+  order: 2;
+}
+
+.decisionGroupSeparated {
+  padding-top: 0.35rem;
+}
+
 @media (min-width: 640px) {
   .choiceGrid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .decisionStack {
+    gap: 3.3rem;
   }
 }
 
@@ -61,10 +91,15 @@
   background: transparent;
 }
 
+.card[aria-pressed="true"],
+.resultModeTile[aria-pressed="true"] {
+  background: rgba(52, 211, 196, 0.025);
+}
+
 .card[aria-pressed="true"]:hover,
 .resultModeTile[aria-pressed="true"]:hover {
   border-color: var(--accent-3);
-  background: rgba(52, 211, 196, 0.06);
+  background: rgba(52, 211, 196, 0.035);
 }
 
 .tallCard {
@@ -79,14 +114,19 @@
 
 .icon {
   flex-shrink: 0;
+  color: var(--muted);
+}
+
+.card[aria-pressed="true"] .icon,
+.resultModeTile[aria-pressed="true"] .icon {
   color: var(--accent-3);
 }
 
 .title {
   display: block;
-  font-size: 1rem;
+  font-size: 1.125rem;
   font-weight: 900;
-  line-height: 1.25;
+  line-height: 1.15;
   text-transform: uppercase;
   color: var(--ink);
 }
@@ -94,9 +134,9 @@
 .standaloneTitle {
   display: block;
   margin-top: 1.25rem;
-  font-size: 1rem;
+  font-size: 1.125rem;
   font-weight: 900;
-  line-height: 1.25;
+  line-height: 1.15;
   text-transform: uppercase;
   color: var(--ink);
 }
@@ -104,14 +144,20 @@
 .description {
   display: block;
   margin-top: 0.75rem;
-  font-size: 0.875rem;
-  line-height: 1.5rem;
+  font-size: 0.9375rem;
+  line-height: 1.55rem;
   color: var(--muted);
 }
 
 .compactDescription {
   margin-top: 0.5rem;
-  line-height: 1.25rem;
+  line-height: 1.35rem;
+}
+
+.builderCopy {
+  color: var(--muted);
+  font-size: 0.9375rem;
+  line-height: 1.5rem;
 }
 
 .resultModeTile {
@@ -125,13 +171,75 @@
 .resultModeNote {
   margin-top: auto;
   padding-top: 1rem;
-  color: var(--accent-3);
+  color: var(--muted);
+}
+
+.effortEstimate {
+  display: grid;
+  gap: 1rem;
+  border-top: 1px solid var(--line-strong);
+  border-bottom: 1px solid var(--line-strong);
+  padding-block: 1rem;
+}
+
+.effortHeading {
+  font-size: 0.8125rem;
+  font-weight: 900;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+
+.effortCopy {
+  margin-top: 0.375rem;
+  max-width: 42rem;
+  color: var(--muted);
+  font-size: 0.9375rem;
+  line-height: 1.45rem;
+}
+
+.effortStats {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.effortStats > div {
+  border-left: 2px solid var(--line-strong);
+  padding-left: 0.75rem;
+}
+
+.effortLabel {
+  font-size: 0.6875rem;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.effortValue {
+  margin-top: 0.25rem;
+  font-size: 1.125rem;
+  font-weight: 900;
+  color: var(--ink);
 }
 
 .rankingDetails {
-  border-top: 1px solid var(--line);
-  padding-top: 1.25rem;
+  display: grid;
+  gap: 1.35rem;
+  padding-top: 2.65rem;
   transition: opacity 150ms ease;
+}
+
+.rankingDetails::after {
+  content: "";
+  order: 1;
+  display: block;
+  border-top: 1px solid var(--line-strong);
+  margin-top: -0.75rem;
+}
+
+.rankingDetails > :not(:first-child) {
+  order: 2;
 }
 
 .rankingDetailsActive {
@@ -142,23 +250,23 @@
   opacity: 0.4;
 }
 
-.rankingHeading {
-  font-size: 0.875rem;
-  font-weight: 900;
-  text-transform: uppercase;
-  letter-spacing: 0.18em;
-  color: var(--accent-3);
-}
-
 .rankingGrid {
   display: grid;
   gap: 0.75rem;
-  margin-top: 0.75rem;
 }
 
 @media (min-width: 640px) {
   .rankingGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .effortEstimate {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+  }
+
+  .effortStats {
+    grid-template-columns: repeat(2, minmax(9rem, 1fr));
   }
 }
 

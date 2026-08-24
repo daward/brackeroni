@@ -2,9 +2,10 @@
 
 import { Trophy } from "lucide-react";
 import { ContentCard } from "@/components/shared";
-import type { ResultMode } from "../types";
+import type { AudienceMode, ResultMode } from "../types";
 import styles from "./wizard-choice.module.css";
 import { WIZARD_RESULT_MODE_DETAILS, WIZARD_RESULT_MODE_ICONS } from "./wizard-result-modes";
+import { WizardQuestion } from "./wizard-question";
 
 type ResultModeTileProps = {
   mode: ResultMode;
@@ -51,9 +52,11 @@ function ResultModeTile({ mode, title, detail, selected, onSelect, disabled = fa
   );
 }
 
-export function ResultModeChoices({ value, onChange }: { value: ResultMode; onChange: (mode: ResultMode) => void }) {
+export function ResultModeChoices({ value, audienceMode, onChange }: { value: ResultMode; audienceMode: AudienceMode; onChange: (mode: ResultMode) => void }) {
   const isRanking = value !== "winner_only";
   const chooseRanking = () => onChange(isRanking ? value : "full_ranking");
+  const rankingModes: ResultMode[] =
+    audienceMode === "private" ? ["full_ranking", "partial_ranking"] : ["full_ranking", "fast_full_rank", "parallel_full_ranking", "partial_ranking"];
 
   return (
     <div className="space-y-6">
@@ -83,9 +86,9 @@ export function ResultModeChoices({ value, onChange }: { value: ResultMode; onCh
         />
       </div>
       <div className={`${styles.rankingDetails} ${isRanking ? styles.rankingDetailsActive : styles.rankingDetailsInactive}`} aria-disabled={!isRanking}>
-        <p className={`display-face ${styles.rankingHeading}`}>How should the ranking work?</p>
+        <WizardQuestion>How should the ranking work?</WizardQuestion>
         <div className={styles.rankingGrid}>
-          {(["full_ranking", "fast_full_rank", "parallel_full_ranking", "partial_ranking"] as ResultMode[]).map((mode) => (
+          {rankingModes.map((mode) => (
             <ResultModeTile
               key={mode}
               mode={mode}

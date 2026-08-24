@@ -19,16 +19,7 @@ type VoteMatchModalProps = {
   onVote: (matchId: string, tournamentId: string, selectedEntryId: string | null | undefined) => void;
 };
 
-export function VoteMatchModal({
-  tournament,
-  match,
-  focusedMatches,
-  currentRoundProgress,
-  pendingVoteMatchId,
-  transitionMessage,
-  onClose,
-  onVote,
-}: VoteMatchModalProps) {
+export function VoteMatchModal({ tournament, match, focusedMatches, currentRoundProgress, pendingVoteMatchId, transitionMessage, onClose, onVote }: VoteMatchModalProps) {
   return (
     <div className="vote-modal-overlay">
       <div className="vote-modal-shell vote-match-modal-shell">
@@ -65,7 +56,6 @@ export function VoteMatchModal({
           <CandidateVoteCard
             name={match.leftName}
             description={match.leftDescription}
-            tags={match.leftTags}
             imageUrl={match.leftImageUrl}
             disabled={pendingVoteMatchId === match.id}
             onVote={() => onVote(match.id, tournament.id, match.leftEntryId)}
@@ -79,7 +69,6 @@ export function VoteMatchModal({
           <CandidateVoteCard
             name={match.rightName}
             description={match.rightDescription}
-            tags={match.rightTags}
             imageUrl={match.rightImageUrl}
             disabled={pendingVoteMatchId === match.id}
             onVote={() => onVote(match.id, tournament.id, match.rightEntryId)}

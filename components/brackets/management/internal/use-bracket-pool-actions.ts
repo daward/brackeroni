@@ -14,7 +14,7 @@ import type {
 } from "./workspace-internal-types";
 import { getErrorMessage } from "./workspace-internal-types";
 
-type CreatePoolRecordInput = {
+export type CreatePoolRecordInput = {
   name?: string;
   description?: string | null;
   attachedTournamentId?: string | null;

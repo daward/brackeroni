@@ -137,6 +137,7 @@ export type BracketCreationWizardProps = {
     audienceMode: AudienceMode;
   }> | null;
   initialStep?: number;
+  onStepChange?: (step: number) => void;
   fullPage?: boolean;
 };
 

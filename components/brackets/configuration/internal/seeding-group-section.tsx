@@ -56,7 +56,7 @@ export function SeedingGroupSection({
     <section className={styles.group}>
       {showHeader ? (
         <div className={styles.groupHeader} onDragOverCapture={(event) => event.preventDefault()} onDropCapture={handleDrop}>
-          <div className="min-w-0 flex-1">
+          <div className={styles.groupNameCell}>
             <input
               value={group.name}
               onChange={(event) => onRename(group.id, event.target.value)}
@@ -65,20 +65,20 @@ export function SeedingGroupSection({
               className={styles.groupName}
             />
           </div>
-          <div className="flex items-center gap-2">
+          <div className={styles.groupActions}>
             {group.id !== "__root__" ? (
-              <button type="button" onClick={() => onRemove(group.id)} className="ui-button ui-button-muted min-h-[36px] px-3 py-2 text-[10px]">
+              <button type="button" onClick={() => onRemove(group.id)} className={`ui-button ui-button-muted ${styles.groupActionButton}`}>
                 Remove
               </button>
             ) : null}
-            <button type="button" onClick={() => onToggle(group.id)} className="ui-button ui-button-muted min-h-[36px] px-3 py-2 text-[10px]">
+            <button type="button" onClick={() => onToggle(group.id)} className={`ui-button ui-button-muted ${styles.groupActionButton}`}>
               {isCollapsed ? "Open" : "Close"}
             </button>
           </div>
         </div>
       ) : null}
       {!isCollapsed ? (
-        <div className={`${styles.groupBody} space-y-2`}>
+        <div className={`${styles.groupBody} ${styles.groupBodyStack}`}>
           {group.isEmpty ? (
             <div className={styles.emptyGroup} onDragOver={(event) => event.preventDefault()} onDrop={handleDrop}>
               Empty sub-bracket. Drag entries here next.

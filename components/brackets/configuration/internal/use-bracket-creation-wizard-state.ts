@@ -1,23 +1,22 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { getPool } from "@/lib/client-api/create-workspace";
 import type { BracketAdvancementMode, BracketPlayStyle, BracketTieBreakMode } from "@/lib/brackets/types";
 import type { PoolCandidate } from "@/lib/pools/types";
 import type { AudienceMode, BracketCreationInput, BracketCreationWizardProps, BracketPoolOption, ResultMode, SeedingMode } from "../types";
 import { useWizardPools } from "./use-wizard-pools";
-
-export const WIZARD_STEP_COUNT = 6;
+import { WIZARD_STEP_COUNT } from "./wizard-steps";
 
 type SourceMode = "existing" | "new";
 
-type WizardStateParams = Pick<BracketCreationWizardProps, "pools" | "initialPoolId" | "initialConfig" | "initialStep" | "onCancel" | "onCreate">;
+type WizardStateParams = Pick<BracketCreationWizardProps, "pools" | "initialPoolId" | "initialConfig" | "initialStep" | "onCancel" | "onCreate" | "onStepChange">;
 
 function getSourceMode(initialConfig: BracketCreationWizardProps["initialConfig"], initialPoolId: string, pools: BracketCreationWizardProps["pools"]) {
   return initialConfig?.sourcePoolId || initialPoolId || pools.length ? "existing" : "new";
 }
 
-export function useBracketCreationWizardState({ pools, initialPoolId = "", initialConfig = null, initialStep = 0, onCancel, onCreate }: WizardStateParams) {
+export function useBracketCreationWizardState({ pools, initialPoolId = "", initialConfig = null, initialStep = 0, onCancel, onCreate, onStepChange }: WizardStateParams) {
   const [step, setStep] = useState(initialStep);
   const [sourceMode, setSourceMode] = useState<SourceMode>(getSourceMode(initialConfig, initialPoolId, pools));
   const [sourcePoolId, setSourcePoolId] = useState(initialConfig?.sourcePoolId || initialPoolId || pools[0]?.id || "");
@@ -41,6 +40,24 @@ export function useBracketCreationWizardState({ pools, initialPoolId = "", initi
     loadSentinelRef: poolLoadSentinelRef,
   } = useWizardPools(pools, sourceMode === "existing", setError);
   const selectedPool = availablePools.find((pool) => pool.id === sourcePoolId) || null;
+
+  useEffect(() => {
+    setStep(initialStep);
+  }, [initialStep]);
+
+  useEffect(() => {
+    if (audienceMode === "private" && isGroupRankingMode(resultMode)) {
+      setResultMode("full_ranking");
+    }
+  }, [audienceMode, resultMode]);
+
+  function changeStep(nextStep: number | ((current: number) => number)) {
+    const resolvedStep = typeof nextStep === "function" ? nextStep(step) : nextStep;
+    const boundedStep = Math.min(Math.max(resolvedStep, 0), WIZARD_STEP_COUNT - 1);
+    if (boundedStep === step) return;
+    setStep(boundedStep);
+    onStepChange?.(boundedStep);
+  }
 
   async function chooseSeedingMode(mode: SeedingMode) {
     setSeedingMode(mode);
@@ -104,7 +121,7 @@ export function useBracketCreationWizardState({ pools, initialPoolId = "", initi
     }
     setSourcePoolId(pool.id);
     setError("");
-    setStep(1);
+    changeStep(1);
   }
 
   function goNext() {
@@ -114,13 +131,20 @@ export function useBracketCreationWizardState({ pools, initialPoolId = "", initi
       return;
     }
     setError("");
-    setStep((current) => Math.min(current + 1, WIZARD_STEP_COUNT - 1));
+    changeStep((current) => current + 1);
+  }
+
+  function chooseAudienceMode(mode: AudienceMode) {
+    setAudienceMode(mode);
+    if (mode === "private" && isGroupRankingMode(resultMode)) {
+      setResultMode("full_ranking");
+    }
   }
 
   async function handleCreate() {
     const input = buildCreationInput();
     if (!input) {
-      setStep(0);
+      changeStep(0);
       return;
     }
 
@@ -176,7 +200,7 @@ export function useBracketCreationWizardState({ pools, initialPoolId = "", initi
     selectedName: getSelectedName(sourceMode, selectedPool, poolName),
     selectedCount: getSelectedCount(sourceMode, selectedPool, candidates),
     error,
-    setStep,
+    setStep: changeStep,
     selectPool,
     setSourceMode,
     setPoolName,
@@ -187,13 +211,17 @@ export function useBracketCreationWizardState({ pools, initialPoolId = "", initi
     setTieBreakMode,
     chooseSeedingMode,
     setDraggingSeedCandidateId,
-    setAudienceMode,
+    setAudienceMode: chooseAudienceMode,
     setTitle,
-    goBack: step === 0 ? onCancel : () => setStep((current) => current - 1),
+    goBack: step === 0 ? onCancel : () => changeStep((current) => current - 1),
     goNext,
     handleCreate,
     moveCustomSeedEntry,
   };
+}
+
+function isGroupRankingMode(resultMode: ResultMode) {
+  return resultMode === "fast_full_rank" || resultMode === "parallel_full_ranking" || resultMode === "parallel_partial_ranking";
 }
 
 function getSelectedName(sourceMode: SourceMode, selectedPool: BracketPoolOption | null, poolName: string) {

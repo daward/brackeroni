@@ -1,6 +1,7 @@
 "use client";
 
 import type { SeedingAutosaveState } from "../types";
+import styles from "./seeding-save-status.module.css";
 
 type SeedingSaveStatusProps = {
   state: SeedingAutosaveState;
@@ -20,17 +21,17 @@ function getLabel(state: SeedingAutosaveState) {
 }
 
 function getTone(state: SeedingAutosaveState) {
-  if (state === "error") return "text-[var(--accent-2)]";
-  if (state === "invalid" || state === "pending") return "text-[var(--muted)]";
-  return "text-[var(--accent-3)]";
+  if (state === "error") return styles.labelError;
+  if (state === "invalid" || state === "pending") return styles.labelMuted;
+  return styles.labelIdle;
 }
 
 export function SeedingSaveStatus({ state, error, onClose }: SeedingSaveStatusProps) {
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--line)] pt-3">
-      <div className="min-w-0 flex-1">
-        <p className={`text-xs uppercase tracking-[0.14em] ${getTone(state)}`}>{getLabel(state)}</p>
-        {state === "error" && error ? <p className="mt-2 text-sm leading-5 text-[var(--accent-2)]">{error}</p> : null}
+    <div className={styles.status}>
+      <div className={styles.content}>
+        <p className={`${styles.label} ${getTone(state)}`}>{getLabel(state)}</p>
+        {state === "error" && error ? <p className={styles.error}>{error}</p> : null}
       </div>
       <button type="button" onClick={onClose} className="ui-button ui-button-muted">
         Cancel

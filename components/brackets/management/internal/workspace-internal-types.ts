@@ -4,16 +4,40 @@ import type { BracketDraft, BracketInvite, BracketMatch, BracketStatus, ManagedB
 import type { ManagedPool, PoolDetail } from "@/lib/pools/types";
 
 export type BracketStageView = Extract<BracketStatus, "draft" | "active" | "complete">;
-export type WorkspaceTournament = ManagedBracket & Record<string, any>;
+export type WorkspaceTournament = ManagedBracket & {
+  parentParallelTournamentId?: string | null;
+  completedAt?: string | Date | null;
+  archivedAt?: string | Date | null;
+  updatedAt?: string | Date | null;
+  startedAt?: string | Date | null;
+  description?: string | null;
+};
 export type WorkspacePool = ManagedPool & { id: string };
-export type WorkspacePoolDetail = PoolDetail & Record<string, any>;
-export type WorkspaceMatch = BracketMatch & Record<string, any>;
-export type WorkspaceInvite = BracketInvite & Record<string, any>;
-export type WorkspaceShareLink = { id: string } & Record<string, any>;
+export type WorkspacePoolDetail = PoolDetail;
+export type WorkspaceMatch = BracketMatch & {
+  roundId?: string | null;
+  roundNumber?: number | null;
+  subBracketName?: string | null;
+};
+export type WorkspaceInvite = BracketInvite & {
+  userId?: string | null;
+  anonymousVoterToken?: string | null;
+};
+export type WorkspaceShareLink = {
+  id: string;
+  token?: string | null;
+  url?: string | null;
+  active?: boolean;
+  createdAt?: string | Date | null;
+};
 export type ActionState = Record<string, boolean>;
-export type TournamentDrafts = Record<string, Partial<BracketDraft> & Record<string, any>>;
+export type TournamentDrafts = Record<string, Partial<BracketDraft> & { description?: string | null }>;
 export type CandidateDrafts = Record<string, CandidateDraft>;
-export type CandidateEditorState = Record<string, any> | null;
+export type CandidateEditorState = {
+  poolId: string;
+  candidateId?: string | null;
+  mode?: "create" | "edit";
+} | null;
 export type PoolInlineDrafts = Record<string, { name: string; description: string }>;
 export type ImageSuggestionState = Record<string, ImageSuggestion[]>;
 export type ImageSuggestionLoadingState = Record<string, boolean>;
@@ -37,7 +61,7 @@ export type ReplaceTournament = (tournamentId: string, tournament: WorkspaceTour
 export type ReplaceTournamentMatch = (tournamentId: string, match: WorkspaceMatch) => void;
 export type RefreshTournamentMatches = (tournamentId: string) => Promise<WorkspaceMatch[]>;
 export type ReplacePool = (pool: WorkspacePoolDetail | WorkspacePool) => void;
-export type ReplaceCandidate = (poolId: string, candidate: PoolCandidate & Record<string, any>) => void;
+export type ReplaceCandidate = (poolId: string, candidate: PoolCandidate) => void;
 export type RemoveCandidate = (poolId: string, candidateId: string) => void;
 
 export function getErrorMessage(error: unknown, fallback: string): string {

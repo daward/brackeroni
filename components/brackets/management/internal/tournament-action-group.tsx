@@ -1,32 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import type { TournamentAction, TournamentActionGroupProps, TournamentMetaRowProps } from "../types";
-
-export function TournamentMetaRow({
-  items,
-  separator = "dot",
-  className = "flex flex-wrap gap-2 text-[11px] uppercase tracking-[0.18em] text-[var(--muted)]",
-}: TournamentMetaRowProps) {
-  const visibleItems = items.filter(Boolean);
-
-  if (visibleItems.length === 0) {
-    return null;
-  }
-
-  const separatorLabel = separator === "slash" ? "/" : "\u2022";
-
-  return (
-    <div className={className}>
-      {visibleItems.map((item, index) => (
-        <span key={`${item}-${index}`} className="contents">
-          {index > 0 ? <span>{separatorLabel}</span> : null}
-          <span>{item}</span>
-        </span>
-      ))}
-    </div>
-  );
-}
+import type { TournamentActionGroupProps } from "../types";
 
 export function TournamentActionGroup({ actions, layout = "column", align = "end", className = "" }: TournamentActionGroupProps) {
   const visibleActions = actions.filter((action): action is NonNullable<typeof action> => Boolean(action));
@@ -37,13 +12,7 @@ export function TournamentActionGroup({ actions, layout = "column", align = "end
 
   const layoutClassName =
     layout === "row"
-      ? `flex flex-wrap gap-3 ${
-          {
-            start: "lg:justify-start",
-            center: "lg:justify-center",
-            end: "lg:justify-end",
-          }[align]
-        }`
+      ? `flex flex-wrap gap-3 ${{ start: "lg:justify-start", center: "lg:justify-center", end: "lg:justify-end" }[align]}`
       : "flex flex-col gap-3";
 
   return (

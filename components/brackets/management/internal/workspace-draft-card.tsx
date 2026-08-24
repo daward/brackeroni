@@ -29,46 +29,27 @@ export function WorkspaceDraftCard({
   onArchiveTournament,
 }: WorkspaceDraftCardProps) {
   const router = useRouter();
+  const startPending = isActionPending(`start-tournament:${tournament.id}`);
+
+  function handlePrimaryAction() {
+    if (canStart) {
+      onStartTournament(tournament.id);
+      return;
+    }
+
+    router.push(`/brackets/${tournament.id}/configuration`);
+  }
 
   return (
     <div className="workspace-grid-card">
-      <button
-        type="button"
-        onClick={() => router.push(`/brackets/${tournament.id}/configuration`)}
-        className="workspace-draft-card-button"
-      >
-        <h3 className="workspace-draft-card-title display-face">{tournament.title}</h3>
-        <p className="workspace-grid-card-copy">
-          {pool ? `${pool.name} - ${candidateCount} candidates` : "Choose a pool in setup to add contenders."}
-        </p>
+      <button type="button" disabled={canStart && startPending} onClick={handlePrimaryAction} className="object-list-card workspace-draft-card-button">
+        <h3 className="object-list-card-title display-face">{tournament.title}</h3>
+        <p className="object-list-card-copy">{pool ? `${pool.name} - ${candidateCount} candidates` : "Choose a pool in setup to add contenders."}</p>
+        <span className="object-list-card-action">{canStart ? (startPending ? "Starting" : "Start bracket ->") : "Finish setup ->"}</span>
       </button>
-      <button
-        type="button"
-        disabled={isActionPending(`start-tournament:${tournament.id}`)}
-        onClick={() => {
-          if (canStart) {
-            onStartTournament(tournament.id);
-            return;
-          }
-
-          router.push(`/brackets/${tournament.id}/configuration`);
-        }}
-        className="workspace-draft-card-action display-face"
-      >
-        {canStart ? "Start bracket ->" : "Set up bracket ->"}
-      </button>
-      <TournamentCardMenu
-        label={`Actions for ${tournament.title}`}
-        isOpen={menuIsOpen}
-        onToggle={onToggleMenu}
-      >
-        <button
-          type="button"
-          disabled={!canStart || isActionPending(`start-tournament:${tournament.id}`)}
-          onClick={() => onStartTournament(tournament.id)}
-          className="ui-button ui-button-primary workspace-card-menu-action"
-        >
-          Start bracket
+      <TournamentCardMenu label={`Actions for ${tournament.title}`} isOpen={menuIsOpen} onToggle={onToggleMenu}>
+        <button type="button" onClick={() => router.push(`/brackets/${tournament.id}/configuration`)} className="ui-button ui-button-muted workspace-card-menu-action">
+          Edit draft
         </button>
         <button
           type="button"

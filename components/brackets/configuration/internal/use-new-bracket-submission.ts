@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { isParallelResultMode } from "@/lib/bracket-modes";
-import { createParallelTournament, createPool, createTournament, updateTournament } from "@/lib/client-api/create-workspace";
+import { createParallelTournament, createPool, createTournament, startParallelTournament, startTournament, updateTournament } from "@/lib/client-api/create-workspace";
 import type { BracketSetupDraft } from "@/lib/brackets/types";
 import type { BracketCreationInput } from "../types";
 
@@ -41,6 +41,19 @@ export function useNewBracketSubmission(draft: BracketSetupDraft | null) {
       };
 
       const data = await submitBracket(input, payload, draft);
+      const tournamentId = data.item?.id ?? draft?.id;
+
+      if (input.audienceMode === "private" && tournamentId) {
+        if (isParallelResultMode(input.resultMode)) {
+          await startParallelTournament(tournamentId);
+          router.push(`/vote?parallelTournament=${tournamentId}&returnTo=create`);
+          return data.item;
+        }
+
+        await startTournament(tournamentId);
+        router.push(`/vote?tournament=${tournamentId}&returnTo=create`);
+        return data.item;
+      }
 
       router.push("/brackets?stage=draft");
       return data.item;

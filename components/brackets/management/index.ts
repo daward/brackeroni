@@ -7,8 +7,10 @@
 export { ExpandedDraftTournamentSection } from "./internal/expanded-draft-tournament-section";
 export { BracketManagementWorkspace } from "./internal/bracket-management-workspace";
 export { TournamentManagementCard } from "./internal/tournament-management-card";
-export { TournamentActionGroup, TournamentMetaRow } from "./internal/tournament-management";
-export { CloseVotingButton, StatusActionRow } from "./internal/status-actions";
+export { CloseVotingButton } from "./internal/close-voting-button";
+export { StatusActionRow } from "./internal/status-action-row";
+export { TournamentActionGroup } from "./internal/tournament-action-group";
+export { TournamentMetaRow } from "./internal/tournament-meta-row";
 export { DraftCandidateManager } from "./internal/draft-candidate-manager";
 export { DraftPoolControls } from "./internal/draft-pool-controls";
 export { ManualResultQueue } from "./internal/status-manual-results";

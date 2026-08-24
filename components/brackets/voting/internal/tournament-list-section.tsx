@@ -38,16 +38,16 @@ export function TournamentListSection({
             type="button"
             onClick={() => onSelectTournament(tournament)}
             disabled={!canOpen}
-            className="vote-tournament-choice"
+            className="object-list-card vote-tournament-choice"
           >
-            <h3 className="vote-tournament-choice-title display-face">{tournament.title}</h3>
-            <p className="vote-tournament-choice-meta">
+            <h3 className="object-list-card-title display-face vote-tournament-choice-title">{tournament.title}</h3>
+            <p className="object-list-card-copy vote-tournament-choice-meta">
               {tournament.kind === "parallel_parent"
                 ? `${tournament.completedParticipantCount ?? 0}/${tournament.participantCount ?? 0} complete`
                 : matchCountLabel}
               {sourcePoolLabel}
             </p>
-            <span className="vote-tournament-choice-action display-face">
+            <span className="object-list-card-action display-face">
               {viewerCompletedParallel ? "View results" : canOpen ? "Vote now" : "Waiting for the next round"}
             </span>
           </button>

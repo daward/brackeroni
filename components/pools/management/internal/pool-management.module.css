@@ -22,53 +22,11 @@
 
 .poolCard {
   min-height: 10.5rem;
-  border: 1px solid var(--line);
-  background: rgb(255 255 255 / 2.5%);
 }
 
 .poolButton {
-  display: grid;
-  width: 100%;
   min-height: 100%;
   gap: 0.75rem;
-  align-content: start;
-  padding: 1.25rem;
-  text-align: left;
-  transition:
-    background-color 150ms ease,
-    border-color 150ms ease;
-}
-
-.poolButton:hover,
-.poolButton:focus-visible {
-  background: rgb(52 211 196 / 5.5%);
-}
-
-.poolButton:focus-visible {
-  outline: 2px solid var(--accent-3);
-  outline-offset: 2px;
-}
-
-.poolTitle {
-  color: var(--ink);
-  font-family: "Arial Narrow", Arial, Helvetica, sans-serif;
-  font-size: 1.25rem;
-  font-weight: 900;
-  line-height: 1.1;
-}
-
-.poolMeta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-  color: var(--muted);
-  font-size: 0.6875rem;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-}
-
-.poolCount {
-  color: var(--accent-3);
 }
 
 .poolDescription {
@@ -101,8 +59,6 @@
 
   .poolCard {
     min-height: 0;
-    border-width: 0 0 1px;
-    background: transparent;
   }
 
   .poolButton {

@@ -1,4 +1,4 @@
-import { usesOpenEndedRankingMode, usesSwissResultMode } from "@/lib/bracket-modes";
+import { isPartialRankingMode, usesOpenEndedRankingMode, usesSwissResultMode } from "@/lib/bracket-modes";
 import type { VoteMatch, VoteTournament } from "./voting-internal-types";
 
 function nextPowerOfTwo(value: number) {
@@ -11,9 +11,7 @@ function nextPowerOfTwo(value: number) {
 
 export function openMatchesForTournament(tournament: VoteTournament): VoteMatch[] {
   if (tournament.kind === "parallel_parent") {
-    return tournament.status === "active" && tournament.viewerParticipantStatus !== "complete"
-      ? [{ id: `parallel:${tournament.id}`, status: "open" }]
-      : [];
+    return tournament.status === "active" && tournament.viewerParticipantStatus !== "complete" ? [{ id: `parallel:${tournament.id}`, status: "open" }] : [];
   }
 
   return (tournament.matches || []).filter((match) => match.status === "open" && !match.userVoteEntryId);
@@ -38,12 +36,53 @@ function getTournamentRoundCount(tournament: VoteTournament) {
   return Math.ceil(Math.log2(nextPowerOfTwo(entryCount)));
 }
 
+function getRankingTargetCount(tournament: VoteTournament) {
+  const entryCount = tournament.entryCount ?? tournament.entries?.length ?? 0;
+  if (entryCount <= 0) return 0;
+  return isPartialRankingMode(tournament.resultMode) ? Math.ceil(entryCount / 2) : entryCount;
+}
+
+function getEliminationRoundCount(entryCount: number) {
+  if (entryCount <= 1) return 0;
+  return Math.ceil(Math.log2(nextPowerOfTwo(entryCount)));
+}
+
+function getRankingRoundCount(match: VoteMatch, tournament: VoteTournament) {
+  const entryCount = tournament.entryCount ?? tournament.entries?.length ?? 0;
+
+  if (match.rankingTargetRank === 1 && entryCount > 1) {
+    return getEliminationRoundCount(entryCount);
+  }
+
+  const rankingEntryIds = new Set<string>();
+
+  for (const candidateMatch of tournament.matches || []) {
+    if (candidateMatch.rankingTargetRank !== match.rankingTargetRank) {
+      continue;
+    }
+
+    if (candidateMatch.leftEntryId) {
+      rankingEntryIds.add(candidateMatch.leftEntryId);
+    }
+
+    if (candidateMatch.rightEntryId) {
+      rankingEntryIds.add(candidateMatch.rightEntryId);
+    }
+  }
+
+  return getEliminationRoundCount(rankingEntryIds.size);
+}
+
 export function formatVoteHeader(match: VoteMatch, tournament: VoteTournament) {
   const totalRounds = getTournamentRoundCount(tournament);
   let roundLabel: string;
 
   if (usesOpenEndedRankingMode(tournament.resultMode)) {
-    roundLabel = `Ranking ${match.rankingTargetRank} / Round ${match.rankingRoundNumber}`;
+    const rankingTargetCount = getRankingTargetCount(tournament);
+    const rankingLabel = rankingTargetCount ? `Ranking ${match.rankingTargetRank} of ${rankingTargetCount}` : `Ranking ${match.rankingTargetRank}`;
+    const rankingRoundCount = getRankingRoundCount(match, tournament);
+    const rankingRoundLabel = rankingRoundCount ? `Round ${match.rankingRoundNumber} of ${rankingRoundCount}` : `Round ${match.rankingRoundNumber}`;
+    roundLabel = `${rankingLabel} / ${rankingRoundLabel}`;
   } else if (usesSwissResultMode(tournament.resultMode)) {
     roundLabel = totalRounds ? `Swiss Round ${match.roundNumber} of ${totalRounds}` : `Swiss Round ${match.roundNumber}`;
   } else {
@@ -59,11 +98,7 @@ export function getCurrentRoundProgress(tournament: VoteTournament | null, focus
   }
 
   const currentRoundMatches = (tournament.matches || []).filter(
-    (match) =>
-      match.roundNumber === focusedMatch.roundNumber &&
-      match.leftEntryId &&
-      match.rightEntryId &&
-      match.status !== "auto_resolved",
+    (match) => match.roundNumber === focusedMatch.roundNumber && match.leftEntryId && match.rightEntryId && match.status !== "auto_resolved",
   );
   const total = currentRoundMatches.length;
 

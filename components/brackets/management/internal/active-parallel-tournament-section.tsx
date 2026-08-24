@@ -1,9 +1,12 @@
 "use client";
 
-import { StatusActionRow, CloseVotingButton } from "./status-actions";
-import { LiveAccordion, LiveSummaryCard } from "./status-layout-primitives";
-import { DetailsPanel, ParticipationTrackerPanel } from "./status-participation";
-import { TournamentActionGroup } from "./tournament-management";
+import { CloseVotingButton } from "./close-voting-button";
+import { StatusActionRow } from "./status-action-row";
+import { LiveAccordion } from "./live-accordion";
+import { LiveSummaryCard } from "./live-summary-card";
+import { DetailsPanel } from "./details-panel";
+import { ParticipationTrackerPanel } from "./status-participation";
+import { TournamentActionGroup } from "./tournament-action-group";
 import styles from "./management.module.css";
 import type { ActiveParallelTournamentSectionProps } from "../types";
 

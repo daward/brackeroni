@@ -1,60 +1,11 @@
 "use client";
 
-import type { ReactNode } from "react";
-import { TournamentMetaRow } from "./tournament-management";
-import { LiveAccordion } from "./status-layout-primitives";
+import { LiveInfoRow } from "./live-info-row";
+import { MutedSection } from "./muted-section";
+import { LiveAccordion } from "./live-accordion";
+import type { ParticipationTrackerPanelProps } from "./status-participation-types";
+import { VoteProgress } from "./vote-progress";
 import styles from "./status.module.css";
-import type { BracketInvite, ManagedBracket } from "@/lib/brackets/types";
-
-type SummaryRow = { title: string; meta: string; action?: ReactNode };
-type ParticipationTrackerPanelProps = {
-  tournament: ManagedBracket;
-  invitees: BracketInvite[];
-  creatorVotesCast?: number;
-  activeRoundVoteGoal?: number;
-  creatorIsDone?: boolean;
-  summaryRows?: SummaryRow[];
-};
-type DetailsPanelProps = { items: Array<ReactNode | null | undefined | false> };
-type LiveInfoRowProps = {
-  title: string;
-  meta?: string | null;
-  action?: ReactNode;
-};
-
-function MutedSection({ title, body }: { title: string; body: string }) {
-  return (
-    <div className={styles.mutedSection}>
-      <div className={styles.mutedHeading}>{title}</div>
-      <div className={styles.mutedBody}>
-        <p>{body}</p>
-      </div>
-    </div>
-  );
-}
-
-function LiveInfoRow({ title, meta = null, action = null }: LiveInfoRowProps) {
-  return (
-    <div className={styles.infoRow}>
-      <div className={styles.infoContent}>
-        <p className={styles.infoTitle}>{title}</p>
-        {meta ? <p className={styles.infoMeta}>{meta}</p> : null}
-      </div>
-      {action ? <div className={styles.infoAction}>{action}</div> : null}
-    </div>
-  );
-}
-
-function VoteProgress({ votesCast, voteGoal, isDone }: { votesCast: number; voteGoal: number; isDone: boolean }) {
-  return (
-    <div className={styles.progress}>
-      <p className={styles.progressValue}>
-        {votesCast}/{voteGoal} votes
-      </p>
-      <p className={styles.progressState}>{isDone ? "Ready" : "Waiting"}</p>
-    </div>
-  );
-}
 
 export function ParticipationTrackerPanel({ tournament, invitees, creatorVotesCast, activeRoundVoteGoal, creatorIsDone, summaryRows = [] }: ParticipationTrackerPanelProps) {
   if (tournament.visibility === "private") return <MutedSection title="Participation Tracker" body="Private brackets do not show participation tracking here." />;
@@ -97,13 +48,5 @@ export function ParticipationTrackerPanel({ tournament, invitees, creatorVotesCa
         ) : null}
       </div>
     </LiveAccordion>
-  );
-}
-
-export function DetailsPanel({ items }: DetailsPanelProps) {
-  return (
-    <div className={styles.details}>
-      <TournamentMetaRow className={styles.detailsMeta} items={items} />
-    </div>
   );
 }

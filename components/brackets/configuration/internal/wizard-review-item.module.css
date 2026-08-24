@@ -1,7 +1,29 @@
 .item {
-  min-height: 8rem;
+  position: relative;
+  display: block;
+  width: 100%;
+  min-height: 6.75rem;
   border: 1px solid var(--line);
+  background: transparent;
   padding: 1rem;
+  text-align: left;
+}
+
+.itemInteractive {
+  cursor: pointer;
+  transition:
+    border-color 150ms ease,
+    background 150ms ease;
+}
+
+.itemInteractive:hover {
+  border-color: var(--line-strong);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.itemInteractive:focus-visible {
+  outline: 2px solid var(--accent-2);
+  outline-offset: 3px;
 }
 
 .labelRow {
@@ -12,17 +34,34 @@
 }
 
 .value {
-  margin-top: 1rem;
-  color: var(--ink);
-  font-size: 1.125rem;
-  font-weight: 900;
-  line-height: 1.25;
-  text-transform: uppercase;
+  margin-top: 0.9rem;
+  padding-right: 3.25rem;
+  color: color-mix(in srgb, var(--ink) 84%, transparent);
+  font-size: 1rem;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.detailList {
+  display: grid;
+  gap: 0.25rem;
+  margin-top: 0.5rem;
 }
 
 .detail {
-  margin-top: 0.5rem;
+  padding-right: 3rem;
   color: var(--muted);
   font-size: 0.875rem;
   line-height: 1.25rem;
+}
+
+.editLabel {
+  position: absolute;
+  right: 1rem;
+  bottom: 0.9rem;
+  color: var(--accent-2);
+  font-size: 0.6875rem;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
 }

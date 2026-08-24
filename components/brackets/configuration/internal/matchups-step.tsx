@@ -3,6 +3,7 @@
 import type { BracketAdvancementMode, BracketTieBreakMode } from "@/lib/brackets/types";
 import { VersusChoice } from "./wizard-choice-controls";
 import { WizardQuestion } from "./wizard-question";
+import styles from "./wizard-choice.module.css";
 
 type MatchupsStepProps = {
   advancementMode: BracketAdvancementMode;
@@ -13,8 +14,8 @@ type MatchupsStepProps = {
 
 export function MatchupsStep({ advancementMode, tieBreakMode, onAdvancementModeChange, onTieBreakModeChange }: MatchupsStepProps) {
   return (
-    <div className="space-y-10">
-      <div className="space-y-3">
+    <div className={styles.decisionStack}>
+      <div className={styles.decisionGroup}>
         <WizardQuestion>How will each matchup be decided?</WizardQuestion>
         <VersusChoice
           value={advancementMode}
@@ -26,7 +27,7 @@ export function MatchupsStep({ advancementMode, tieBreakMode, onAdvancementModeC
         />
       </div>
       {advancementMode === "vote_winner" ? (
-        <div className="space-y-3">
+        <div className={`${styles.decisionGroup} ${styles.decisionGroupSeparated}`}>
           <WizardQuestion>How should a tie be resolved?</WizardQuestion>
           <VersusChoice
             value={tieBreakMode}

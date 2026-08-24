@@ -5,6 +5,7 @@ import { PoolManagementPanel } from "@/components/pools/shared";
 import type { PoolCandidate } from "@/lib/pools/types";
 import { LocalPoolImportPanel } from "./local-pool-import-panel";
 import { useLocalPoolBuilderState } from "./use-local-pool-builder-state";
+import styles from "./wizard-choice.module.css";
 
 type LocalPoolBuilderProps = {
   poolName: string;
@@ -29,7 +30,7 @@ export function LocalPoolBuilder({ poolName, onPoolNameChange, candidates, onCan
       onDraftChange={builder.updatePoolDraft}
       className="space-y-5 py-5"
     >
-      <p className="text-sm leading-6 text-[var(--muted)]">Build this pool here. It will be saved with the bracket only when you finish setup.</p>
+      <p className={styles.builderCopy}>Build this pool here. It will be saved with the bracket only when you finish setup.</p>
       {builder.isImportOpen ? (
         <LocalPoolImportPanel
           importText={builder.importText}

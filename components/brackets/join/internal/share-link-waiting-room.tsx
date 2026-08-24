@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getShareLinkAccess } from "@/lib/client-api/share-links";
 import type { ShareLinkAccessItem, ShareLinkWaitingRoomProps } from "../types";
+import styles from "./share-link-waiting-room.module.css";
 
 function getHeadline(item: ShareLinkAccessItem) {
   if (item.accessState === "complete") {
@@ -87,30 +88,24 @@ export function ShareLinkWaitingRoom({ token, initialItem }: ShareLinkWaitingRoo
   }, [pollEnabled, token, pollCount]);
 
   return (
-    <div className="space-y-6">
-      <section className="border border-[var(--line)] bg-[var(--panel)]">
-        <div className="bg-[var(--panel)] px-6 py-10 text-center sm:px-8 sm:py-12">
-          <h1 className="display-face mx-auto max-w-4xl text-4xl font-black leading-tight sm:text-5xl">{getHeadline(item)}</h1>
-          <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-[var(--muted)] sm:text-xl">{getStatusLine(item)}</p>
+    <div className={styles.shell}>
+      <section className={styles.panel}>
+        <div className={styles.body}>
+          <h1 className={`display-face ${styles.headline}`}>{getHeadline(item)}</h1>
+          <p className={styles.statusLine}>{getStatusLine(item)}</p>
           {item.accessState === "waiting" ? (
-            <p className="mt-4 text-sm uppercase tracking-[0.18em] text-[var(--muted)]">
+            <p className={styles.pollStatus}>
               Checking again in {secondsUntilPoll} second{secondsUntilPoll === 1 ? "" : "s"}.
             </p>
           ) : null}
-          <div className="mt-8 flex flex-wrap justify-center gap-3">
+          <div className={styles.actions}>
             {item.accessState === "active" ? (
-              <Link
-                href={item.votePath}
-                className="ui-button ui-button-primary"
-              >
+              <Link href={item.votePath} className="ui-button ui-button-primary">
                 Open Bracket
               </Link>
             ) : null}
             {item.accessState === "complete" ? (
-              <Link
-                href={item.resultsPath}
-                className="ui-button ui-button-primary"
-              >
+              <Link href={item.resultsPath} className="ui-button ui-button-primary">
                 View Results
               </Link>
             ) : null}

@@ -1,6 +1,6 @@
 import { CompletedBracketCard } from "@/components/brackets/shared";
+import { InfiniteScrollControl } from "@/components/shared";
 import type { VoteTournament } from "./voting-internal-types";
-import { CompletedLoadMore } from "./completed-load-more";
 
 type CompletedListSectionProps = {
   tournaments: VoteTournament[];
@@ -30,7 +30,16 @@ export function CompletedListSection({
       {tournaments.map((tournament) => (
         <CompletedBracketCard key={tournament.id} tournament={tournament} type="button" onClick={() => onOpenResults(tournament)} />
       ))}
-      {hasNextPage ? <CompletedLoadMore loading={loading} onLoadMore={onLoadMore} pageKey={tournaments.length} /> : null}
+      {hasNextPage ? (
+        <InfiniteScrollControl
+          enabled
+          loading={loading}
+          onLoadMore={onLoadMore}
+          pageKey={tournaments.length}
+          className="vote-completed-load-more"
+          loadingLabel="Loading more completed brackets"
+        />
+      ) : null}
     </div>
   );
 }

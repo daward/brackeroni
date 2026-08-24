@@ -1,10 +1,12 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { BracketCreationWizard } from "./bracket-creation-wizard";
 import type { AudienceMode, BracketCreationWizardProps, NewBracketSetupPageProps, ResultMode } from "../types";
 import { useBracketSetupData } from "./use-bracket-setup-data";
 import { useNewBracketSubmission } from "./use-new-bracket-submission";
+import { getWizardStepFromSlug, getWizardStepSlug } from "./wizard-steps";
+import styles from "./bracket-setup.module.css";
 
 type InitialConfig = BracketCreationWizardProps["initialConfig"];
 type SetupData = ReturnType<typeof useBracketSetupData>;
@@ -48,17 +50,28 @@ function getInitialConfig(draft: SetupData["draft"], searchParams: SetupData["se
 
 export function NewBracketSetupPage({ draftId: routeDraftId = null }: NewBracketSetupPageProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const { searchParams, pools, draft, loading } = useBracketSetupData(routeDraftId);
   const { creating, createBracket } = useNewBracketSubmission(draft);
 
-  if (loading) return <p className="text-sm text-[var(--muted)]">Loading your pools...</p>;
+  if (loading) return <p className={styles.loading}>Loading your pools...</p>;
 
   return (
     <BracketCreationWizard
       pools={pools}
       initialPoolId={searchParams?.get("poolId") || ""}
       initialConfig={getInitialConfig(draft, searchParams)}
-      initialStep={searchParams?.get("step") === "structure" ? 1 : 0}
+      initialStep={getWizardStepFromSlug(searchParams?.get("step"))}
+      onStepChange={(step) => {
+        const nextParams = new URLSearchParams(searchParams?.toString());
+        const stepSlug = getWizardStepSlug(step);
+        if (stepSlug === "contenders") {
+          nextParams.delete("step");
+        } else {
+          nextParams.set("step", stepSlug);
+        }
+        router.push(nextParams.size ? `${pathname}?${nextParams.toString()}` : pathname);
+      }}
       creating={creating}
       onCancel={() => router.push("/brackets?stage=draft")}
       onCreate={createBracket}
