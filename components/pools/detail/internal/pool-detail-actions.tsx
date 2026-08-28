@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { EllipsisVertical } from "lucide-react";
-import { getPoolDetailMenuState } from "@/lib/pools/detail-menu";
 import type { PoolDetail } from "@/lib/pools/types";
+import { getPoolDetailMenuState } from "./pool-detail-menu-state";
 import type { MergePoolOption } from "./use-pool-detail-actions";
 import styles from "./pool-detail-actions.module.css";
 

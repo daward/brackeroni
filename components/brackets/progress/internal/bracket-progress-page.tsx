@@ -2,8 +2,8 @@
 import { useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import { BracketOutcomeHeader } from "@/components/brackets/results";
 import { ShareCardModal } from "./share-card-modal";
-import { formatResultModeLabel } from "@/lib/bracket-modes";
-import { formatRoundTitle } from "@/lib/brackets/progress";
+import { formatResultModeLabel } from "@/lib/brackets/engine/result-modes";
+import { formatRoundTitle } from "./progress-policy";
 import { RoundProgressCard, type ShareCardPayload } from "./round-progress-card";
 import type { BracketProgressPageProps, BracketProgressRound } from "../types";
 

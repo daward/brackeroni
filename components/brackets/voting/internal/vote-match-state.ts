@@ -1,4 +1,4 @@
-import { isPartialRankingMode, usesOpenEndedRankingMode, usesSwissResultMode } from "@/lib/bracket-modes";
+import { isPartialRankingMode, usesOpenEndedRankingMode, usesSwissResultMode } from "@/lib/brackets/engine/result-modes";
 import type { VoteMatch, VoteTournament } from "./voting-internal-types";
 
 function nextPowerOfTwo(value: number) {

@@ -15,6 +15,25 @@ export { DraftCandidateManager } from "./internal/draft-candidate-manager";
 export { DraftPoolControls } from "./internal/draft-pool-controls";
 export { ManualResultQueue } from "./internal/status-manual-results";
 export {
+  buildDirectBracketSharePath,
+  canCopyBracketLink,
+  describeTournamentAudienceMode,
+  describeTournamentVisibility,
+  formatBracketDate,
+  formatBracketRuleLabel,
+  getTournamentAudienceMode,
+  getTournamentAudiencePatch,
+  isPublicBracketVisibility,
+  normalizeParallelBracketItem,
+  sortBrackets
+} from "./internal/presentation";
+export {
+  getActiveStandardBracketStatus
+} from "./internal/management-status";
+export type {
+  ActiveStandardBracketStatus
+} from "./internal/management-status";
+export {
   ActiveParallelTournamentSection,
   ActiveStandardTournamentSection,
   CollapsedDraftTournamentSection,

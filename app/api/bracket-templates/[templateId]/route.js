@@ -1,15 +1,15 @@
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { json, readJson, withRouteErrorHandling } from "@/lib/api/http";
-import { updateBracketTemplate } from "@/lib/data/bracket-templates";
+import { bracketTemplates } from "@/lib/brackets";
 import { bracketTemplateUpdateSchema } from "@/lib/validation/bracket-template";
 
 export const PATCH = withRouteErrorHandling(async function PATCH(request, context) {
   const user = await getCurrentUser(request);
   const { templateId } = context.params;
   const payload = bracketTemplateUpdateSchema.parse(await readJson(request));
-  const item = await updateBracketTemplate({
+  const templates = bracketTemplates({ userId: user.id });
+  const item = await templates.update({
     templateId,
-    creatorUserId: user.id,
     name: payload.name,
     description: payload.description,
     subBrackets: payload.subBrackets,

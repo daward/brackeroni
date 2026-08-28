@@ -1,7 +1,9 @@
 /** Public contracts for reusable pool presentation and management components. */
-import type { ManagedPool, PoolCandidate, PoolCandidatePagination, PoolDraft, PoolVisibility, PublicPool } from "@/lib/pools/types";
+import type { Pagination } from "@/lib/pagination/types";
+import type { ManagedPool, PoolCandidate, PoolDraft, PoolVisibility, PublicPool } from "@/lib/pools/types";
 import type { MouseEvent, ReactNode } from "react";
-export type { ManagedPool, PoolCandidate, PoolCandidatePagination, PoolDraft, PoolVisibility, PublicPool } from "@/lib/pools/types";
+export type { Pagination } from "@/lib/pagination/types";
+export type { ManagedPool, PoolCandidate, PoolDraft, PoolVisibility, PublicPool } from "@/lib/pools/types";
 
 /** Inputs for the compact candidate card used in editable pool layouts. */
 export type CandidatePoolCardProps = {
@@ -30,7 +32,7 @@ export type PoolSourceInfoProps = {
 export type PublicPoolCandidatesProps = {
   poolId: string;
   initialCandidates: PoolCandidate[];
-  initialPagination?: PoolCandidatePagination | null;
+  initialPagination?: Pagination | null;
 };
 
 /** Configuration for a public-pool card. */

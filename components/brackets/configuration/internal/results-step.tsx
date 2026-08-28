@@ -1,6 +1,6 @@
 "use client";
 
-import { estimateTournamentEffort } from "@/lib/tournament/effort-estimates";
+import { estimateTournamentEffort } from "@/lib/brackets/engine/effort-estimates";
 import type { BracketAdvancementMode, BracketPlayStyle } from "@/lib/brackets/types";
 import type { ResultMode } from "../types";
 import { ResultModeChoices } from "./wizard-choice-controls";

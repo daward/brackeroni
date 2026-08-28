@@ -1,4 +1,4 @@
-import { describePoolVisibility } from "@/lib/pools/visibility";
+import { describePoolVisibility } from "@/components/pools/shared";
 import type { OwnedPoolSummary } from "./types";
 import styles from "./pool-management.module.css";
 

@@ -1,4 +1,4 @@
-import type { ManagedBracket } from "@/lib/brackets/types";
+import type { Bracket, BracketTimestamps } from "@/lib/brackets/types";
 
 export type VoteMatch = {
   id: string;
@@ -22,16 +22,13 @@ export type VoteMatch = {
   userVoteEntryId?: string | null;
 } & Record<string, unknown>;
 
-export type VoteTournament = ManagedBracket & {
+export type VoteTournament = Bracket &
+  BracketTimestamps & {
   kind?: "standard" | "parallel_parent";
   matches?: VoteMatch[];
   entries?: Array<Record<string, unknown>>;
   description?: string | null;
   parentParallelTournamentId?: string | null;
-  startedAt?: string | Date | null;
-  completedAt?: string | Date | null;
-  archivedAt?: string | Date | null;
-  updatedAt?: string | Date | null;
   viewerParticipantId?: string | null;
 } & Record<string, unknown>;
 

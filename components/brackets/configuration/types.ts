@@ -1,7 +1,7 @@
 /** Public props and callbacks for bracket-configuration entry points. */
 import type { BracketAdvancementMode, BracketPlayStyle, BracketResultMode, BracketTieBreakMode, SeedingStructure } from "@/lib/brackets/types";
-import type { SeedingGroup as DraftSeedingGroup, SeedingGroupEntry as DraftSeedingGroupEntry } from "@/lib/brackets/seeding-draft";
-import type { SeedingEntry as DraftSeedingEntry } from "@/lib/brackets/seeding-entry-policy";
+import type { SeedingGroup as DraftSeedingGroup, SeedingGroupEntry as DraftSeedingGroupEntry } from "./internal/seeding-draft";
+import type { SeedingEntry as DraftSeedingEntry } from "./internal/seeding-entry-policy";
 import type { PoolSelectionOption } from "@/lib/pools/types";
 
 export type { PoolSelectionOption as BracketPoolOption } from "@/lib/pools/types";

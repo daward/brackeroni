@@ -1,7 +1,7 @@
 "use client";
 
 import { MobileSwipeRail } from "@/components/shared";
-import { usesOpenEndedRankingMode, usesSwissResultMode } from "@/lib/bracket-modes";
+import { usesOpenEndedRankingMode, usesSwissResultMode } from "@/lib/brackets/engine/result-modes";
 import {
   formatPercent,
   getRoundStats,
@@ -11,7 +11,7 @@ import {
   type ProgressEntry,
   type ProgressMatch,
   type RoundStats,
-} from "@/lib/brackets/progress";
+} from "./progress-policy";
 import { RoundRevealControls } from "./round-reveal-controls";
 import { RoundMoreActions } from "./round-share-actions";
 import { RankingTile } from "./ranking-tile";

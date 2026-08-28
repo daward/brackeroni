@@ -1,6 +1,6 @@
 import { AdminDashboard } from "@/components/admin/admin-dashboard";
 import { requireAdminPage } from "@/lib/auth/admin";
-import { listAdminPools, listAdminTournaments } from "@/lib/data/admin";
+import { listAdminPools, listAdminTournaments } from "@/lib/admin";
 
 export const metadata = {
   title: "Admin | Brackeroni"

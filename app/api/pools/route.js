@@ -1,6 +1,6 @@
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { isAdminUser } from "@/lib/auth/admin";
-import { createPool, listPools } from "@/lib/data/pools";
+import { createPool, listPools } from "@/lib/pools";
 import { json, readJson, withRouteErrorHandling } from "@/lib/api/http";
 import { takeRequestRateLimit } from "@/lib/api/request-rate-limit";
 import { buildGenericPageImportPrompt } from "@/lib/bookmarklets/prompt";

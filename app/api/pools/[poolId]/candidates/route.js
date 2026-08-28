@@ -1,5 +1,5 @@
 import { getCurrentUser, getOptionalCurrentUser } from "@/lib/auth/current-user";
-import { addCandidatesToPool, createCandidateInPool, getPoolById } from "@/lib/data/pools";
+import { pool } from "@/lib/pools";
 import { json, readJson, withRouteErrorHandling } from "@/lib/api/http";
 import { poolCandidateAttachSchema, poolCandidateCreateSchema } from "@/lib/validation/pool";
 
@@ -11,28 +11,28 @@ export const GET = withRouteErrorHandling(async function GET(request, { params }
   }
   const user = await getOptionalCurrentUser(request);
   const { poolId } = await params;
-  const pool = await getPoolById({ poolId, userId: user?.id ?? null, candidateLimit: limit, candidateOffset: offset });
-  return json({ items: pool.candidates, meta: pool.candidatePagination });
+  const poolDetail = await pool({ poolId, viewerUserId: user?.id ?? null }).get({
+    candidateLimit: limit,
+    candidateOffset: offset
+  });
+  return json({ items: poolDetail.candidates, meta: poolDetail.candidatePagination });
 });
 
 export const POST = withRouteErrorHandling(async function POST(request, { params }) {
   const user = await getCurrentUser(request);
   const { poolId } = await params;
+  const poolHandle = pool({ poolId, viewerUserId: user.id });
   const body = await readJson(request);
-  let pool;
+  let poolDetail;
 
   if (Array.isArray(body?.candidateIds)) {
     const payload = poolCandidateAttachSchema.parse(body);
-    pool = await addCandidatesToPool({
-      poolId,
-      creatorUserId: user.id,
+    poolDetail = await poolHandle.addCandidates({
       candidateIds: payload.candidateIds
     });
   } else {
     const payload = poolCandidateCreateSchema.parse(body);
-    pool = await createCandidateInPool({
-      poolId,
-      creatorUserId: user.id,
+    poolDetail = await poolHandle.createCandidate({
       name: payload.name,
       description: payload.description,
       imageUrl: payload.imageUrl,
@@ -41,5 +41,5 @@ export const POST = withRouteErrorHandling(async function POST(request, { params
     });
   }
 
-  return json({ item: pool });
+  return json({ item: poolDetail });
 });

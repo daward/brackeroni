@@ -9,7 +9,7 @@ import { DetailsPanel } from "./details-panel";
 import { ParticipationTrackerPanel } from "./status-participation";
 import { TournamentActionGroup } from "./tournament-action-group";
 import styles from "./management.module.css";
-import { getActiveStandardBracketStatus } from "@/lib/brackets/management-status";
+import { getActiveStandardBracketStatus } from "./management-status";
 import type { ActiveStandardTournamentSectionProps } from "../types";
 
 export function ActiveStandardTournamentSection({

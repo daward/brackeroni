@@ -4,7 +4,7 @@ import {
   createAnonymousVoterToken,
   getAnonymousVoterTokenFromRequest
 } from "@/lib/auth/viewer";
-import { recordTournamentVote } from "@/lib/services/tournament-lifecycle";
+import { bracketVoting } from "@/lib/brackets";
 import { json, readJson, withRouteErrorHandling } from "@/lib/api/http";
 import { voteCreateSchema } from "@/lib/validation/vote";
 
@@ -16,7 +16,7 @@ export const POST = withRouteErrorHandling(async function POST(request, { params
   const anonymousVoterToken = user
     ? existingAnonymousVoterToken ?? null
     : existingAnonymousVoterToken ?? createAnonymousVoterToken();
-  const vote = await recordTournamentVote({
+  const vote = await bracketVoting().recordVote({
     matchId: routeParams.matchId,
     userId: user?.id ?? null,
     anonymousVoterToken,

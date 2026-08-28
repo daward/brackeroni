@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, type ChangeEvent } from "react";
-import { describePoolVisibility } from "@/lib/pools/visibility";
-import { isGeneratedPoolSourceDescription } from "@/lib/pools/source-description";
+import { describePoolVisibility, isGeneratedPoolSourceDescription } from "./pool-workspace-helpers";
 import { InlineTitleField } from "@/components/shared";
 import type { PoolManagementPanelProps, PoolVisibilityPickerProps } from "../types";
 import type { PoolDraft, PoolVisibility } from "@/lib/pools/types";

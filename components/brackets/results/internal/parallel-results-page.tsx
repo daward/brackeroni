@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { formatResultModeLabel } from "@/lib/bracket-modes";
+import { formatResultModeLabel } from "@/lib/brackets/engine/result-modes";
 import type { ParallelResultsPageProps } from "../types";
 import { AggregateEntryDetails } from "./aggregate-entry-details";
 import { AggregateResultsTable } from "./aggregate-results-table";

@@ -3,9 +3,9 @@ import { CirclePlay, Plane, Trophy } from "lucide-react";
 import { CompactRailHeader } from "@/components/shared";
 import { FeaturedHomePools, FeaturedHomeVoteSection } from "@/components/home";
 import { getOptionalCurrentUser } from "@/lib/auth/current-user";
-import { getFeaturedParallelTeaserMatchups } from "@/lib/data/parallel-tournaments";
-import { listPublicPools } from "@/lib/data/pools";
-import { getFeaturedPublicMatchupsForHomepage } from "@/lib/data/tournaments";
+import { parallelBracketDirectory } from "@/lib/brackets";
+import { listPublicPools } from "@/lib/pools";
+import { bracketDirectory } from "@/lib/brackets";
 
 function HomeUseCasesRail({ className = "" }) {
   return (
@@ -48,11 +48,13 @@ function HomeUseCasesRail({ className = "" }) {
 
 export default async function HomePage() {
   const user = await getOptionalCurrentUser();
+  const directory = bracketDirectory();
+  const parallelDirectory = parallelBracketDirectory();
   const [featuredPublicMatchups, featuredParallelMatchups, publicPools] = await Promise.all([
-    getFeaturedPublicMatchupsForHomepage({
+    directory.getFeaturedPublicMatchupsForHomepage({
       limit: 6
     }),
-    getFeaturedParallelTeaserMatchups({
+    parallelDirectory.getFeaturedTeaserMatchups({
       limit: 6
     }),
     listPublicPools({ limit: 6, userId: null, featuredOnly: true })

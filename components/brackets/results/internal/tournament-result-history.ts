@@ -1,4 +1,4 @@
-import { usesOpenEndedRankingMode, usesSwissResultMode } from "@/lib/bracket-modes";
+import { usesOpenEndedRankingMode, usesSwissResultMode } from "@/lib/brackets/engine/result-modes";
 import type { ResultMatch, ResultTournament } from "../types";
 import type { EntrySeedDisplay, UserVoteNote } from "./tournament-result-types";
 import { formatSeedLabel } from "./tournament-seed-display";

@@ -2,12 +2,12 @@
 
 import { DraftCandidateManager } from "./draft-candidate-manager";
 import { DraftPoolControls } from "./draft-pool-controls";
-import type { ManagedBracket } from "@/lib/brackets/types";
+import type { Bracket } from "@/lib/brackets/types";
 import type { DraftEntrantsProps, DraftPoolProps } from "../types";
 import styles from "./draft.module.css";
 
 type DraftPoolSectionProps = {
-  tournament: ManagedBracket;
+  tournament: Bracket;
   pool: DraftPoolProps;
   entrants: DraftEntrantsProps;
 };

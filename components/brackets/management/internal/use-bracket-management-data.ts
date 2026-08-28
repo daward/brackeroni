@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { runSingleFlight } from "@/lib/async/single-flight";
-import { sortManagedPools } from "@/lib/pools/listing";
+import { sortManagedPools } from "@/components/pools/shared";
 import type {
   BracketStageView,
   MessageSetter,

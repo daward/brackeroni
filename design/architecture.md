@@ -197,7 +197,7 @@ Suggested top-level structure:
 3. `lib/` for shared utilities
 4. `lib/auth/` for auth configuration
 5. `lib/db/` for SQL helpers, connection management, and persistence code
-6. `lib/tournament/` for bracket logic
+6. `lib/brackets/engine/` for framework-independent bracket logic
 7. `lib/validation/` for schemas and input validation
 8. `openapi/` for the API specification
 9. `db/` for SQL schema and migrations
@@ -420,7 +420,7 @@ Constraints:
 
 # Core Logic Boundaries
 ## Bracket Engine
-Put all tournament progression logic under `lib/tournament/`.
+Put all bracket progression logic under `lib/brackets/engine/`.
 
 This code should own:
 

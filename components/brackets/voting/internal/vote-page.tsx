@@ -4,15 +4,15 @@ import { getOptionalCurrentUser } from "@/lib/auth/current-user";
 import { ANONYMOUS_VOTER_COOKIE } from "@/lib/auth/viewer";
 import {
   firstParam,
-  getAccessibleParallelTournamentByIdForVote,
+  getAccessibleParallelBracketByIdForVote,
   getAccessibleTournamentByIdForVote,
-  listAccessibleParallelTournamentsForVote,
+  listAccessibleParallelBracketsForVote,
   listAccessibleTournamentsForVote,
   listMatchesForTournamentForVote,
-  listPublicParallelTournamentsForVote,
+  listPublicParallelBracketsForVote,
   listPublicTournamentsForVote,
-  normalizeParallelTournamentForVoteIndex,
-  openParallelTournamentParticipantBracketForVote,
+  normalizeParallelBracketForVoteIndex,
+  openParallelBracketParticipantForVote,
 } from "./vote-page-data";
 import { VoteScreenPanels } from "./vote-screen-panels";
 import type { VoteMatch, VoteTournament } from "./voting-internal-types";
@@ -25,35 +25,35 @@ export default async function BracketVotingPage({ searchParams }: { searchParams
   const anonymousVoterToken = cookieStore.get(ANONYMOUS_VOTER_COOKIE)?.value ?? null;
   const votePage = Math.max(1, Number.parseInt(firstParam(params.page) ?? "1", 10) || 1);
   const voteOffset = (votePage - 1) * 12;
-  const requestedParallelTournamentId = firstParam(params.parallelTournament);
+  const requestedParallelBracketId = firstParam(params.parallelTournament);
 
-  if (requestedParallelTournamentId) {
+  if (requestedParallelBracketId) {
     if (!user && !anonymousVoterToken) {
       const returnToParam = typeof params.returnTo === "string" ? `?returnTo=${params.returnTo}` : "";
-      redirect(`/api/parallel-tournaments/${requestedParallelTournamentId}/participants/me${returnToParam}`);
+      redirect(`/api/parallel-tournaments/${requestedParallelBracketId}/participants/me${returnToParam}`);
     }
 
-    const requestedParallelTournament = await getAccessibleParallelTournamentByIdForVote({
-      parallelTournamentId: requestedParallelTournamentId,
+    const requestedParallelBracket = await getAccessibleParallelBracketByIdForVote({
+      parallelBracketId: requestedParallelBracketId,
       userId: user?.id ?? null,
       anonymousVoterToken,
     });
 
-    if (requestedParallelTournament.viewerParticipantStatus === "complete") {
-      redirect(`/results/${requestedParallelTournamentId}`);
+    if (requestedParallelBracket.viewerParticipantStatus === "complete") {
+      redirect(`/results/${requestedParallelBracketId}`);
     }
 
-    const openedParallelTournament = await openParallelTournamentParticipantBracketForVote({
-      parallelTournamentId: requestedParallelTournamentId,
+    const openedParallelBracket = await openParallelBracketParticipantForVote({
+      parallelBracketId: requestedParallelBracketId,
       userId: user?.id ?? null,
       anonymousVoterToken,
     });
     const returnTo = firstParam(params.returnTo);
     const returnToParam = returnTo ? `&returnTo=${returnTo}` : "";
-    redirect(`/vote?tournament=${openedParallelTournament.tournamentId}${returnToParam}`);
+    redirect(`/vote?tournament=${openedParallelBracket.tournamentId}${returnToParam}`);
   }
 
-  const [accessibleTournaments, publicTournaments, accessibleParallelTournaments, publicParallelTournaments] = await Promise.all([
+  const [accessibleTournaments, publicTournaments, accessibleParallelBrackets, publicParallelBrackets] = await Promise.all([
     user
       ? listAccessibleTournamentsForVote({
           userId: user.id,
@@ -64,7 +64,7 @@ export default async function BracketVotingPage({ searchParams }: { searchParams
       : Promise.resolve([]),
     listPublicTournamentsForVote({ statuses: ["active", "complete"], limit: 12 }),
     user
-      ? listAccessibleParallelTournamentsForVote({
+      ? listAccessibleParallelBracketsForVote({
           userId: user.id,
           anonymousVoterToken,
           statuses: ["active", "complete"],
@@ -72,14 +72,14 @@ export default async function BracketVotingPage({ searchParams }: { searchParams
           offset: voteOffset,
         })
       : Promise.resolve([]),
-    listPublicParallelTournamentsForVote({ statuses: ["active", "complete"], limit: 12 }),
+    listPublicParallelBracketsForVote({ statuses: ["active", "complete"], limit: 12 }),
   ]);
   const requestedTournamentId = firstParam(params.tournament);
   const tournaments: VoteTournament[] = [
     ...accessibleTournaments.map((item) => ({ ...item, kind: "standard" as const })),
     ...publicTournaments.map((item) => ({ ...item, kind: "standard" as const })),
-    ...accessibleParallelTournaments.map(normalizeParallelTournamentForVoteIndex),
-    ...publicParallelTournaments.map(normalizeParallelTournamentForVoteIndex),
+    ...accessibleParallelBrackets.map(normalizeParallelBracketForVoteIndex),
+    ...publicParallelBrackets.map(normalizeParallelBracketForVoteIndex),
   ].filter((tournament, index, items) => items.findIndex((candidate) => candidate.id === tournament.id) === index);
   const activeTournaments = await Promise.all(
     tournaments
@@ -186,7 +186,7 @@ export default async function BracketVotingPage({ searchParams }: { searchParams
         activeTournaments={mergedActiveTournaments}
         completedTournaments={completedTournaments}
         completedHasNextPage={
-          [accessibleTournaments, publicTournaments, accessibleParallelTournaments, publicParallelTournaments].some(
+          [accessibleTournaments, publicTournaments, accessibleParallelBrackets, publicParallelBrackets].some(
             (items) => items.length >= 12,
           )
         }

@@ -1,5 +1,6 @@
-import { normalizeParallelBracketItem, sortManagedBrackets } from "@/lib/brackets/presentation";
-import { sortManagedPools } from "@/lib/pools/listing";
+import { normalizeParallelBracketItem, sortBrackets } from "./presentation";
+import { sortManagedPools } from "@/components/pools/shared";
+import type { Pagination } from "@/lib/pagination/types";
 import {
   getParallelTournament,
   getPool,
@@ -24,7 +25,7 @@ import type {
 export const POOL_PAGE_SIZE = 24;
 export const TOURNAMENT_PAGE_SIZE = 12;
 
-export type TournamentPagination = {
+export type TournamentPagination = Pagination & {
   page: number;
   pageSize: number;
   hasNextPage: boolean;
@@ -36,8 +37,7 @@ export type StageCache = Partial<Record<BracketStageView, { items: WorkspaceTour
 export type ListResponse<T> = {
   items?: T[];
   item?: T;
-  meta?: {
-    hasNextPage?: boolean;
+  meta?: Pagination & {
     statusCounts?: Partial<Record<BracketStageView, number>>;
   };
 };
@@ -78,7 +78,7 @@ export async function listWorkspacePools(): Promise<WorkspacePool[]> {
 }
 
 export function mergeWorkspaceTournaments(standardData: ListResponse<WorkspaceTournament>, parallelData: ListResponse<WorkspaceTournament>): WorkspaceTournament[] {
-  return sortManagedBrackets([
+  return sortBrackets([
     ...(standardData.items ?? []).filter((item) => !item.parentParallelTournamentId).map((item) => ({ ...item, kind: "standard" as const })),
     ...(parallelData.items ?? []).map(normalizeParallelBracketItem),
   ]);

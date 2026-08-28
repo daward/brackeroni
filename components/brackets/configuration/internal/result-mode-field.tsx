@@ -1,6 +1,6 @@
 "use client";
 
-import { ALL_RESULT_MODES, formatResultModeLabel, isParallelResultMode } from "@/lib/bracket-modes";
+import { ALL_RESULT_MODES, formatResultModeLabel, isParallelResultMode } from "@/lib/brackets/engine/result-modes";
 import type { ResultMode, ResultModeFieldProps } from "../types";
 import styles from "./config-field.module.css";
 

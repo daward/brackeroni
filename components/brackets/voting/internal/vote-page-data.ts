@@ -1,17 +1,10 @@
-import { listMatchesForTournament } from "@/lib/data/matches";
-import {
-  getAccessibleParallelTournamentById,
-  listAccessibleParallelTournaments,
-  listPublicParallelTournaments,
-  openParallelTournamentParticipantBracket,
-} from "@/lib/data/parallel-tournaments";
-import { getAccessibleTournamentById, listAccessibleTournaments, listPublicTournaments } from "@/lib/data/tournaments";
+import { bracketDirectory, bracketMatches, parallelBracketDirectory } from "@/lib/brackets";
 import type { VoteMatch, VoteTournament } from "./voting-internal-types";
 
 export type VotePageSearchParams = Record<string, string | string[] | undefined>;
 export type VoteStatusFilter = Array<"active" | "complete">;
 
-export type ParallelTournamentVoteIndexItem = {
+export type ParallelBracketVoteIndexItem = {
   id: string;
   title: string;
   description?: string | null;
@@ -37,50 +30,65 @@ export type ParallelTournamentVoteIndexItem = {
   winnerImageUrl?: string | null;
 };
 
-export const getAccessibleParallelTournamentByIdForVote = getAccessibleParallelTournamentById as unknown as (args: {
-  parallelTournamentId: string;
+const directory = bracketDirectory();
+const parallelDirectory = parallelBracketDirectory();
+
+export function getAccessibleParallelBracketByIdForVote(args: {
+  parallelBracketId: string;
   userId: string | null;
   anonymousVoterToken: string | null;
-}) => Promise<ParallelTournamentVoteIndexItem>;
+}): Promise<ParallelBracketVoteIndexItem> {
+  return parallelDirectory.getAccessibleBracketById({
+    parallelBracketId: args.parallelBracketId,
+    userId: args.userId,
+    anonymousVoterToken: args.anonymousVoterToken,
+  }) as Promise<ParallelBracketVoteIndexItem>;
+}
 
-export const openParallelTournamentParticipantBracketForVote = openParallelTournamentParticipantBracket as unknown as (args: {
-  parallelTournamentId: string;
+export function openParallelBracketParticipantForVote(args: {
+  parallelBracketId: string;
   userId: string | null;
   anonymousVoterToken: string | null;
-}) => Promise<{ tournamentId: string }>;
+}): Promise<{ tournamentId: string }> {
+  return parallelDirectory.openParticipantBracket({
+    parallelBracketId: args.parallelBracketId,
+    userId: args.userId,
+    anonymousVoterToken: args.anonymousVoterToken,
+  });
+}
 
-export const listAccessibleTournamentsForVote = listAccessibleTournaments as unknown as (args: {
+export const listAccessibleTournamentsForVote = directory.listAccessibleTournaments as unknown as (args: {
   userId: string;
   statuses: VoteStatusFilter;
   limit: number;
   offset: number;
 }) => Promise<VoteTournament[]>;
 
-export const listPublicTournamentsForVote = listPublicTournaments as unknown as (args: {
+export const listPublicTournamentsForVote = directory.listPublicTournaments as unknown as (args: {
   statuses: VoteStatusFilter;
   limit: number;
 }) => Promise<VoteTournament[]>;
 
-export const listAccessibleParallelTournamentsForVote = listAccessibleParallelTournaments as unknown as (args: {
+export const listAccessibleParallelBracketsForVote = parallelDirectory.listAccessibleBrackets as unknown as (args: {
   userId: string;
   anonymousVoterToken: string | null;
   statuses: VoteStatusFilter;
   limit: number;
   offset: number;
-}) => Promise<ParallelTournamentVoteIndexItem[]>;
+}) => Promise<ParallelBracketVoteIndexItem[]>;
 
-export const listPublicParallelTournamentsForVote = listPublicParallelTournaments as unknown as (args: {
+export const listPublicParallelBracketsForVote = parallelDirectory.listPublicBrackets as unknown as (args: {
   statuses: VoteStatusFilter;
   limit: number;
-}) => Promise<ParallelTournamentVoteIndexItem[]>;
+}) => Promise<ParallelBracketVoteIndexItem[]>;
 
-export const listMatchesForTournamentForVote = listMatchesForTournament as unknown as (args: {
+export const listMatchesForTournamentForVote = bracketMatches().list as unknown as (args: {
   tournamentId: string;
   userId: string | null;
   anonymousVoterToken: string | null;
 }) => Promise<{ matches: VoteMatch[] }>;
 
-export const getAccessibleTournamentByIdForVote = getAccessibleTournamentById as unknown as (args: {
+export const getAccessibleTournamentByIdForVote = directory.getAccessibleTournamentById as unknown as (args: {
   tournamentId: string;
   userId: string | null;
   anonymousVoterToken: string | null;
@@ -90,7 +98,7 @@ export function firstParam(value: string | string[] | undefined): string | null 
   return typeof value === "string" ? value : null;
 }
 
-export function normalizeParallelTournamentForVoteIndex(item: ParallelTournamentVoteIndexItem): VoteTournament {
+export function normalizeParallelBracketForVoteIndex(item: ParallelBracketVoteIndexItem): VoteTournament {
   return {
     id: item.id,
     title: item.title,

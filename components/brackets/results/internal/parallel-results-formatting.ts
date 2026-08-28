@@ -1,4 +1,4 @@
-import { usesOpenEndedRankingMode } from "@/lib/bracket-modes";
+import { usesOpenEndedRankingMode } from "@/lib/brackets/engine/result-modes";
 import type { ResultMatch, ResultTournament } from "../types";
 
 export function formatRank(value?: number | null) {

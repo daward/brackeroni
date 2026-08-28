@@ -11,6 +11,7 @@ import type {
   SetStateAction,
   RefAttributes,
 } from "react";
+import type { Pagination } from "@/lib/pagination/types";
 
 /** Merge a primitive's own props with the props of its chosen rendered element. */
 export type PolymorphicProps<Element extends ElementType, Props> = Props & {
@@ -76,16 +77,15 @@ export type InfiniteScrollControlProps = InfiniteScrollOptions & {
 };
 
 /** Transport contract for an offset-paginated collection. */
-export type PaginatedPage<T> = {
+export type PaginatedPage<T> = Pagination & {
   items?: T[];
-  hasNextPage?: boolean;
 };
 
 export type PaginatedCollectionOptions<T> = {
   /** Changes reset the collection to its new first page. */
   resourceKey: string | null | undefined;
   initialItems: T[];
-  initialPagination?: { hasNextPage?: boolean } | null;
+  initialPagination?: Pagination | null;
   loadPage: (request: { offset: number }) => Promise<PaginatedPage<T>>;
   getId?: (item: T) => string | null | undefined;
 };

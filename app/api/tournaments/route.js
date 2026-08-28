@@ -2,16 +2,10 @@ import { cookies } from "next/headers";
 import { getCurrentUser, getOptionalCurrentUser } from "@/lib/auth/current-user";
 import { ANONYMOUS_VOTER_COOKIE } from "@/lib/auth/viewer";
 import {
-  createTournament,
-  getTournamentStatusCounts,
-  listAccessibleTournaments,
-  listPublicTournaments,
-  listTournaments
-} from "@/lib/data/tournaments";
-import {
-  listAccessibleParallelTournaments,
-  listPublicParallelTournaments
-} from "@/lib/data/parallel-tournaments";
+  bracketDirectory,
+  brackets,
+  parallelBracketDirectory
+} from "@/lib/brackets";
 import { json, readJson, withRouteErrorHandling } from "@/lib/api/http";
 import { takeRequestRateLimit } from "@/lib/api/request-rate-limit";
 import { tournamentCreateSchema } from "@/lib/validation/tournament";
@@ -19,6 +13,8 @@ import { tournamentCreateSchema } from "@/lib/validation/tournament";
 export const GET = withRouteErrorHandling(async function GET(request) {
   const { searchParams } = request.nextUrl;
   const scope = searchParams.get("scope");
+  const directory = bracketDirectory();
+  const parallelDirectory = parallelBracketDirectory();
 
   if (scope === "vote-completed") {
     const offset = Number.parseInt(searchParams.get("offset") || "0", 10);
@@ -39,11 +35,11 @@ export const GET = withRouteErrorHandling(async function GET(request) {
     const sourceLimit = limit + 1;
     const [accessible, publicItems, accessibleParallel, publicParallel] = await Promise.all([
       user
-        ? listAccessibleTournaments({ userId: user.id, statuses: ["complete"], limit: sourceLimit, offset })
+        ? directory.listAccessibleTournaments({ userId: user.id, statuses: ["complete"], limit: sourceLimit, offset })
         : Promise.resolve([]),
-      listPublicTournaments({ statuses: ["complete"], limit: sourceLimit, offset }),
+      directory.listPublicTournaments({ statuses: ["complete"], limit: sourceLimit, offset }),
       user
-        ? listAccessibleParallelTournaments({
+        ? parallelDirectory.listAccessibleBrackets({
             userId: user.id,
             anonymousVoterToken,
             statuses: ["complete"],
@@ -51,7 +47,7 @@ export const GET = withRouteErrorHandling(async function GET(request) {
             offset
           })
         : Promise.resolve([]),
-      listPublicParallelTournaments({ statuses: ["complete"], limit: sourceLimit, offset })
+      parallelDirectory.listPublicBrackets({ statuses: ["complete"], limit: sourceLimit, offset })
     ]);
     const items = [
       ...accessible.map((item) => ({ ...item, kind: "standard" })),
@@ -117,9 +113,10 @@ export const GET = withRouteErrorHandling(async function GET(request) {
     return json({ error: { code: "INVALID_STATUS", message: "status must be draft, active, or complete." } }, { status: 400 });
   }
 
+  const ownedBrackets = brackets({ creatorUserId: user.id });
   const [result, statusCounts] = await Promise.all([
-    listTournaments({ creatorUserId: user.id, status, limit, offset }),
-    getTournamentStatusCounts({ creatorUserId: user.id })
+    ownedBrackets.list({ status, limit, offset }),
+    ownedBrackets.statusCounts()
   ]);
   return json({
     items: result.items,
@@ -130,10 +127,7 @@ export const GET = withRouteErrorHandling(async function GET(request) {
 export const POST = withRouteErrorHandling(async function POST(request) {
   const user = await getCurrentUser(request);
   const payload = tournamentCreateSchema.parse(await readJson(request));
-  const tournament = await createTournament({
-    creatorUserId: user.id,
-    ...payload
-  });
+  const tournament = await brackets({ creatorUserId: user.id }).create(payload);
 
   return json(
     {

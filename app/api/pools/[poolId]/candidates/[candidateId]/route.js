@@ -1,5 +1,5 @@
 import { getCurrentUser } from "@/lib/auth/current-user";
-import { removeCandidateFromPool, updateCandidateInPool } from "@/lib/data/pools";
+import { pool } from "@/lib/pools";
 import { json, readJson, withRouteErrorHandling } from "@/lib/api/http";
 import { candidateUpdateSchema } from "@/lib/validation/candidate";
 
@@ -7,12 +7,7 @@ export const PATCH = withRouteErrorHandling(async function PATCH(request, { para
   const user = await getCurrentUser(request);
   const { poolId, candidateId } = await params;
   const patch = candidateUpdateSchema.parse(await readJson(request));
-  const candidate = await updateCandidateInPool({
-    poolId,
-    candidateId,
-    creatorUserId: user.id,
-    patch
-  });
+  const candidate = await pool({ poolId, viewerUserId: user.id }).candidate(candidateId).update(patch);
 
   return json({ item: candidate });
 });
@@ -20,11 +15,7 @@ export const PATCH = withRouteErrorHandling(async function PATCH(request, { para
 export const DELETE = withRouteErrorHandling(async function DELETE(request, { params }) {
   const user = await getCurrentUser(request);
   const { poolId, candidateId } = await params;
-  const result = await removeCandidateFromPool({
-    poolId,
-    creatorUserId: user.id,
-    candidateId
-  });
+  const result = await pool({ poolId, viewerUserId: user.id }).candidate(candidateId).remove();
 
   return json(result);
 });

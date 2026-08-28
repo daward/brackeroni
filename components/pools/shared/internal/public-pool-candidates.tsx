@@ -5,11 +5,12 @@ import { CandidateTagList } from "./candidate-tag-list";
 import { InfiniteScrollControl, ResilientRemoteImage } from "@/components/shared";
 import styles from "./public-pool-candidates.module.css";
 import type { PublicPoolCandidatesProps } from "../types";
+import type { Pagination } from "@/lib/pagination/types";
 import type { PoolCandidate } from "@/lib/pools/types";
 
 type CandidatePageResponse = {
   items?: PoolCandidate[];
-  meta?: { hasNextPage?: boolean };
+  meta?: Pagination;
 };
 
 export function PublicPoolCandidates({ poolId, initialCandidates, initialPagination }: PublicPoolCandidatesProps) {

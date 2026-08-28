@@ -1,6 +1,6 @@
 "use client";
 
-import { buildDirectBracketSharePath, isPublicBracketVisibility } from "@/lib/brackets/presentation";
+import { buildDirectBracketSharePath, isPublicBracketVisibility } from "./presentation";
 import { ensureParallelTournamentShareLink, ensureTournamentShareLink } from "@/lib/client-api/create-workspace";
 import type {
   ActionMarker,

@@ -2,7 +2,7 @@
 
 import { type ChangeEvent, type ReactNode } from "react";
 import Link from "next/link";
-import { describePoolVisibility } from "@/lib/pools/visibility";
+import { describePoolVisibility } from "@/components/pools/shared";
 import { PoolSourceInfo, PoolVisibilityPicker } from "@/components/pools/shared";
 import { InlineTitleField } from "@/components/shared";
 import type { PoolDetail, PoolDraft } from "@/lib/pools/types";

@@ -1,5 +1,5 @@
 import { requireAdminUser } from "@/lib/auth/admin";
-import { deleteArchivedPool, updateAdminPool } from "@/lib/data/admin";
+import { deleteArchivedPool, updateAdminPool } from "@/lib/admin";
 import { json, readJson, withRouteErrorHandling } from "@/lib/api/http";
 import { adminPoolUpdateSchema } from "@/lib/validation/admin";
 

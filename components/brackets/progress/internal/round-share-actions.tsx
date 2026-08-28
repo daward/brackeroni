@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { type RoundStats } from "@/lib/brackets/progress";
+import { type RoundStats } from "./progress-policy";
 import type { ShareCardPayload } from "./round-progress-card";
 import { buildCreatorPrompt } from "./share-card-utils";
 

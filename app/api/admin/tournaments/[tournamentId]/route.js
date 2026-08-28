@@ -2,7 +2,7 @@ import { requireAdminUser } from "@/lib/auth/admin";
 import {
   deleteArchivedTournament,
   updateAdminTournamentVisibility
-} from "@/lib/data/admin";
+} from "@/lib/admin";
 import { json, readJson, withRouteErrorHandling } from "@/lib/api/http";
 import { adminVisibilityUpdateSchema } from "@/lib/validation/admin";
 

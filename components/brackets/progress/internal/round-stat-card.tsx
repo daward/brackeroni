@@ -1,4 +1,4 @@
-import { formatTieSuffix } from "@/lib/brackets/progress";
+import { formatTieSuffix } from "./progress-policy";
 
 type RoundStatCardProps = {
   label: string;

@@ -1,5 +1,5 @@
 import { getCurrentUser } from "@/lib/auth/current-user";
-import { getPoolById, importCandidatesIntoPool, mergePoolIntoPool } from "@/lib/data/pools";
+import { pool } from "@/lib/pools";
 import { json, readJson, withRouteErrorHandling } from "@/lib/api/http";
 import { poolImportSchema } from "@/lib/validation/pool";
 import { buildGenericPageImportPrompt } from "@/lib/bookmarklets/prompt";
@@ -9,17 +9,14 @@ import { resolveCandidateSourceUrl } from "@/lib/source-url";
 export const POST = withRouteErrorHandling(async function POST(request, { params }) {
   const user = await getCurrentUser(request);
   const { poolId } = await params;
+  const poolHandle = pool({ poolId, viewerUserId: user.id });
   const payload = poolImportSchema.parse(await readJson(request));
-  const pool = await getPoolById({ poolId, userId: user.id });
+  const poolDetail = await poolHandle.get();
 
   if ("sourcePoolId" in payload) {
-    const pool = await mergePoolIntoPool({
-      poolId,
-      sourcePoolId: payload.sourcePoolId,
-      creatorUserId: user.id
-    });
+    const poolDetail = await poolHandle.mergeFromPool({ sourcePoolId: payload.sourcePoolId });
 
-    return json({ item: pool });
+    return json({ item: poolDetail });
   }
 
   let candidates = [];
@@ -47,22 +44,20 @@ export const POST = withRouteErrorHandling(async function POST(request, { params
       name: candidate.name,
       description: candidate.description || null,
       imageUrl: candidate.imageUrl || null,
-      sourceUrl: resolveCandidateSourceUrl(candidate.sourceUrl, pool.importSourceUrl || null),
+      sourceUrl: resolveCandidateSourceUrl(candidate.sourceUrl, poolDetail.importSourceUrl || null),
       tags: candidate.tags || []
     }));
   }
 
-  const result = await importCandidatesIntoPool({
-    poolId,
-    creatorUserId: user.id,
+  const result = await poolHandle.importCandidates({
     candidates
   });
 
   return json({
     item: {
       ...result.pool,
-      importSourceUrl: result.pool.importSourceUrl || pool.importSourceUrl || null,
-      importSourceTitle: result.pool.importSourceTitle || pool.importSourceTitle || null
+      importSourceUrl: result.pool.importSourceUrl || poolDetail.importSourceUrl || null,
+      importSourceTitle: result.pool.importSourceTitle || poolDetail.importSourceTitle || null
     },
     meta: {
       importedCount: result.importedCount,

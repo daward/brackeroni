@@ -2,9 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { listTournamentEntries } from "@/lib/client-api/create-workspace";
-import { createSeedingStructure, normalizeSeedingStructure } from "@/lib/brackets/seeding-draft";
-import { moveEntryToIndex, removeFromPlayInAtIndexEntries, removeFromPlayInEntries, togglePlayInAtIndexEntries, togglePlayInEntries } from "@/lib/brackets/seeding-entry-actions";
-import { buildCanonicalSeedingPayload, buildSeedingSnapshot, hydrateSeedingEntries, validateSeedingEntries } from "@/lib/brackets/seeding-entry-policy";
+import { createSeedingStructure, normalizeSeedingStructure } from "./seeding-draft";
+import { moveEntryToIndex, removeFromPlayInAtIndexEntries, removeFromPlayInEntries, togglePlayInAtIndexEntries, togglePlayInEntries } from "./seeding-entry-actions";
+import { buildCanonicalSeedingPayload, buildSeedingSnapshot, hydrateSeedingEntries, validateSeedingEntries } from "./seeding-entry-policy";
 import type { SeedingEntryRecord, SeedingStructure } from "@/lib/brackets/types";
 import type { SeedingAutosaveState, UseSeedingActionsOptions, UseSeedingActionsResult } from "../types";
 import { clearLocalSeedingDraft, hydrateEntriesFromDraftPayload, readLocalSeedingDraft, writeLocalSeedingDraft } from "./seeding-local-draft";

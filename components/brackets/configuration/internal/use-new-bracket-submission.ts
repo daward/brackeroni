@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { isParallelResultMode } from "@/lib/bracket-modes";
+import { isParallelResultMode } from "@/lib/brackets/engine/result-modes";
 import { createParallelTournament, createPool, createTournament, startParallelTournament, startTournament, updateTournament } from "@/lib/client-api/create-workspace";
 import type { BracketSetupDraft } from "@/lib/brackets/types";
 import type { BracketCreationInput } from "../types";

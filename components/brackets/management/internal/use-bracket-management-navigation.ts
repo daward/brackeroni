@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import type { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
-import { normalizePoolNavigationTarget } from "@/lib/create-workspace/pool-navigation";
+import { normalizePoolNavigationTarget } from "@/components/pools/shared";
 import type { BracketStageView } from "./workspace-internal-types";
 
 type UseBracketManagementNavigationProps = {

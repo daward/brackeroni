@@ -4,7 +4,7 @@ import {
   getAnonymousVoterTokenFromRequest,
   ANONYMOUS_VOTER_COOKIE
 } from "@/lib/auth/viewer";
-import { openParallelTournamentParticipantBracket } from "@/lib/data/parallel-tournaments";
+import { parallelBracketDirectory } from "@/lib/brackets";
 import { json, withRouteErrorHandling } from "@/lib/api/http";
 import { NextResponse } from "next/server";
 
@@ -14,8 +14,8 @@ async function openParticipantBracket(request, { params }) {
   const existingAnonymousVoterToken = getAnonymousVoterTokenFromRequest(request);
   const anonymousVoterToken = user ? null : existingAnonymousVoterToken || createAnonymousVoterToken();
 
-  const item = await openParallelTournamentParticipantBracket({
-    parallelTournamentId,
+  const item = await parallelBracketDirectory().openParticipantBracket({
+    parallelBracketId: parallelTournamentId,
     userId: user?.id ?? null,
     anonymousVoterToken
   });

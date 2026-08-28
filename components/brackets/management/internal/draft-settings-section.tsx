@@ -1,8 +1,8 @@
 "use client";
 
 import { BracketStyleField, ResultModeField } from "@/components/brackets/configuration";
-import { formatBracketRuleLabel, getTournamentAudienceMode, getTournamentAudiencePatch } from "@/lib/brackets/presentation";
-import { isParallelResultMode } from "@/lib/bracket-modes";
+import { formatBracketRuleLabel, getTournamentAudienceMode, getTournamentAudiencePatch } from "./presentation";
+import { isParallelResultMode } from "@/lib/brackets/engine/result-modes";
 import type { BracketAudienceMode, BracketPlayStyle, BracketResultMode, BracketTieBreakMode } from "@/lib/brackets/types";
 import type { DraftSettingsProps } from "../types";
 import styles from "./draft.module.css";

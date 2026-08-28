@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { updateTournamentEntries } from "@/lib/client-api/create-workspace";
-import type { SeedingEntry } from "@/lib/brackets/seeding-entry-policy";
+import type { SeedingEntry } from "./seeding-entry-policy";
 import type { SeedingPayloadEntry, SeedingStructure } from "@/lib/brackets/types";
 
 type SaveJob = { tournamentId: string; snapshot: string; payload: SeedingPayloadEntry[]; structure: SeedingStructure };

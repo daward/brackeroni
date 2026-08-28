@@ -1,19 +1,13 @@
 import { getCurrentUser, getOptionalCurrentUser } from "@/lib/auth/current-user";
 import { getAnonymousVoterTokenFromRequest } from "@/lib/auth/viewer";
-import {
-  archiveTournament,
-  getAccessibleTournamentById,
-  getTournamentById,
-  updateTournament
-} from "@/lib/data/tournaments";
-import { applyTournamentLifecyclePatch } from "@/lib/services/tournament-lifecycle";
+import { bracket, bracketDirectory } from "@/lib/brackets";
 import { json, publicCacheControl, readJson, withCacheHeaders, withRouteErrorHandling } from "@/lib/api/http";
 import { tournamentUpdateSchema } from "@/lib/validation/tournament";
 
 export const GET = withRouteErrorHandling(async function GET(request, { params }) {
   const user = await getOptionalCurrentUser(request);
   const { tournamentId } = await params;
-  const tournament = await getAccessibleTournamentById({
+  const tournament = await bracketDirectory().getAccessibleTournamentById({
     tournamentId,
     userId: user?.id ?? null,
     anonymousVoterToken: getAnonymousVoterTokenFromRequest(request)
@@ -38,10 +32,10 @@ export const PATCH = withRouteErrorHandling(async function PATCH(request, { para
   const { tournamentId } = await params;
   const patch = tournamentUpdateSchema.parse(await readJson(request));
   const hasLifecycleAction = patch.closeCurrentRound === true || patch.openNextRound === true;
+  const currentBracket = bracket({ tournamentId, creatorUserId: user.id });
   const tournament = hasLifecycleAction
-    ? await applyTournamentLifecyclePatch({ tournamentId, creatorUserId: user.id, patch })
-        .then(() => getTournamentById({ tournamentId, creatorUserId: user.id }))
-    : await updateTournament({ tournamentId, creatorUserId: user.id, patch });
+    ? await currentBracket.applyLifecyclePatch(patch).then(() => currentBracket.get())
+    : await currentBracket.update(patch);
 
   return json({
     item: tournament,
@@ -58,10 +52,7 @@ export const PATCH = withRouteErrorHandling(async function PATCH(request, { para
 export const DELETE = withRouteErrorHandling(async function DELETE(request, { params }) {
   const user = await getCurrentUser(request);
   const { tournamentId } = await params;
-  await archiveTournament({
-    tournamentId,
-    creatorUserId: user.id
-  });
+  await bracket({ tournamentId, creatorUserId: user.id }).archive();
 
   return json({
     ok: true

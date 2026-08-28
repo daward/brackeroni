@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { isStrongSuggestedImageMatch } from "@/lib/pools/image-suggestions";
+import { isStrongSuggestedImageMatch } from "@/components/pools/shared";
 import type { ImageSuggestion, PoolCandidate } from "@/components/pools/candidates";
 import type { PoolDetail } from "@/lib/pools/types";
 import {

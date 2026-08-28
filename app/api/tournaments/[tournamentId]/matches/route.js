@@ -1,13 +1,13 @@
 import { getOptionalCurrentUser } from "@/lib/auth/current-user";
 import { getAnonymousVoterTokenFromRequest } from "@/lib/auth/viewer";
-import { listMatchesForTournament } from "@/lib/data/matches";
+import { bracketMatches } from "@/lib/brackets";
 import { json, publicCacheControl, withCacheHeaders, withRouteErrorHandling } from "@/lib/api/http";
 
 export const GET = withRouteErrorHandling(async function GET(request, { params }) {
   const user = await getOptionalCurrentUser(request);
   const { tournamentId } = await params;
   const anonymousVoterToken = getAnonymousVoterTokenFromRequest(request);
-  const result = await listMatchesForTournament({
+  const result = await bracketMatches().list({
     tournamentId,
     userId: user?.id ?? null,
     anonymousVoterToken

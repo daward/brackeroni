@@ -12,8 +12,13 @@ export default defineConfig({
       name: "brackeroni-jsx-in-js",
       enforce: "pre",
       transform(code, id) {
-        if (!id.includes("/components/") || !id.endsWith(".js")) return null;
-        return transformWithOxc(code, id, { lang: "jsx", jsx: { runtime: "automatic" } });
+        const sourcePath = id.split("?")[0];
+        const isJsxInJsSource =
+          sourcePath.endsWith(".js") && (sourcePath.includes("/app/") || sourcePath.includes("/components/"));
+
+        if (!isJsxInJsSource) return null;
+
+        return transformWithOxc(code, sourcePath, { lang: "jsx", jsx: { runtime: "automatic" } });
       }
     },
     react()
@@ -25,7 +30,16 @@ export default defineConfig({
   },
   test: {
     environment: "jsdom",
-    include: ["test/**/*.test.{jsx,ts,tsx}"],
-    setupFiles: ["./test/vitest.setup.js"]
+    include: ["test/**/*.test.{js,mjs,ts,tsx,jsx}"],
+    setupFiles: ["./test/vitest.setup.js"],
+    coverage: {
+      provider: "istanbul",
+      include: [
+        "app/**/*.{js,jsx,ts,tsx}",
+        "components/**/*.{js,jsx,ts,tsx}",
+        "lib/**/*.{js,jsx,ts,tsx}"
+      ],
+      reporter: ["text", "html"]
+    }
   }
 });

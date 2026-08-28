@@ -1,5 +1,5 @@
-import { sortManagedBrackets } from "@/lib/brackets/presentation";
-import { sortManagedPools } from "@/lib/pools/listing";
+import { sortBrackets } from "./presentation";
+import { sortManagedPools } from "@/components/pools/shared";
 import type {
   PoolDetailsState,
   TournamentInvitesState,
@@ -79,18 +79,18 @@ export function replaceTournamentInCache(cache: StageCache, tournamentId: string
       stage,
       {
         ...cached,
-        items: sortManagedBrackets(cached.items.map((tournament) => (tournament.id === tournamentId ? nextTournament : tournament))),
+        items: sortBrackets(cached.items.map((tournament) => (tournament.id === tournamentId ? nextTournament : tournament))),
       },
     ]),
   );
 }
 
 export function replaceTournamentInList(tournaments: WorkspaceTournament[], tournamentId: string, nextTournament: WorkspaceTournament): WorkspaceTournament[] {
-  return sortManagedBrackets(tournaments.map((tournament) => (tournament.id === tournamentId ? nextTournament : tournament)));
+  return sortBrackets(tournaments.map((tournament) => (tournament.id === tournamentId ? nextTournament : tournament)));
 }
 
 export function appendUniqueTournaments(current: WorkspaceTournament[], incoming: WorkspaceTournament[]): WorkspaceTournament[] {
-  return sortManagedBrackets([...current, ...incoming.filter((tournament) => !current.some((existing) => existing.id === tournament.id))]);
+  return sortBrackets([...current, ...incoming.filter((tournament) => !current.some((existing) => existing.id === tournament.id))]);
 }
 
 export function replaceTournamentMatch(matches: TournamentMatchesState, tournamentId: string, nextMatch: WorkspaceMatch): TournamentMatchesState {

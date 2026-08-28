@@ -9,4 +9,23 @@
  */
 export { BracketOutcomeNav } from "./internal/bracket-outcome-nav";
 export { BracketProgressPage } from "./internal/bracket-progress-page";
+export {
+  formatPercent,
+  formatRoundTitle,
+  formatTieSuffix,
+  getMatchSummary,
+  getRoundStats,
+  getSwissEntryStatsThroughRound,
+  getSwissPointsEarned,
+  orderFinalEntries,
+  supportsRoundProgressView
+} from "./internal/progress-policy";
+export type {
+  MatchSummary,
+  ProgressEntry,
+  ProgressMatch,
+  ProgressRound,
+  ProgressTournament,
+  RoundStats
+} from "./internal/progress-policy";
 export type { BracketOutcomeNavProps, BracketOutcomeView, BracketProgressMatch, BracketProgressPageProps, BracketProgressRound, BracketProgressTournament } from "./types";

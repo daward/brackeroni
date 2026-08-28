@@ -1,10 +1,10 @@
 import type { ReactNode } from "react";
-import type { BracketInvite, ManagedBracket } from "@/lib/brackets/types";
+import type { BracketInvite, Bracket } from "@/lib/brackets/types";
 
 export type SummaryRow = { title: string; meta: string; action?: ReactNode };
 
 export type ParticipationTrackerPanelProps = {
-  tournament: ManagedBracket;
+  tournament: Bracket;
   invitees: BracketInvite[];
   creatorVotesCast?: number;
   activeRoundVoteGoal?: number;

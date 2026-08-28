@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { formatCandidateTagText, parseCandidateTagText } from "@/lib/candidate-tags";
-import { isStrongSuggestedImageMatch } from "@/lib/pools/image-suggestions";
+import { isStrongSuggestedImageMatch } from "./image-suggestions";
 import { createCandidateInPool, removeCandidateFromPool, suggestImages, updateCandidateInPool, updateTournament } from "@/lib/client-api/create-workspace";
 
 export function usePoolCandidateActions({

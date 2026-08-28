@@ -1,3 +1,4 @@
+import type { Pagination } from "@/lib/pagination/types";
 import type { PoolVisibility } from "@/lib/pools/types";
 
 export type OwnedPoolSummary = {
@@ -8,9 +9,8 @@ export type OwnedPoolSummary = {
   candidateCount: number;
 };
 
-export type PoolPagination = {
+export type PoolPagination = Pagination & {
   page: number;
   pageSize: number;
   totalCount: number;
-  hasNextPage?: boolean;
 };

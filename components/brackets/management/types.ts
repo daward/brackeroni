@@ -1,7 +1,7 @@
 /** Public contracts for creator-workspace bracket-management components and callbacks. */
 import type { ReactNode, Ref } from "react";
 import type { CandidateDraft, ImageSuggestion, PoolCandidate } from "@/components/pools/candidates";
-import type { BracketDraft, BracketInvite, BracketMatch, ManagedBracket } from "@/lib/brackets/types";
+import type { BracketDraft, BracketInvite, BracketMatch, Bracket } from "@/lib/brackets/types";
 import type { ManagedPool } from "@/lib/pools/types";
 
 /** A labeled action rendered by the management action groups. */
@@ -18,7 +18,7 @@ export type TournamentAction = {
 
 export type PendingTournamentAction = (key: string) => boolean;
 export type BracketLabelFormatter = (value?: string | null) => string;
-export type BracketAudienceDescriber = (bracket: ManagedBracket) => string;
+export type BracketAudienceDescriber = (bracket: Bracket) => string;
 export type BracketPatch = Partial<BracketDraft>;
 export type BracketPoolOption = {
   id: string;
@@ -56,7 +56,7 @@ export type CloseVotingButtonProps = {
 };
 
 export type TournamentManagementCardProps = {
-  tournament: ManagedBracket;
+  tournament: Bracket;
   cardRef?: Ref<HTMLDivElement>;
   isMuted?: boolean;
   title: ReactNode;
@@ -98,7 +98,7 @@ export type DraftPoolProps = {
 };
 
 export type DraftPoolControlsProps = {
-  tournament: ManagedBracket;
+  tournament: Bracket;
   pool: DraftPoolProps;
   onCreatePool: () => void;
   onSelectPool: (poolId: string) => void;
@@ -148,7 +148,7 @@ export type DraftActionsProps = {
 };
 
 export type ExpandedDraftTournamentSectionProps = {
-  tournament: ManagedBracket;
+  tournament: Bracket;
   settings: DraftSettingsProps;
   pool: DraftPoolProps;
   entrants: DraftEntrantsProps;
@@ -157,7 +157,7 @@ export type ExpandedDraftTournamentSectionProps = {
 };
 
 export type CollapsedDraftTournamentSectionProps = {
-  tournament: ManagedBracket;
+  tournament: Bracket;
   isPublishedTournament: boolean;
   canStartBracket: boolean;
   describeTournamentAudienceMode: BracketAudienceDescriber;
@@ -168,12 +168,12 @@ export type CollapsedDraftTournamentSectionProps = {
 };
 
 export type ActiveParallelTournamentSectionProps = {
-  tournament: ManagedBracket;
+  tournament: Bracket;
   primaryActionHref: string;
   primaryActionLabel: string;
   activeShareLink: BracketShareLink;
   invitees: BracketInvite[];
-  canCopyBracketLink: (bracket: ManagedBracket) => boolean;
+  canCopyBracketLink: (bracket: Bracket) => boolean;
   describeTournamentAudienceMode: BracketAudienceDescriber;
   formatBracketRuleLabel: BracketLabelFormatter;
   isActionPending: PendingTournamentAction;
@@ -183,7 +183,7 @@ export type ActiveParallelTournamentSectionProps = {
 };
 
 export type ActiveStandardTournamentSectionProps = {
-  tournament: ManagedBracket;
+  tournament: Bracket;
   activeRoundMatches: BracketMatch[];
   hasOpenVotes: boolean;
   activeRoundVoteGoal: number;
@@ -191,7 +191,7 @@ export type ActiveStandardTournamentSectionProps = {
   creatorIsDone: boolean;
   activeShareLink: BracketShareLink;
   invitees: BracketInvite[];
-  canCopyBracketLink: (bracket: ManagedBracket) => boolean;
+  canCopyBracketLink: (bracket: Bracket) => boolean;
   describeTournamentAudienceMode: BracketAudienceDescriber;
   formatBracketRuleLabel: BracketLabelFormatter;
   isActionPending: PendingTournamentAction;
@@ -204,14 +204,14 @@ export type ActiveStandardTournamentSectionProps = {
 };
 
 export type ManualResultQueueProps = {
-  tournament: ManagedBracket;
+  tournament: Bracket;
   matches: BracketMatch[];
   isActionPending: PendingTournamentAction;
   onSetManualMatchWinner: (tournamentId: string, matchId: string, winnerId: string | null) => void;
 };
 
 export type CompletedTournamentSectionProps = {
-  tournament: ManagedBracket;
+  tournament: Bracket;
   hasSourcePool: boolean;
   formatBracketRuleLabel: BracketLabelFormatter;
   isActionPending: PendingTournamentAction;

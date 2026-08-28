@@ -1,4 +1,4 @@
-import { usesOpenEndedRankingMode, usesSwissResultMode } from "@/lib/bracket-modes";
+import { usesOpenEndedRankingMode, usesSwissResultMode } from "@/lib/brackets/engine/result-modes";
 import type { ResultTournament, VoteHistoryEntry } from "../types";
 
 export function formatScoringRoundLabel(vote: VoteHistoryEntry, tournament: ResultTournament) {

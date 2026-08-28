@@ -1,6 +1,6 @@
 "use client";
 
-import { isParallelResultMode } from "@/lib/bracket-modes";
+import { isParallelResultMode } from "@/lib/brackets/engine/result-modes";
 import type { ParallelResultModeNoticeProps } from "../types";
 import styles from "./parallel-result-mode-notice.module.css";
 

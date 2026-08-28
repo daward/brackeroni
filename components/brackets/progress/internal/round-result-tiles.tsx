@@ -1,5 +1,5 @@
 import { BackdropRemoteImage } from "@/components/shared";
-import { getSwissPointsEarned, type MatchSummary } from "@/lib/brackets/progress";
+import { getSwissPointsEarned, type MatchSummary } from "./progress-policy";
 
 type SwissEntryStats = { points: number; wins: number; losses: number; byes: number };
 type SwissStats = Map<string, SwissEntryStats>;

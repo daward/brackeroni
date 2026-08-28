@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { PublicPoolCard } from "@/components/pools/shared";
 import { getOptionalCurrentUser } from "@/lib/auth/current-user";
-import { listPublicPools } from "@/lib/data/pools";
+import { listPublicPools } from "@/lib/pools";
 
 export const metadata = {
   title: "Public Pools | Brackeroni"

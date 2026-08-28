@@ -11,9 +11,9 @@ import {
   normalizeSeedingStructure,
   removeSubBracket,
   updateSubBracketName,
-} from "@/lib/brackets/seeding-draft";
-import { moveEntryToIndex, removeFromPlayInEntries, togglePlayInEntries } from "@/lib/brackets/seeding-entry-actions";
-import type { SeedingEntry } from "@/lib/brackets/seeding-entry-policy";
+} from "./seeding-draft";
+import { moveEntryToIndex, removeFromPlayInEntries, togglePlayInEntries } from "./seeding-entry-actions";
+import type { SeedingEntry } from "./seeding-entry-policy";
 
 export function useSeedingEditorState(onChange: () => void) {
   const [seedingEntries, setSeedingEntries] = useState<SeedingEntry[]>([]);

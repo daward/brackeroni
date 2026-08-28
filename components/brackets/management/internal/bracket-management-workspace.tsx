@@ -3,7 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { BracketCreationWizard, SeedingModal, useSeedingActions } from "@/components/brackets/configuration";
-import { getTournamentAudienceMode, getTournamentAudiencePatch } from "@/lib/brackets/presentation";
+import { getTournamentAudienceMode, getTournamentAudiencePatch } from "./presentation";
 import { TournamentPublishWarning } from "@/components/brackets/shared";
 import { usePoolCandidateActions } from "@/components/pools/shared";
 import { WorkspaceSectionTabs } from "@/components/navigation/workspace-section-tabs";

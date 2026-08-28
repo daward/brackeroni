@@ -39,7 +39,8 @@ export function SeedingEntryRow({
   const stateClassName = draggingEntryId === entry.id ? styles.entryDragging : "";
   const cursorClassName = entry.isEmptySlot ? styles.entryEmpty : styles.entryDraggable;
   const partner = pairDirection === "previous" ? group.entries[rowIndex - 1] : group.entries[rowIndex + 1];
-  const candidateName = entry.candidateName || "Empty play-in slot";
+  const candidate = entry.candidate;
+  const candidateName = candidate?.name || "Empty play-in slot";
 
   function runMenuAction(action: () => void) {
     action();
@@ -63,10 +64,10 @@ export function SeedingEntryRow({
         <span className={`display-face ${styles.entrySeed}`}>{displaySeed ?? ""}</span>
         {isLocalPlayInSlot ? <span className={styles.entryFlag}>play-in</span> : null}
       </div>
-      {entry.candidateImageUrl ? <ResilientRemoteImage src={entry.candidateImageUrl} alt={candidateName} className={styles.entryImage} /> : null}
+      {candidate?.imageUrl ? <ResilientRemoteImage src={candidate.imageUrl} alt={candidateName} className={styles.entryImage} /> : null}
       <div className={styles.entryContent}>
         <p className={`display-face ${styles.entryName}`}>{candidateName}</p>
-        {entry.candidateDescription ? <p className={styles.entryDescription}>{entry.candidateDescription}</p> : null}
+        {candidate?.description ? <p className={styles.entryDescription}>{candidate.description}</p> : null}
         {entry.isEmptySlot ? <p className={styles.entryFlag}>Empty slot</p> : null}
       </div>
       <div className={styles.entryActionCell}>

@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { WorkspaceSectionTabs } from "@/components/navigation/workspace-section-tabs";
 import { ToastMessages } from "@/components/shared";
 import { createPool } from "@/lib/client-api/create-workspace";
-import { normalizePoolNavigationTarget } from "@/lib/create-workspace/pool-navigation";
+import { normalizePoolNavigationTarget } from "@/components/pools/shared";
 import { OwnedPoolList } from "./owned-pool-list";
 import { useOwnedPools } from "./use-owned-pools";
 import type { PoolManagementWorkspaceProps } from "../types";

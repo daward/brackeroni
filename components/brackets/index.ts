@@ -9,6 +9,7 @@ export { NewBracketSetupPage } from "./configuration";
 export { BracketJoinPage } from "./join";
 export { BracketManagementWorkspace } from "./management";
 export { BracketOutcomeNav, BracketProgressPage } from "./progress";
+export { supportsRoundProgressView } from "./progress";
 export { ParallelResultsPage, ResultsLinkedViewSelect, TournamentResultsPage, TournamentScoringPage } from "./results";
 export { CompletedBracketCard, TournamentPublishWarning } from "./shared";
 export { default as BracketVotingPage } from "./voting";

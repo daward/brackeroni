@@ -1,6 +1,6 @@
 "use client";
 
-import type { ManagedBracket } from "@/lib/brackets/types";
+import type { Bracket } from "@/lib/brackets/types";
 import type { DraftActionsProps } from "../types";
 import styles from "./management.module.css";
 
@@ -8,7 +8,7 @@ export function DraftActions({
   tournament,
   actions: { canStartBracket, isActionPending, onArchiveTournament, onStartTournament },
 }: {
-  tournament: ManagedBracket;
+  tournament: Bracket;
   actions: DraftActionsProps;
 }) {
   const startPending = isActionPending(`start-tournament:${tournament.id}`);

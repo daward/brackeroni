@@ -1,5 +1,5 @@
 import { requireAdminUser } from "@/lib/auth/admin";
-import { deleteAllArchivedMaterial } from "@/lib/data/admin";
+import { deleteAllArchivedMaterial } from "@/lib/admin";
 import { json, withRouteErrorHandling } from "@/lib/api/http";
 
 export const DELETE = withRouteErrorHandling(async function DELETE(request) {

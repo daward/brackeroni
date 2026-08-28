@@ -1,12 +1,5 @@
 import { getCurrentUser, getOptionalCurrentUser } from "@/lib/auth/current-user";
-import {
-  archivePool,
-  enrichPoolCandidatesFromSourceUrls,
-  getPoolById,
-  removeLowValueTagsFromPoolCandidates,
-  removeTagFromPoolCandidates,
-  updatePool
-} from "@/lib/data/pools";
+import { pool } from "@/lib/pools";
 import { json, publicCacheControl, readJson, withCacheHeaders, withRouteErrorHandling } from "@/lib/api/http";
 import {
   poolSourceEnrichmentSchema,
@@ -18,18 +11,17 @@ import {
 export const GET = withRouteErrorHandling(async function GET(request, { params }) {
   const user = await getOptionalCurrentUser(request);
   const { poolId } = await params;
+  const poolHandle = pool({ poolId, viewerUserId: user?.id ?? null });
   const candidateLimit = Number.parseInt(request.nextUrl.searchParams.get("candidateLimit") || "", 10);
   const candidateOffset = Number.parseInt(request.nextUrl.searchParams.get("candidateOffset") || "0", 10);
-  const pool = await getPoolById({
-    poolId,
-    userId: user?.id ?? null,
+  const poolDetail = await poolHandle.get({
     candidateLimit: Number.isInteger(candidateLimit) && candidateLimit > 0 ? candidateLimit : null,
     candidateOffset: Number.isInteger(candidateOffset) && candidateOffset >= 0 ? candidateOffset : 0
   });
 
-  const response = json({ item: pool });
+  const response = json({ item: poolDetail });
 
-  if (!user && (pool.visibility === "public_listed" || pool.visibility === "public_unlisted")) {
+  if (!user && (poolDetail.visibility === "public_listed" || poolDetail.visibility === "public_unlisted")) {
     return withCacheHeaders(response, {
       "cache-control": publicCacheControl({
         sMaxAge: 300,
@@ -44,13 +36,11 @@ export const GET = withRouteErrorHandling(async function GET(request, { params }
 export const PATCH = withRouteErrorHandling(async function PATCH(request, { params }) {
   const user = await getCurrentUser(request);
   const { poolId } = await params;
+  const poolHandle = pool({ poolId, viewerUserId: user.id });
   const body = await readJson(request);
   if ("enrichFromSourceUrls" in body) {
     poolSourceEnrichmentSchema.parse(body);
-    const result = await enrichPoolCandidatesFromSourceUrls({
-      poolId,
-      creatorUserId: user.id
-    });
+    const result = await poolHandle.enrichCandidatesFromSourceUrls();
 
     return json({
       item: result.pool,
@@ -66,9 +56,7 @@ export const PATCH = withRouteErrorHandling(async function PATCH(request, { para
 
   if ("removeTagsAtOrBelowCount" in body) {
     const payload = poolTagThresholdCleanupSchema.parse(body);
-    const result = await removeLowValueTagsFromPoolCandidates({
-      poolId,
-      creatorUserId: user.id,
+    const result = await poolHandle.removeLowValueTagsFromCandidates({
       maxCandidateCount: payload.removeTagsAtOrBelowCount
     });
 
@@ -83,18 +71,12 @@ export const PATCH = withRouteErrorHandling(async function PATCH(request, { para
 
   const result = "removeTag" in body
     ? {
-        item: await removeTagFromPoolCandidates({
-          poolId,
-          creatorUserId: user.id,
+        item: await poolHandle.removeTagFromCandidates({
           tag: poolTagManagementSchema.parse(body).removeTag
         })
       }
     : {
-        item: await updatePool({
-          poolId,
-          creatorUserId: user.id,
-          patch: poolUpdateSchema.parse(body)
-        })
+        item: await poolHandle.update(poolUpdateSchema.parse(body))
       };
 
   return json({ item: result.item });
@@ -103,10 +85,7 @@ export const PATCH = withRouteErrorHandling(async function PATCH(request, { para
 export const DELETE = withRouteErrorHandling(async function DELETE(request, { params }) {
   const user = await getCurrentUser(request);
   const { poolId } = await params;
-  await archivePool({
-    poolId,
-    userId: user.id
-  });
+  await pool({ poolId, viewerUserId: user.id }).archive();
 
   return json({
     ok: true

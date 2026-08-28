@@ -1,9 +1,5 @@
 import { getCurrentUser } from "@/lib/auth/current-user";
-import {
-  createParallelTournament,
-  getParallelTournamentStatusCounts,
-  listParallelTournaments
-} from "@/lib/data/parallel-tournaments";
+import { parallelBrackets } from "@/lib/brackets";
 import { json, readJson, withRouteErrorHandling } from "@/lib/api/http";
 import { takeRequestRateLimit } from "@/lib/api/request-rate-limit";
 import { parallelTournamentCreateSchema } from "@/lib/validation/parallel-tournament";
@@ -42,9 +38,10 @@ export const GET = withRouteErrorHandling(async function GET(request) {
     return json({ error: { code: "INVALID_STATUS", message: "status must be draft, active, or complete." } }, { status: 400 });
   }
 
+  const ownedBrackets = parallelBrackets({ creatorUserId: user.id });
   const [result, statusCounts] = await Promise.all([
-    listParallelTournaments({ creatorUserId: user.id, status, limit, offset }),
-    getParallelTournamentStatusCounts({ creatorUserId: user.id })
+    ownedBrackets.list({ status, limit, offset }),
+    ownedBrackets.statusCounts()
   ]);
   return json({
     items: result.items,
@@ -55,14 +52,11 @@ export const GET = withRouteErrorHandling(async function GET(request) {
 export const POST = withRouteErrorHandling(async function POST(request) {
   const user = await getCurrentUser(request);
   const payload = parallelTournamentCreateSchema.parse(await readJson(request));
-  const parallelTournament = await createParallelTournament({
-    creatorUserId: user.id,
-    ...payload
-  });
+  const parallelBracket = await parallelBrackets({ creatorUserId: user.id }).create(payload);
 
   return json(
     {
-      item: parallelTournament
+      item: parallelBracket
     },
     { status: 201 }
   );

@@ -2,15 +2,15 @@ import Link from "next/link";
 import { PublicPoolCandidates } from "@/components/pools/shared";
 import { PoolDetailWorkspace } from "@/components/pools/detail";
 import { getOptionalCurrentUser } from "@/lib/auth/current-user";
-import { getPoolById } from "@/lib/data/pools";
+import { pool } from "@/lib/pools";
 
 export async function generateMetadata({ params }) {
   const { poolId } = await params;
 
   try {
-    const pool = await getPoolById({ poolId, userId: null });
+    const poolDetail = await pool({ poolId, viewerUserId: null }).get();
     return {
-      title: `${pool.name} | Brackeroni`
+      title: `${poolDetail.name} | Brackeroni`
     };
   } catch {
     return {
@@ -22,14 +22,13 @@ export async function generateMetadata({ params }) {
 export default async function PublicPoolPage({ params }) {
   const user = await getOptionalCurrentUser();
   const { poolId } = await params;
-  let pool = await getPoolById({
+  const poolDetail = await pool({
     poolId,
-    userId: user?.id ?? null,
-    candidateLimit: 24
-  });
+    viewerUserId: user?.id ?? null
+  }).get({ candidateLimit: 24 });
 
-  if (user && pool.isOwned) {
-    return <PoolDetailWorkspace initialPool={pool} />;
+  if (user && poolDetail.isOwned) {
+    return <PoolDetailWorkspace initialPool={poolDetail} />;
   }
 
   return (
@@ -37,14 +36,14 @@ export default async function PublicPoolPage({ params }) {
       <section className="border border-[var(--line)] bg-[var(--panel)]">
         <div className="border-b border-[var(--line)] bg-[var(--panel-3)] px-5 py-4">
           <p className="text-[11px] uppercase tracking-[0.22em] text-[var(--accent-3)]">
-            {pool.visibility === "public_unlisted" ? "Shared Pool" : "Public Pool"}
+            {poolDetail.visibility === "public_unlisted" ? "Shared Pool" : "Public Pool"}
           </p>
-          <h1 className="display-face mt-2 text-3xl font-black">{pool.name}</h1>
+          <h1 className="display-face mt-2 text-3xl font-black">{poolDetail.name}</h1>
           <p className="mt-2 text-sm leading-7 text-[var(--muted)]">
-            {pool.description || "A published pool ready to be turned into new brackets."}
+            {poolDetail.description || "A published pool ready to be turned into new brackets."}
           </p>
           <p className="mt-3 text-[11px] uppercase tracking-[0.18em] text-[var(--accent-2)]">
-            {pool.candidateCount} candidates
+            {poolDetail.candidateCount} candidates
           </p>
         </div>
         <div className="space-y-4 px-5 py-5">
@@ -60,12 +59,12 @@ export default async function PublicPoolPage({ params }) {
           )}
           <div className="flex flex-wrap gap-3">
             {user ? (
-              <Link href={`/brackets/configuration?poolId=${pool.id}`} className="ui-button ui-button-primary">
+              <Link href={`/brackets/configuration?poolId=${poolDetail.id}`} className="ui-button ui-button-primary">
                 Make Bracket
               </Link>
             ) : (
               <Link
-                href={`/api/auth/signin?callbackUrl=${encodeURIComponent(`/pools/${pool.id}`)}`}
+                href={`/api/auth/signin?callbackUrl=${encodeURIComponent(`/pools/${poolDetail.id}`)}`}
                 className="ui-button ui-button-primary"
               >
                 Sign In To Save Pool
@@ -84,7 +83,11 @@ export default async function PublicPoolPage({ params }) {
             Candidates
           </h2>
         </div>
-        <PublicPoolCandidates poolId={pool.id} initialCandidates={pool.candidates} initialPagination={pool.candidatePagination} />
+        <PublicPoolCandidates
+          poolId={poolDetail.id}
+          initialCandidates={poolDetail.candidates}
+          initialPagination={poolDetail.candidatePagination}
+        />
       </section>
     </div>
   );

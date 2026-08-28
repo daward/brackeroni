@@ -1,15 +1,12 @@
 import type { Dispatch, RefObject, SetStateAction } from "react";
 import type { CandidateDraft, ImageSuggestion, PoolCandidate } from "@/components/pools/candidates";
-import type { BracketDraft, BracketInvite, BracketMatch, BracketStatus, ManagedBracket } from "@/lib/brackets/types";
+import type { Bracket, BracketDraft, BracketInvite, BracketMatch, BracketStatus, BracketTimestamps } from "@/lib/brackets/types";
 import type { ManagedPool, PoolDetail } from "@/lib/pools/types";
 
 export type BracketStageView = Extract<BracketStatus, "draft" | "active" | "complete">;
-export type WorkspaceTournament = ManagedBracket & {
+export type WorkspaceTournament = Bracket &
+  BracketTimestamps & {
   parentParallelTournamentId?: string | null;
-  completedAt?: string | Date | null;
-  archivedAt?: string | Date | null;
-  updatedAt?: string | Date | null;
-  startedAt?: string | Date | null;
   description?: string | null;
 };
 export type WorkspacePool = ManagedPool & { id: string };

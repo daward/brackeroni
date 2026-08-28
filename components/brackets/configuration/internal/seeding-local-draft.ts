@@ -1,6 +1,6 @@
 import type { SeedingEntryRecord, SeedingPayloadEntry, SeedingStructure } from "@/lib/brackets/types";
-import { createSeedingStructure } from "@/lib/brackets/seeding-draft";
-import { hydrateSeedingEntries, type SeedingEntry } from "@/lib/brackets/seeding-entry-policy";
+import { createSeedingStructure } from "./seeding-draft";
+import { hydrateSeedingEntries, type SeedingEntry } from "./seeding-entry-policy";
 
 export type LocalSeedingDraft = { snapshot: string; payload: SeedingPayloadEntry[]; structure: SeedingStructure };
 

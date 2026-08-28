@@ -10,7 +10,7 @@
  * in `lib/brackets/progress`; internal component props stay under `internal/`.
  */
 import type { ReactNode } from "react";
-import type { ProgressEntry, ProgressMatch } from "@/lib/brackets/progress";
+import type { ProgressEntry, ProgressMatch } from "./internal/progress-policy";
 
 /** Linked views that may be exposed for a bracket outcome. */
 export type BracketOutcomeView = "results" | "rounds" | "scoring";

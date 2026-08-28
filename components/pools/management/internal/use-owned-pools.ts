@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState, useTransition } from "react";
 import { listPools } from "@/lib/client-api/create-workspace";
-import { sortManagedPools } from "@/lib/pools/listing";
+import { sortManagedPools } from "@/components/pools/shared";
 import type { OwnedPoolSummary, PoolPagination } from "./types";
 
 const POOL_PAGE_SIZE = 24;

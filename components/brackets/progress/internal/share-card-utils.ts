@@ -1,4 +1,4 @@
-import { formatPercent, formatRoundTitle, type RoundStats } from "@/lib/brackets/progress";
+import { formatPercent, formatRoundTitle, type RoundStats } from "./progress-policy";
 import type { ShareCardPayload } from "./round-progress-card";
 
 type ShareTournament = ShareCardPayload["tournament"];

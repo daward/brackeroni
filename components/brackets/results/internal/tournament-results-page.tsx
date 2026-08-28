@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { formatResultModeLabel, usesOpenEndedRankingMode } from "@/lib/bracket-modes";
+import { formatResultModeLabel, usesOpenEndedRankingMode } from "@/lib/brackets/engine/result-modes";
 import type { TournamentResultsPageProps } from "../types";
 import { BracketOutcomeHeader } from "./bracket-outcome-header";
 import { ResultEntryDetails } from "./result-entry-details";

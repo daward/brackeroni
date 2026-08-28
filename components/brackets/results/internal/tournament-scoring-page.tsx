@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { formatResultModeLabel } from "@/lib/bracket-modes";
+import { formatResultModeLabel } from "@/lib/brackets/engine/result-modes";
 import type { TournamentScoringPageProps } from "../types";
 import { AggregateScoreList } from "./aggregate-score-list";
 import { AggregateScoreTable } from "./aggregate-score-table";

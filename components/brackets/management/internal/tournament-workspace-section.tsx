@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import { CreateCard, InfiniteScrollControl } from "@/components/shared";
-import { canCopyBracketLink, describeTournamentAudienceMode, formatBracketRuleLabel } from "@/lib/brackets/presentation";
+import { canCopyBracketLink, describeTournamentAudienceMode, formatBracketRuleLabel } from "./presentation";
 import type { BracketDraft } from "@/lib/brackets/types";
+import type { Pagination } from "@/lib/pagination/types";
 import type { BracketPoolOption } from "../types";
 import { ActiveParallelTournamentSection, ActiveStandardTournamentSection } from "./tournament-status-sections";
 import { LiveBracketPicker } from "./live-bracket-picker";
@@ -23,9 +24,6 @@ import type {
 } from "./workspace-internal-types";
 
 type StageCounts = Partial<Record<BracketStageView, number>>;
-type TournamentPagination = {
-  hasNextPage?: boolean;
-};
 type TournamentInlinePatch = Partial<BracketDraft> & Pick<Partial<WorkspaceTournament>, "status">;
 
 type TournamentWorkspaceSectionProps = {
@@ -33,7 +31,7 @@ type TournamentWorkspaceSectionProps = {
   tournamentStageView: BracketStageView;
   loadedTournamentStage: BracketStageView | null;
   tournamentPage: number;
-  tournamentPagination?: TournamentPagination | null;
+  tournamentPagination?: Pagination | null;
   tournamentStatusCounts?: StageCounts | null;
   setTournamentPage: Dispatch<SetStateAction<number>>;
   isLoadingBrackets: boolean;

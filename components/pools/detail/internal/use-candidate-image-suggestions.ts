@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { getAutomaticImageSuggestionQuery } from "@/lib/pool-detail/image-suggestions";
+import { getAutomaticImageSuggestionQuery } from "@/components/pools/shared";
 import { suggestImages } from "@/lib/client-api/create-workspace";
 import type { ImageSuggestion } from "@/components/pools/candidates";
 

@@ -6,6 +6,7 @@
  * entry point rather than from this file's path.
  */
 
+import type { Pagination } from "@/lib/pagination/types";
 import type { PoolCandidate } from "@/lib/pools/types";
 export type { PoolCandidate } from "@/lib/pools/types";
 
@@ -104,5 +105,5 @@ export type CandidateManagerProps = {
 export type CandidatePaginationSource = {
   poolId: string;
   candidates: PoolCandidate[];
-  pagination?: { hasNextPage?: boolean } | null;
+  pagination?: Pagination | null;
 };

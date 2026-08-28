@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type ChangeEvent } from "react";
-import { isGeneratedPoolSourceDescription } from "@/lib/pools/source-description";
+import { isGeneratedPoolSourceDescription } from "@/components/pools/shared";
 import type { PoolDraft } from "@/lib/pools/types";
 import styles from "./pool-detail-header.module.css";
 

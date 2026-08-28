@@ -1,8 +1,8 @@
 "use client";
 
 import type { Dispatch, SetStateAction } from "react";
-import { normalizeParallelBracketItem } from "@/lib/brackets/presentation";
-import { isParallelResultMode } from "@/lib/bracket-modes";
+import { normalizeParallelBracketItem } from "./presentation";
+import { isParallelResultMode } from "@/lib/brackets/engine/result-modes";
 import type { BracketDraft, BracketPlayStyle, BracketResultMode, BracketTieBreakMode } from "@/lib/brackets/types";
 import type { WorkspacePool } from "./workspace-internal-types";
 import {

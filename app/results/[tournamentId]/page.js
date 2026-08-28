@@ -3,14 +3,11 @@ import { notFound } from "next/navigation";
 import { getOptionalCurrentUser } from "@/lib/auth/current-user";
 import { cookies } from "next/headers";
 import { ANONYMOUS_VOTER_COOKIE } from "@/lib/auth/viewer";
-import { BracketOutcomeNav, BracketProgressPage } from "@/components/brackets";
-import { listMatchesForTournament } from "@/lib/data/matches";
-import { listRoundsForTournament } from "@/lib/data/rounds";
-import { getParallelTournamentAggregateResults } from "@/lib/data/parallel-tournaments";
-import { getAccessibleTournamentById } from "@/lib/data/tournaments";
+import { BracketOutcomeNav, BracketProgressPage, supportsRoundProgressView } from "@/components/brackets";
+import { bracketMatches, bracketRounds } from "@/lib/brackets";
+import { parallelBracketDirectory } from "@/lib/brackets";
+import { bracketDirectory } from "@/lib/brackets";
 import { ParallelResultsPage, ResultsLinkedViewSelect, TournamentScoringPage, TournamentResultsPage } from "@/components/brackets";
-import { listTournamentVoterScores } from "@/lib/data/matches";
-import { supportsRoundProgressView } from "@/lib/brackets/progress";
 
 export const dynamic = "force-dynamic";
 
@@ -47,7 +44,7 @@ export default async function TournamentResultsRoute({ params, searchParams }) {
   const anonymousVoterToken = cookieStore.get(ANONYMOUS_VOTER_COOKIE)?.value ?? null;
 
   try {
-    const tournament = await getAccessibleTournamentById({
+    const tournament = await bracketDirectory().getAccessibleTournamentById({
       tournamentId,
       userId: user?.id ?? null,
       anonymousVoterToken,
@@ -74,7 +71,7 @@ export default async function TournamentResultsRoute({ params, searchParams }) {
       />
     );
     if (selectedView === "scoring" && canShowScoring) {
-      const voterScoreboard = await listTournamentVoterScores({
+      const voterScoreboard = await bracketMatches().listVoterScores({
         tournament,
         userId: user?.id ?? null,
         anonymousVoterToken,
@@ -93,14 +90,14 @@ export default async function TournamentResultsRoute({ params, searchParams }) {
       );
     }
 
-    const matchResult = await listMatchesForTournament({
+    const matchResult = await bracketMatches().list({
       tournamentId,
       userId: user?.id ?? null,
       anonymousVoterToken,
     });
 
     if (selectedView === "rounds") {
-      const rounds = await listRoundsForTournament({
+      const rounds = await bracketRounds().list({
         tournamentId,
         userId: user?.id ?? null,
       });
@@ -158,8 +155,8 @@ export default async function TournamentResultsRoute({ params, searchParams }) {
     }
 
     try {
-      const parallelResults = await getParallelTournamentAggregateResults({
-        parallelTournamentId: tournamentId,
+      const parallelResults = await parallelBracketDirectory().getAggregateResults({
+        parallelBracketId: tournamentId,
         userId: user?.id ?? null,
         anonymousVoterToken,
       });
