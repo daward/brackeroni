@@ -1,5 +1,6 @@
 import { getDb } from "@/lib/db";
 import { getPoolVisibilitySupport } from "@/lib/pools/internal/schema-support";
+import type { PaginationOptions } from "@/lib/pagination/types";
 import type { PoolDetail, PublicPool } from "@/lib/pools/types";
 
 type PoolListRow = Omit<PoolDetail, "candidates" | "candidatePagination"> & {
@@ -12,9 +13,7 @@ export async function listPools({
   offset = 0
 }: {
   userId: string;
-  limit?: number | string | null;
-  offset?: number | string;
-}): Promise<{ items: Omit<PoolListRow, "totalCount">[]; totalCount: number; limit: number | null; offset: number }> {
+} & PaginationOptions<number | string>): Promise<{ items: Omit<PoolListRow, "totalCount">[]; totalCount: number; limit: number | null; offset: number }> {
   const sql = getDb();
   const support = await getPoolVisibilitySupport(sql);
   const safeLimit =
@@ -92,13 +91,11 @@ export async function listPublicPools({
   favoritesOnly = false,
   featuredOnly = false
 }: {
-  limit?: number | string;
-  offset?: number | string;
   userId?: string | null;
   query?: string;
   favoritesOnly?: boolean;
   featuredOnly?: boolean;
-} = {}): Promise<PublicPool[]> {
+} & PaginationOptions<number | string> = {}): Promise<PublicPool[]> {
   const sql = getDb();
   const support = await getPoolVisibilitySupport(sql);
   const safeLimit = Math.min(Math.max(Number.parseInt(String(limit), 10) || 6, 1), 48);

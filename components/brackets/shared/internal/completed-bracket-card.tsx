@@ -2,9 +2,8 @@ import { ImageRailCard } from "@/components/shared";
 import type { CompletedBracketCardProps } from "../types";
 
 function formatWinnerLabel(tournament: CompletedBracketCardProps["tournament"]) {
-  if (!tournament.winnerName) return null;
-  if (!tournament.winnerSeed) return tournament.winnerName;
-  return `${tournament.winnerName} (Seed ${tournament.winnerSeed})`;
+  if (!tournament.winner) return null;
+  return `${tournament.winner.name} (Seed ${tournament.winner.seed})`;
 }
 
 export function CompletedBracketCard({ tournament, as = "button", href, onClick, type, winnerLabel, railClassName = "", className = "" }: CompletedBracketCardProps) {
@@ -13,7 +12,7 @@ export function CompletedBracketCard({ tournament, as = "button", href, onClick,
   return (
     <ImageRailCard
       as={as}
-      imageUrl={tournament.winnerImageUrl}
+      imageUrl={tournament.winner?.imageUrl}
       href={href}
       onClick={onClick}
       type={type}

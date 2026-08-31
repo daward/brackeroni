@@ -2,4 +2,4 @@
 export {
   listRoundsForTournament,
   revealTournamentRound
-} from "@/lib/brackets/internal/tournament-round-progression";
+} from "@/lib/brackets/internal/stateful-workflows/tournament-round-progression";

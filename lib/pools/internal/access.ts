@@ -3,6 +3,7 @@ import { getDb } from "@/lib/db";
 import { getCandidateSchemaSupport } from "@/lib/shared-data/candidate-schema";
 import { assertPoolMutable, isPublicPoolVisibility } from "@/lib/pools/internal/policy";
 import { getPoolVisibilitySupport } from "@/lib/pools/internal/schema-support";
+import type { PrefixedPaginationOptions } from "@/lib/pagination/types";
 import type { PoolCandidate, PoolDetail, PoolVisibility } from "@/lib/pools/types";
 import type { PoolSql } from "@/lib/pools/internal/schema-support";
 
@@ -25,9 +26,7 @@ export async function getPoolById({
   poolId: string;
   userId: string | null;
   isAdmin?: boolean;
-  candidateLimit?: number | null;
-  candidateOffset?: number;
-}): Promise<PoolDetail> {
+} & PrefixedPaginationOptions<"candidate">): Promise<PoolDetail> {
   const sql = getDb();
   const support = await getPoolVisibilitySupport(sql);
   const candidateSupport = await getCandidateSchemaSupport(sql);

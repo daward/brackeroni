@@ -4,7 +4,7 @@ import {
   createAnonymousVoterToken,
   getAnonymousVoterTokenFromRequest
 } from "@/lib/auth/viewer";
-import { bracketVoting } from "@/lib/brackets";
+import { match } from "@/lib/brackets";
 import { json, readJson, withRouteErrorHandling } from "@/lib/api/http";
 import { voteCreateSchema } from "@/lib/validation/vote";
 
@@ -16,12 +16,11 @@ export const POST = withRouteErrorHandling(async function POST(request, { params
   const anonymousVoterToken = user
     ? existingAnonymousVoterToken ?? null
     : existingAnonymousVoterToken ?? createAnonymousVoterToken();
-  const vote = await bracketVoting().recordVote({
+  const vote = await match({
     matchId: routeParams.matchId,
     userId: user?.id ?? null,
-    anonymousVoterToken,
-    selectedEntryId: payload.selectedEntryId
-  });
+    anonymousVoterToken
+  }).recordVote(payload.selectedEntryId);
 
   const response = json(
     {

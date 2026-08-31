@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { ResilientRemoteImage } from "@/components/shared";
-import type { SeedingGroup, SeedingGroupEntry, SeedingMoveTarget } from "../types";
+import type { SeedingGroup, SeedingGroupEntry } from "./seeding-draft";
+import type { SeedingMoveTarget } from "../types";
 import styles from "./seeding-editor.module.css";
 
 type SeedingEntryRowProps = {

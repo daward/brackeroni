@@ -1,4 +1,4 @@
-import type { Bracket, BracketTimestamps } from "@/lib/brackets/types";
+import type { Bracket, BracketMatchSide, BracketTimestamps } from "@/lib/brackets/types";
 
 export type VoteMatch = {
   id: string;
@@ -7,6 +7,8 @@ export type VoteMatch = {
   rankingTargetRank?: number | null;
   rankingRoundNumber?: number | null;
   subBracketName?: string | null;
+  left?: BracketMatchSide | null;
+  right?: BracketMatchSide | null;
   leftEntryId?: string | null;
   rightEntryId?: string | null;
   leftName?: string | null;

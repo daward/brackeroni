@@ -1,7 +1,8 @@
 "use client";
 
 import type { DragEvent } from "react";
-import type { SeedingGroup, SeedingMoveTarget } from "../types";
+import type { SeedingGroup } from "./seeding-draft";
+import type { SeedingMoveTarget } from "../types";
 import { SeedingEntryRow } from "./seeding-entry-row";
 import styles from "./seeding-editor.module.css";
 

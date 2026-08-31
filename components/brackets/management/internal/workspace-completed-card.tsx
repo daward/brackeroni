@@ -21,8 +21,8 @@ export function WorkspaceCompletedCard({
   onRerunTournament,
   onArchiveTournament,
 }: WorkspaceCompletedCardProps) {
-  const winner = tournament.winnerName
-    ? `${tournament.winnerName}${tournament.winnerSeed ? ` (Seed ${tournament.winnerSeed})` : ""}`
+  const winner = tournament.winner
+    ? `${tournament.winner.name} (Seed ${tournament.winner.seed})`
     : "No winner recorded";
 
   return (

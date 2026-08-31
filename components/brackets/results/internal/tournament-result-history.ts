@@ -20,9 +20,10 @@ function formatOpponentSeedLabel(
   entryId: string,
   seedDisplayByEntryId: Map<string, EntrySeedDisplay>,
 ) {
-  const isLeft = match.leftEntryId === entryId;
-  const opponentEntryId = isLeft ? match.rightEntryId : match.leftEntryId;
-  const opponentSeed = isLeft ? match.rightSeed : match.leftSeed;
+  const isLeft = match.left?.id === entryId;
+  const opponent = isLeft ? match.right : match.left;
+  const opponentEntryId = opponent?.id;
+  const opponentSeed = opponent?.seed;
 
   if (!opponentEntryId) {
     return opponentSeed ? `Seed ${opponentSeed}` : null;
@@ -32,7 +33,7 @@ function formatOpponentSeedLabel(
 }
 
 export function isContestedMatch(match: ResultMatch) {
-  return Boolean(match.leftEntryId && match.rightEntryId);
+  return Boolean(match.left && match.right);
 }
 
 export function isVisibleHistoryMatch(match: ResultMatch) {
@@ -50,10 +51,10 @@ export function describeUserVote(match: ResultMatch): UserVoteNote | null {
 
   let pickedName = null;
 
-  if (match.userVoteEntryId === match.leftEntryId) {
-    pickedName = match.leftName;
-  } else if (match.userVoteEntryId === match.rightEntryId) {
-    pickedName = match.rightName;
+  if (match.userVoteEntryId === match.left?.id) {
+    pickedName = match.left.name;
+  } else if (match.userVoteEntryId === match.right?.id) {
+    pickedName = match.right.name;
   }
 
   if (!pickedName) {
@@ -71,8 +72,8 @@ export function describeHistoryOpponent(
   entryId: string,
   seedDisplayByEntryId: Map<string, EntrySeedDisplay>,
 ) {
-  const isLeft = match.leftEntryId === entryId;
-  const opponentName = isLeft ? match.rightName : match.leftName;
+  const isLeft = match.left?.id === entryId;
+  const opponentName = isLeft ? match.right?.name : match.left?.name;
   const opponentSeedLabel = formatOpponentSeedLabel(match, entryId, seedDisplayByEntryId);
 
   if (!opponentName) {
@@ -83,13 +84,13 @@ export function describeHistoryOpponent(
 }
 
 export function getOpponentImageUrl(match: ResultMatch, entryId: string) {
-  return match.leftEntryId === entryId ? match.rightImageUrl : match.leftImageUrl;
+  return match.left?.id === entryId ? match.right?.imageUrl : match.left?.imageUrl;
 }
 
 export function formatVoteTally(match: ResultMatch, entryId: string) {
-  const isLeft = match.leftEntryId === entryId;
-  const selectedVotes = isLeft ? match.leftVoteCount : match.rightVoteCount;
-  const opponentVotes = isLeft ? match.rightVoteCount : match.leftVoteCount;
+  const isLeft = match.left?.id === entryId;
+  const selectedVotes = isLeft ? match.left?.voteCount : match.right?.voteCount;
+  const opponentVotes = isLeft ? match.right?.voteCount : match.left?.voteCount;
 
   return `${selectedVotes}-${opponentVotes}`;
 }

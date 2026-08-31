@@ -1,29 +1,15 @@
 /** Public contracts for bracket result outcome pages and controls. */
 import type { ReactNode } from "react";
+import type { Bracket, BracketEntry, BracketMatch, SeedingStructure } from "@/lib/brackets/types";
 
-export type ResultMode = string | null | undefined;
-
-export type ResultTournament = {
-  id: string;
-  title: string;
-  status: string;
-  resultMode?: ResultMode;
-  winnerEntryId?: string | null;
+export type ResultTournament = Pick<Bracket, "id" | "title" | "status" | "winner" | "participantCount" | "resultMode"> & {
   parentParallelTournamentId?: string | null;
   entries?: ResultEntry[] | null;
   seedingStructure?: ResultSeedingStructure | null;
-  participantCount?: number | null;
   viewerParticipantId?: string | null;
 };
 
-export type ResultEntry = {
-  id: string;
-  candidateId?: string | null;
-  candidateName: string;
-  candidateImageUrl?: string | null;
-  seed: number;
-  subSeed?: number | null;
-  finalRank?: number | null;
+export type ResultEntry = BracketEntry & {
   averageRank?: number | null;
   rankStdDev?: number | null;
   yourRank?: number | null;
@@ -31,36 +17,16 @@ export type ResultEntry = {
   participantEntryId?: string | null;
 };
 
-export type ResultMatch = {
-  id: string;
+export type ResultMatch = BracketMatch & {
   roundId?: string | null;
   roundNumber?: number | null;
   rankingTargetRank?: number | null;
   rankingRoundNumber?: number | null;
   subBracketName?: string | null;
-  status?: string | null;
-  leftEntryId?: string | null;
-  rightEntryId?: string | null;
-  winnerEntryId?: string | null;
   userVoteEntryId?: string | null;
-  leftName?: string | null;
-  rightName?: string | null;
-  leftSeed?: number | null;
-  rightSeed?: number | null;
-  leftImageUrl?: string | null;
-  rightImageUrl?: string | null;
-  leftVoteCount?: number | null;
-  rightVoteCount?: number | null;
 };
 
-export type ResultSeedingStructure = {
-  subBrackets?: Array<{
-    id: string;
-    name?: string | null;
-    index?: number | null;
-  }> | null;
-  entryBrackets?: Record<string, string> | null;
-};
+export type ResultSeedingStructure = Partial<SeedingStructure>;
 
 export type ParallelParticipant = {
   id: string;

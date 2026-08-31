@@ -1,85 +1,38 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { DraftCandidateManager, DraftPoolControls, ManualResultQueue } from "@/components/brackets/management";
 import type { DraftEntrantsProps, DraftPoolProps } from "@/components/brackets/management";
 import type { BracketMatch, Bracket } from "@/lib/brackets/types";
 
-const tournament: Bracket = {
-  id: "bracket-1",
-  title: "Movie Night",
-  status: "active",
-  createdAt: "2026-01-01",
-};
-
-const match: BracketMatch = {
-  id: "match-1",
-  status: "open",
-  leftEntryId: "left-entry",
-  rightEntryId: "right-entry",
-  leftName: "The Left",
-  rightName: "The Right",
-  leftSeed: 1,
-  rightSeed: 2,
-};
-
-function makePool(overrides: Partial<DraftPoolProps> = {}): DraftPoolProps {
-  return {
-    bracketDraft: {
-      title: "Movie Night",
-      sourcePoolId: "pool-1",
-      playStyle: "fixed_bracket",
-      resultMode: "winner_only",
-      tieBreakMode: "higher_seed_wins",
-    },
-    pools: [
-      { id: "pool-1", name: "Current Pool", candidateCount: 4 },
-      { id: "pool-2", name: "Other Pool", candidateCount: 8 },
-    ],
-    linkedPool: null,
-    trimmedBracketTitle: "Movie Night",
-    hasSourcePool: false,
-    isPublishedTournament: false,
-    isParallelParent: false,
-    isManagingEntrants: false,
-    isPoolMenuOpen: true,
-    isActionPending: () => false,
-    onPatchDraft: vi.fn(),
-    onPersistTournamentPatch: vi.fn(),
-    onToggleManageEntrants: vi.fn(),
-    onTogglePoolMenu: vi.fn(),
-    onClosePoolMenu: vi.fn(),
-    onCreatePool: vi.fn(),
-    onSyncWithPool: vi.fn(),
-    onOpenSeedingEditor: vi.fn(),
-    ...overrides,
-  };
-}
-
-function makeEntrants(overrides: Partial<DraftEntrantsProps> = {}): DraftEntrantsProps {
-  return {
-    linkedPoolCandidates: [],
-    candidateDraft: { name: "", description: "", imageUrl: "", tagsText: "" },
-    isCandidateEditorOpen: false,
-    isEditingCandidate: false,
-    imageSuggestions: [],
-    imageSuggestionLoading: false,
-    removingCandidateId: null,
-    updateCandidateDraft: vi.fn(),
-    openCandidateCreator: vi.fn(),
-    handleImportCandidatesIntoPool: vi.fn(),
-    handleCandidateEditSubmit: vi.fn(),
-    handleCreateCandidateInPool: vi.fn(),
-    closeCandidateEditor: vi.fn(),
-    handleSuggestImages: vi.fn(),
-    selectSuggestedImage: vi.fn(),
-    openCandidateEditor: vi.fn(),
-    handleRemoveCandidateFromPool: vi.fn(),
-    ...overrides,
-  };
-}
-
 describe("bracket management workflows", () => {
+  let tournament: Bracket;
+  let match: BracketMatch;
+
+  beforeEach(() => {
+    tournament = {
+      id: "bracket-1",
+      title: "Movie Night",
+      status: "active",
+      createdAt: "2026-01-01",
+      winner: null,
+    };
+    match = {
+      id: "match-1",
+      status: "open",
+      left: {
+        id: "left-entry",
+        name: "The Left",
+        seed: 1,
+      },
+      right: {
+        id: "right-entry",
+        name: "The Right",
+        seed: 2,
+      },
+    };
+  });
+
   it("selects and clears a manual matchup winner", async () => {
     const user = userEvent.setup();
     const onSetManualMatchWinner = vi.fn();
@@ -120,4 +73,60 @@ describe("bracket management workflows", () => {
     expect(screen.getByRole("button", { name: /Add candidate/ })).not.toBeNull();
     expect(screen.getByRole("button", { name: /Import a list/ })).not.toBeNull();
   });
+
+  function makePool(overrides: Partial<DraftPoolProps> = {}): DraftPoolProps {
+    return {
+      bracketDraft: {
+        title: "Movie Night",
+        sourcePoolId: "pool-1",
+        playStyle: "fixed_bracket",
+        resultMode: "winner_only",
+        tieBreakMode: "higher_seed_wins",
+      },
+      pools: [
+        { id: "pool-1", name: "Current Pool", candidateCount: 4 },
+        { id: "pool-2", name: "Other Pool", candidateCount: 8 },
+      ],
+      linkedPool: null,
+      trimmedBracketTitle: "Movie Night",
+      hasSourcePool: false,
+      isPublishedTournament: false,
+      isParallelParent: false,
+      isManagingEntrants: false,
+      isPoolMenuOpen: true,
+      isActionPending: () => false,
+      onPatchDraft: vi.fn(),
+      onPersistTournamentPatch: vi.fn(),
+      onToggleManageEntrants: vi.fn(),
+      onTogglePoolMenu: vi.fn(),
+      onClosePoolMenu: vi.fn(),
+      onCreatePool: vi.fn(),
+      onSyncWithPool: vi.fn(),
+      onOpenSeedingEditor: vi.fn(),
+      ...overrides,
+    };
+  }
+
+  function makeEntrants(overrides: Partial<DraftEntrantsProps> = {}): DraftEntrantsProps {
+    return {
+      linkedPoolCandidates: [],
+      candidateDraft: { name: "", description: "", imageUrl: "", tagsText: "" },
+      isCandidateEditorOpen: false,
+      isEditingCandidate: false,
+      imageSuggestions: [],
+      imageSuggestionLoading: false,
+      removingCandidateId: null,
+      updateCandidateDraft: vi.fn(),
+      openCandidateCreator: vi.fn(),
+      handleImportCandidatesIntoPool: vi.fn(),
+      handleCandidateEditSubmit: vi.fn(),
+      handleCreateCandidateInPool: vi.fn(),
+      closeCandidateEditor: vi.fn(),
+      handleSuggestImages: vi.fn(),
+      selectSuggestedImage: vi.fn(),
+      openCandidateEditor: vi.fn(),
+      handleRemoveCandidateFromPool: vi.fn(),
+      ...overrides,
+    };
+  }
 });

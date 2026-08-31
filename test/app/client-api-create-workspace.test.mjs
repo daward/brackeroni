@@ -123,45 +123,45 @@ test("workspace client maps pool requests to API endpoints", async () => {
 
 test("workspace client maps tournament requests and lifecycle helpers", async () => {
   await expectRequest(() => listTournaments({ limit: 10, offset: 5, status: "active" }), {
-    path: "/api/tournaments?limit=10&offset=5&status=active",
+    path: "/api/brackets?limit=10&offset=5&status=active",
     cache: "no-store"
   });
   await expectRequest(() => createTournament({ title: "Best" }), {
-    path: "/api/tournaments",
+    path: "/api/brackets",
     method: "POST",
     body: { title: "Best" }
   });
   await expectRequest(() => updateTournament("tournament-1", { title: "Updated" }), {
-    path: "/api/tournaments/tournament-1",
+    path: "/api/brackets/tournament-1",
     method: "PATCH",
     body: { title: "Updated" }
   });
   await expectRequest(() => startTournament("tournament-1"), {
-    path: "/api/tournaments/tournament-1",
+    path: "/api/brackets/tournament-1",
     method: "PATCH",
     body: { status: "active" }
   });
   await expectRequest(() => syncTournamentWithPool("tournament-1"), {
-    path: "/api/tournaments/tournament-1",
+    path: "/api/brackets/tournament-1",
     method: "PATCH",
     body: { syncWithPool: true }
   });
   await expectRequest(() => closeCurrentTournamentRound("tournament-1"), {
-    path: "/api/tournaments/tournament-1",
+    path: "/api/brackets/tournament-1",
     method: "PATCH",
     body: { closeCurrentRound: true }
   });
   await expectRequest(() => openNextTournamentRound("tournament-1"), {
-    path: "/api/tournaments/tournament-1",
+    path: "/api/brackets/tournament-1",
     method: "PATCH",
     body: { openNextRound: true }
   });
   await expectRequest(() => rerunTournament("tournament-1"), {
-    path: "/api/tournaments/tournament-1/rerun-drafts",
+    path: "/api/brackets/tournament-1/rerun-drafts",
     method: "POST"
   });
   await expectRequest(() => ensureTournamentShareLink("tournament-1", { rotate: true }), {
-    path: "/api/tournaments/tournament-1/links",
+    path: "/api/brackets/tournament-1/links",
     method: "POST",
     body: { rotate: true }
   });
@@ -171,7 +171,7 @@ test("workspace client maps tournament requests and lifecycle helpers", async ()
     body: { revealed: true }
   });
   await expectRequest(() => updateTournamentEntries("tournament-1", [{ id: "entry-1", seed: 1 }], { subBrackets: [] }), {
-    path: "/api/tournaments/tournament-1/entries",
+    path: "/api/brackets/tournament-1/entries",
     method: "PATCH",
     body: { entries: [{ id: "entry-1", seed: 1 }], seedingStructure: { subBrackets: [] } }
   });
@@ -184,30 +184,30 @@ test("workspace client maps tournament requests and lifecycle helpers", async ()
 
 test("workspace client maps parallel bracket and image suggestion requests", async () => {
   await expectRequest(() => listParallelTournaments({ limit: 8, offset: 16, status: "complete" }), {
-    path: "/api/parallel-tournaments?limit=8&offset=16&status=complete",
+    path: "/api/parallel-brackets?limit=8&offset=16&status=complete",
     cache: "no-store"
   });
   await expectRequest(() => createParallelTournament({ title: "Team vote" }), {
-    path: "/api/parallel-tournaments",
+    path: "/api/parallel-brackets",
     method: "POST",
     body: { title: "Team vote" }
   });
   await expectRequest(() => updateParallelTournament("parallel-1", { title: "Updated" }), {
-    path: "/api/parallel-tournaments/parallel-1",
+    path: "/api/parallel-brackets/parallel-1",
     method: "PATCH",
     body: { title: "Updated" }
   });
   await expectRequest(() => startParallelTournament("parallel-1"), {
-    path: "/api/parallel-tournaments/parallel-1",
+    path: "/api/parallel-brackets/parallel-1",
     method: "PATCH",
     body: { status: "active" }
   });
   await expectRequest(() => archiveParallelTournament("parallel-1"), {
-    path: "/api/parallel-tournaments/parallel-1",
+    path: "/api/parallel-brackets/parallel-1",
     method: "DELETE"
   });
   await expectRequest(() => ensureParallelTournamentShareLink("parallel-1"), {
-    path: "/api/parallel-tournaments/parallel-1/links",
+    path: "/api/parallel-brackets/parallel-1/links",
     method: "POST",
     body: {}
   });

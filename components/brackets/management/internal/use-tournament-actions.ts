@@ -354,7 +354,7 @@ export function useTournamentActions({
       setSuccessMessage("Bracket started.");
       await loadWorkspace({ force: true });
       if (shouldRouteToVoting) {
-        const votePath = tournament?.kind === "parallel_parent" ? `/vote?parallelTournament=${tournamentId}&returnTo=create` : `/vote?tournament=${tournamentId}&returnTo=create`;
+        const votePath = tournament?.kind === "parallel_parent" ? `/vote?parallelBracket=${tournamentId}&returnTo=create` : `/vote?bracket=${tournamentId}&returnTo=create`;
         router.replace(votePath);
         return;
       }

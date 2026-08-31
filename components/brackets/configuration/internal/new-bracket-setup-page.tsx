@@ -1,8 +1,9 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
+import type { BracketResultMode } from "@/lib/brackets/types";
 import { BracketCreationWizard } from "./bracket-creation-wizard";
-import type { AudienceMode, BracketCreationWizardProps, NewBracketSetupPageProps, ResultMode } from "../types";
+import type { AudienceMode, BracketCreationWizardProps, NewBracketSetupPageProps } from "../types";
 import { useBracketSetupData } from "./use-bracket-setup-data";
 import { useNewBracketSubmission } from "./use-new-bracket-submission";
 import { getWizardStepFromSlug, getWizardStepSlug } from "./wizard-steps";
@@ -23,8 +24,8 @@ function getSearchAudienceMode(value: string | null): AudienceMode {
   return "private";
 }
 
-function getInitialResultMode(value: string): ResultMode {
-  return ["winner_only", "full_ranking", "partial_ranking", "fast_full_rank", "parallel_full_ranking"].includes(value) ? (value as ResultMode) : "winner_only";
+function getInitialResultMode(value: string): BracketResultMode {
+  return ["winner_only", "full_ranking", "partial_ranking", "fast_full_rank", "parallel_full_ranking"].includes(value) ? (value as BracketResultMode) : "winner_only";
 }
 
 function getInitialConfig(draft: SetupData["draft"], searchParams: SetupData["searchParams"]): InitialConfig {

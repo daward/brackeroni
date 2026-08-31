@@ -1,45 +1,16 @@
 import { usesOpenEndedRankingMode, usesSwissResultMode } from "@/lib/brackets/engine/result-modes";
+import type { Bracket, BracketCandidate, BracketEntry, BracketMatch, BracketRound } from "@/lib/brackets/types";
 
-export type ProgressTournament = { id: string; title: string; resultMode?: string | null };
-export type ProgressRound = {
-  id: string;
-  roundNumber: number;
-  rankingTargetRank?: number | null;
-  rankingRoundNumber?: number | null;
-};
-
-export type ProgressMatch = {
-  id: string;
-  roundNumber: number;
-  leftEntryId?: string | null;
-  rightEntryId?: string | null;
-  leftName?: string | null;
-  rightName?: string | null;
-  leftSeed?: number | null;
-  rightSeed?: number | null;
-  leftImageUrl?: string | null;
-  rightImageUrl?: string | null;
-  leftVoteCount?: number | null;
-  rightVoteCount?: number | null;
-  winnerEntryId?: string | null;
-};
-
-export type ProgressEntry = {
-  id: string;
-  candidateName: string;
-  seed: number;
-  finalRank?: number | null;
-  candidateImageUrl?: string | null;
-};
+export type ProgressTournament = Pick<Bracket, "id" | "title" | "resultMode">;
+export type ProgressRound = Pick<BracketRound, "id" | "roundNumber" | "rankingTargetRank" | "rankingRoundNumber">;
+export type ProgressMatch = BracketMatch & { roundNumber: number };
+export type ProgressEntry = Pick<BracketEntry, "id" | "candidateName" | "seed" | "finalRank" | "candidateImageUrl">;
 
 export type MatchSummary = ProgressMatch & {
   totalVotes: number;
   margin: number;
-  winnerName?: string | null;
-  loserName?: string | null;
-  winnerSeed?: number | null;
-  loserSeed?: number | null;
-  winnerImageUrl?: string | null;
+  winner: BracketCandidate | null;
+  loser: BracketCandidate | null;
   winnerVotes: number;
   loserVotes: number;
   winnerPercent: number;
@@ -47,10 +18,7 @@ export type MatchSummary = ProgressMatch & {
 };
 
 type VoteLeader = {
-  entryId: string;
-  name?: string | null;
-  seed?: number | null;
-  imageUrl?: string | null;
+  candidate: BracketCandidate;
   votes: number;
 };
 
@@ -81,12 +49,12 @@ export function supportsRoundProgressView(resultMode: string | null | undefined)
 }
 
 export function getMatchSummary(match: ProgressMatch): MatchSummary {
-  const leftVotes = match.leftVoteCount ?? 0;
-  const rightVotes = match.rightVoteCount ?? 0;
+  const leftVotes = match.left?.voteCount ?? 0;
+  const rightVotes = match.right?.voteCount ?? 0;
   const totalVotes = leftVotes + rightVotes;
-  const winnerIsLeft = match.winnerEntryId === match.leftEntryId;
-  const winnerSeed = winnerIsLeft ? match.leftSeed : match.rightSeed;
-  const loserSeed = winnerIsLeft ? match.rightSeed : match.leftSeed;
+  const winnerIsLeft = match.winnerEntryId === match.left?.id;
+  const winner = winnerIsLeft ? match.left : match.right;
+  const loser = winnerIsLeft ? match.right : match.left;
   const winnerVotes = winnerIsLeft ? leftVotes : rightVotes;
   const loserVotes = winnerIsLeft ? rightVotes : leftVotes;
 
@@ -94,15 +62,12 @@ export function getMatchSummary(match: ProgressMatch): MatchSummary {
     ...match,
     totalVotes,
     margin: Math.abs(leftVotes - rightVotes),
-    winnerName: winnerIsLeft ? match.leftName : match.rightName,
-    loserName: winnerIsLeft ? match.rightName : match.leftName,
-    winnerSeed,
-    loserSeed,
-    winnerImageUrl: winnerIsLeft ? match.leftImageUrl : match.rightImageUrl,
+    winner,
+    loser,
     winnerVotes,
     loserVotes,
     winnerPercent: totalVotes ? winnerVotes / totalVotes : 0,
-    upsetDelta: winnerSeed && loserSeed && winnerSeed > loserSeed ? winnerSeed - loserSeed : 0
+    upsetDelta: winner && loser && winner.seed > loser.seed ? winner.seed - loser.seed : 0
   };
 }
 
@@ -111,22 +76,20 @@ const countTies = <T extends Record<string, unknown>>(items: T[], key: keyof T) 
 };
 
 export function getRoundStats(matches: ProgressMatch[]): RoundStats {
-  const visible = matches.filter((match) => match.leftEntryId && match.rightEntryId);
+  const visible = matches.filter((match) => match.left && match.right);
   const winners = visible.filter((match) => match.winnerEntryId).map(getMatchSummary);
   const leaders = new Map<string, VoteLeader>();
 
   for (const match of visible) {
-    const matchEntries = [
-      [match.leftEntryId, match.leftName, match.leftSeed, match.leftImageUrl, match.leftVoteCount],
-      [match.rightEntryId, match.rightName, match.rightSeed, match.rightImageUrl, match.rightVoteCount]
-    ] as const;
+    for (const side of [match.left, match.right]) {
+      if (!side) continue;
 
-    for (const [entryId, name, seed, imageUrl, votes] of matchEntries) {
-      if (!entryId) continue;
-
-      const current = leaders.get(entryId) ?? { entryId, name, seed, imageUrl, votes: 0 };
-      current.votes += votes ?? 0;
-      leaders.set(entryId, current);
+      const current = leaders.get(side.id) ?? {
+        candidate: side,
+        votes: 0,
+      };
+      current.votes += side.voteCount ?? 0;
+      leaders.set(side.id, current);
     }
   }
 
@@ -136,7 +99,7 @@ export function getRoundStats(matches: ProgressMatch[]): RoundStats {
   const upsets = winners.filter((match) => match.upsetDelta > 0).sort((a, b) => b.upsetDelta - a.upsetDelta);
 
   return {
-    totalVotes: visible.reduce((sum, match) => sum + (match.leftVoteCount ?? 0) + (match.rightVoteCount ?? 0), 0),
+    totalVotes: visible.reduce((sum, match) => sum + (match.left?.voteCount ?? 0) + (match.right?.voteCount ?? 0), 0),
     voteLeader: voteLeaders[0] ?? null,
     voteLeaderTieCount: countTies(voteLeaders, "votes"),
     closestMatch: closest[0] ?? null,
@@ -173,13 +136,13 @@ export function getSwissEntryStatsThroughRound(matches: ProgressMatch[], roundNu
   };
   for (const match of matches) {
     if (!match.winnerEntryId || match.roundNumber > roundNumber) continue;
-    const left = ensure(match.leftEntryId);
-    const right = ensure(match.rightEntryId);
-    const winner = match.winnerEntryId === match.leftEntryId ? left : match.winnerEntryId === match.rightEntryId ? right : null;
+    const left = ensure(match.left?.id);
+    const right = ensure(match.right?.id);
+    const winner = match.winnerEntryId === match.left?.id ? left : match.winnerEntryId === match.right?.id ? right : null;
     const loser = winner === left ? right : winner === right ? left : null;
     if (!winner) continue;
     winner.points += 1;
-    if (!match.leftEntryId || !match.rightEntryId) winner.byes += 1;
+    if (!match.left || !match.right) winner.byes += 1;
     else {
       winner.wins += 1;
       if (loser) loser.losses += 1;

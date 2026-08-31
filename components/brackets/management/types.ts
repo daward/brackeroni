@@ -211,7 +211,7 @@ export type ManualResultQueueProps = {
 };
 
 export type CompletedTournamentSectionProps = {
-  tournament: Bracket;
+  bracket: Bracket;
   hasSourcePool: boolean;
   formatBracketRuleLabel: BracketLabelFormatter;
   isActionPending: PendingTournamentAction;

@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { getCurrentUser, requireCurrentUserPage } from "@/lib/auth/current-user";
-import { shareLinks } from "@/lib/brackets";
+import { shareLink } from "@/lib/brackets";
 import type { BracketJoinPageProps } from "../types";
 import { ShareLinkWaitingRoom } from "./share-link-waiting-room";
 
@@ -10,10 +10,10 @@ export async function BracketJoinPage({ params }: BracketJoinPageProps) {
   const user = await getCurrentUser();
 
   try {
-    const item = await shareLinks().getTarget({
+    const item = await shareLink({
       token,
       userId: user.id,
-    });
+    }).getTarget();
 
     return <ShareLinkWaitingRoom token={token} initialItem={item} />;
   } catch (error) {

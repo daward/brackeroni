@@ -33,7 +33,7 @@ export default defineConfig({
     include: ["test/**/*.test.{js,mjs,ts,tsx,jsx}"],
     setupFiles: ["./test/vitest.setup.js"],
     coverage: {
-      provider: "istanbul",
+      provider: "v8",
       include: [
         "app/**/*.{js,jsx,ts,tsx}",
         "components/**/*.{js,jsx,ts,tsx}",

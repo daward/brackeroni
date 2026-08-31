@@ -1,13 +1,14 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import type { PoolDetail } from "@/lib/pools/types";
 import type { BracketPoolOption } from "../types";
-import type { WorkspacePoolDetail, WorkspaceTournament } from "./workspace-internal-types";
+import type { WorkspaceTournament } from "./workspace-internal-types";
 import { TournamentCardMenu } from "./tournament-card-menu";
 
 type WorkspaceDraftCardProps = {
   tournament: WorkspaceTournament;
-  pool: BracketPoolOption | WorkspacePoolDetail | null;
+  pool: BracketPoolOption | PoolDetail | null;
   candidateCount: number;
   canStart: boolean;
   menuIsOpen: boolean;

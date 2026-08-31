@@ -114,31 +114,31 @@ function getStatItems(stats: RoundStats) {
   return [
     {
       label: "Most Votes",
-      value: stats.voteLeader?.name || "No votes yet",
+      value: stats.voteLeader?.candidate.name || "No votes yet",
       tieCount: stats.voteLeaderTieCount,
       tone: "blue" as const,
-      detail: stats.voteLeader ? `${stats.voteLeader.votes} votes | Seed ${stats.voteLeader.seed}` : null,
+      detail: stats.voteLeader ? `${stats.voteLeader.votes} votes | Seed ${stats.voteLeader.candidate.seed}` : null,
     },
     {
       label: "Closest Match",
-      value: stats.closestMatch?.winnerName || "No closed match yet",
+      value: stats.closestMatch?.winner?.name || "No closed match yet",
       tieCount: stats.closestMatchTieCount,
       tone: "yellow" as const,
-      detail: stats.closestMatch ? `Beat ${stats.closestMatch.loserName} by ${stats.closestMatch.margin} votes` : null,
+      detail: stats.closestMatch ? `Beat ${stats.closestMatch.loser?.name} by ${stats.closestMatch.margin} votes` : null,
     },
     {
       label: "Biggest Blowout",
-      value: stats.biggestBlowout?.winnerName || "No closed match yet",
+      value: stats.biggestBlowout?.winner?.name || "No closed match yet",
       tieCount: stats.biggestBlowoutTieCount,
       tone: "blue" as const,
-      detail: stats.biggestBlowout ? `${formatPercent(stats.biggestBlowout.winnerPercent)} over ${stats.biggestBlowout.loserName}` : null,
+      detail: stats.biggestBlowout ? `${formatPercent(stats.biggestBlowout.winnerPercent)} over ${stats.biggestBlowout.loser?.name}` : null,
     },
     {
       label: "Biggest Upset",
-      value: stats.biggestUpset?.winnerName || "No seed upset",
+      value: stats.biggestUpset?.winner?.name || "No seed upset",
       tieCount: stats.biggestUpsetTieCount,
       tone: "yellow" as const,
-      detail: stats.biggestUpset ? `Seed ${stats.biggestUpset.winnerSeed} beat seed ${stats.biggestUpset.loserSeed}` : null,
+      detail: stats.biggestUpset ? `Seed ${stats.biggestUpset.winner?.seed} beat seed ${stats.biggestUpset.loser?.seed}` : null,
     },
   ];
 }

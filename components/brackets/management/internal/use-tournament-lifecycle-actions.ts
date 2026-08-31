@@ -22,6 +22,7 @@ import type {
   SetWorkspaceView,
   WorkspaceTournament,
 } from "./workspace-internal-types";
+import { normalizeWorkspaceMatch } from "./workspace-data-api";
 import { getErrorMessage } from "./workspace-internal-types";
 
 type UseTournamentLifecycleActionsProps = {
@@ -211,7 +212,7 @@ export function useTournamentLifecycleActions({
 
     try {
       const data = await setTournamentMatchWinner(matchId, winnerEntryId);
-      replaceTournamentMatchInWorkspace(tournamentId, data.item);
+      replaceTournamentMatchInWorkspace(tournamentId, normalizeWorkspaceMatch(data.item));
       setSuccessMessage("Winner saved.");
       await loadWorkspace({ force: true });
     } catch (error) {

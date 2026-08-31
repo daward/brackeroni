@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { getPool } from "@/lib/client-api/create-workspace";
-import type { BracketAdvancementMode, BracketPlayStyle, BracketTieBreakMode } from "@/lib/brackets/types";
-import type { PoolCandidate } from "@/lib/pools/types";
-import type { AudienceMode, BracketCreationInput, BracketCreationWizardProps, BracketPoolOption, ResultMode, SeedingMode } from "../types";
+import type { BracketAdvancementMode, BracketPlayStyle, BracketResultMode, BracketTieBreakMode } from "@/lib/brackets/types";
+import type { PoolCandidate, PoolSelectionOption } from "@/lib/pools/types";
+import type { AudienceMode, BracketCreationInput, BracketCreationWizardProps, SeedingMode } from "../types";
 import { useWizardPools } from "./use-wizard-pools";
 import { WIZARD_STEP_COUNT } from "./wizard-steps";
 
@@ -24,7 +24,7 @@ export function useBracketCreationWizardState({ pools, initialPoolId = "", initi
   const [candidates, setCandidates] = useState<PoolCandidate[]>([]);
   const [title, setTitle] = useState(initialConfig?.title || "");
   const [playStyle, setPlayStyle] = useState<BracketPlayStyle>(initialConfig?.playStyle || "fixed_bracket");
-  const [resultMode, setResultMode] = useState<ResultMode>((initialConfig?.resultMode as ResultMode) || "winner_only");
+  const [resultMode, setResultMode] = useState<BracketResultMode>((initialConfig?.resultMode as BracketResultMode) || "winner_only");
   const [advancementMode, setAdvancementMode] = useState<BracketAdvancementMode>(initialConfig?.advancementMode || "vote_winner");
   const [tieBreakMode, setTieBreakMode] = useState<BracketTieBreakMode>(initialConfig?.tieBreakMode || "higher_seed_wins");
   const [seedingMode, setSeedingMode] = useState<SeedingMode>("pool_order");
@@ -114,7 +114,7 @@ export function useBracketCreationWizardState({ pools, initialPoolId = "", initi
     return true;
   }
 
-  function selectPool(pool: BracketPoolOption) {
+  function selectPool(pool: PoolSelectionOption) {
     if ((pool.candidateCount ?? 0) < 2) {
       setError("Add at least two candidates to this pool before creating a bracket.");
       return;
@@ -220,14 +220,14 @@ export function useBracketCreationWizardState({ pools, initialPoolId = "", initi
   };
 }
 
-function isGroupRankingMode(resultMode: ResultMode) {
+function isGroupRankingMode(resultMode: BracketResultMode) {
   return resultMode === "fast_full_rank" || resultMode === "parallel_full_ranking" || resultMode === "parallel_partial_ranking";
 }
 
-function getSelectedName(sourceMode: SourceMode, selectedPool: BracketPoolOption | null, poolName: string) {
+function getSelectedName(sourceMode: SourceMode, selectedPool: PoolSelectionOption | null, poolName: string) {
   return sourceMode === "existing" ? selectedPool?.name || "" : poolName.trim();
 }
 
-function getSelectedCount(sourceMode: SourceMode, selectedPool: BracketPoolOption | null, candidates: PoolCandidate[]) {
+function getSelectedCount(sourceMode: SourceMode, selectedPool: PoolSelectionOption | null, candidates: PoolCandidate[]) {
   return sourceMode === "existing" ? selectedPool?.candidateCount || 0 : candidates.length;
 }

@@ -1,9 +1,9 @@
 "use client";
 
 import type { RefObject } from "react";
-import type { BracketAdvancementMode, BracketPlayStyle, BracketTieBreakMode } from "@/lib/brackets/types";
-import type { PoolCandidate } from "@/lib/pools/types";
-import type { AudienceMode, BracketPoolOption, ResultMode, SeedingMode } from "../types";
+import type { BracketAdvancementMode, BracketPlayStyle, BracketResultMode, BracketTieBreakMode } from "@/lib/brackets/types";
+import type { PoolCandidate, PoolSelectionOption } from "@/lib/pools/types";
+import type { AudienceMode, SeedingMode } from "../types";
 import { AccessStep } from "./access-step";
 import { MatchupsStep } from "./matchups-step";
 import { ResultsStep } from "./results-step";
@@ -19,14 +19,14 @@ type WizardLayoutProps = {
   step: number;
   sourceMode: "existing" | "new";
   sourcePoolId: string;
-  pools: BracketPoolOption[];
+  pools: PoolSelectionOption[];
   hasMorePools: boolean;
   loadingMorePools: boolean;
   poolLoadSentinelRef: RefObject<HTMLDivElement | null>;
   poolName: string;
   candidates: PoolCandidate[];
   playStyle: BracketPlayStyle;
-  resultMode: ResultMode;
+  resultMode: BracketResultMode;
   advancementMode: BracketAdvancementMode;
   tieBreakMode: BracketTieBreakMode;
   seedingMode: SeedingMode;
@@ -41,13 +41,13 @@ type WizardLayoutProps = {
   creating: boolean;
   onCancel: () => void;
   onStepChange: (step: number) => void;
-  onSelectPool: (pool: BracketPoolOption) => void;
+  onSelectPool: (pool: PoolSelectionOption) => void;
   onCreatePoolWorkspace?: () => void;
   onSourceModeChange: (mode: "existing" | "new") => void;
   onPoolNameChange: (name: string) => void;
   onCandidatesChange: (candidates: PoolCandidate[]) => void;
   onPlayStyleChange: (value: BracketPlayStyle) => void;
-  onResultModeChange: (mode: ResultMode) => void;
+  onResultModeChange: (mode: BracketResultMode) => void;
   onAdvancementModeChange: (value: BracketAdvancementMode) => void;
   onTieBreakModeChange: (value: BracketTieBreakMode) => void;
   onSeedingModeChange: (mode: SeedingMode) => void;

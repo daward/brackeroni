@@ -32,7 +32,7 @@ export function FeaturedHomeVoteSection({ items }: FeaturedHomeVoteSectionProps)
           railClassName="mobile-swipe-rail-votes"
           renderItem={(item) => (
             <Link
-              href={item.voteHref || `/vote?tournament=${item.tournamentId}`}
+              href={item.voteHref || `/vote?bracket=${item.tournamentId}`}
               prefetch={false}
               className="home-mobile-vote-link"
             >
@@ -57,7 +57,7 @@ export function FeaturedHomeVoteSection({ items }: FeaturedHomeVoteSectionProps)
           {desktopItems.map((item) => (
             <Link
               key={`${item.tournamentId}:${item.matchId}`}
-              href={item.voteHref || `/vote?tournament=${item.tournamentId}`}
+              href={item.voteHref || `/vote?bracket=${item.tournamentId}`}
               prefetch={false}
               className="home-desktop-vote-link"
             >

@@ -1,11 +1,8 @@
 /** Public props and callbacks for bracket-configuration entry points. */
 import type { BracketAdvancementMode, BracketPlayStyle, BracketResultMode, BracketTieBreakMode, SeedingStructure } from "@/lib/brackets/types";
-import type { SeedingGroup as DraftSeedingGroup, SeedingGroupEntry as DraftSeedingGroupEntry } from "./internal/seeding-draft";
-import type { SeedingEntry as DraftSeedingEntry } from "./internal/seeding-entry-policy";
+import type { SeedingGroup, SeedingGroupEntry } from "./internal/seeding-draft";
 import type { PoolSelectionOption } from "@/lib/pools/types";
 
-export type { PoolSelectionOption as BracketPoolOption } from "@/lib/pools/types";
-export type { BracketPlayStyle as BracketStyle, BracketResultMode as ResultMode } from "@/lib/brackets/types";
 export type AudienceMode = "private" | "friends" | "public";
 export type SeedingMode = "pool_order" | "custom";
 
@@ -28,12 +25,6 @@ export type ResultModeFieldProps = {
 export type ParallelResultModeNoticeProps = {
   resultMode: BracketResultMode;
 };
-
-export type SeedingEntry = DraftSeedingEntry;
-
-export type SeedingGroupEntry = DraftSeedingGroupEntry;
-
-export type SeedingGroup = DraftSeedingGroup;
 
 export type SeedingMoveTarget = {
   id: string;

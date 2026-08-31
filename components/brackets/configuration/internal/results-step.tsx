@@ -1,19 +1,18 @@
 "use client";
 
 import { estimateTournamentEffort } from "@/lib/brackets/engine/effort-estimates";
-import type { BracketAdvancementMode, BracketPlayStyle } from "@/lib/brackets/types";
-import type { ResultMode } from "../types";
+import type { BracketAdvancementMode, BracketPlayStyle, BracketResultMode } from "@/lib/brackets/types";
 import { ResultModeChoices } from "./wizard-choice-controls";
 import { WizardQuestion } from "./wizard-question";
 import styles from "./wizard-choice.module.css";
 
 type ResultsStepProps = {
   playStyle: BracketPlayStyle;
-  resultMode: ResultMode;
+  resultMode: BracketResultMode;
   advancementMode: BracketAdvancementMode;
   audienceMode: "private" | "friends" | "public";
   candidateCount: number;
-  onResultModeChange: (value: ResultMode) => void;
+  onResultModeChange: (value: BracketResultMode) => void;
 };
 
 export function ResultsStep({ playStyle, resultMode, advancementMode, audienceMode, candidateCount, onResultModeChange }: ResultsStepProps) {

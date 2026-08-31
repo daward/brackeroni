@@ -6,24 +6,40 @@ describe("bracket progress policies", () => {
     const stats = getRoundStats([
       {
         id: "one",
+        status: "closed",
         roundNumber: 1,
-        leftEntryId: "left",
-        rightEntryId: "right",
-        leftName: "Left",
-        rightName: "Right",
-        leftSeed: 3,
-        rightSeed: 1,
-        leftVoteCount: 8,
-        rightVoteCount: 12,
+        left: {
+          id: "left",
+          name: "Left",
+          seed: 3,
+          voteCount: 8,
+        },
+        right: {
+          id: "right",
+          name: "Right",
+          seed: 1,
+          voteCount: 12,
+        },
         winnerEntryId: "right"
       },
-      { id: "bye", roundNumber: 1, leftEntryId: "bye", leftName: "Bye", leftSeed: 2, winnerEntryId: "bye" }
+      {
+        id: "bye",
+        status: "auto_resolved",
+        roundNumber: 1,
+        left: {
+          id: "bye",
+          name: "Bye",
+          seed: 2,
+        },
+        right: null,
+        winnerEntryId: "bye",
+      }
     ]);
 
     expect(stats).toMatchObject({
       totalVotes: 20,
-      voteLeader: { entryId: "right", votes: 12 },
-      closestMatch: { winnerName: "Right", margin: 4 },
+      voteLeader: { candidate: { id: "right", name: "Right", seed: 1 }, votes: 12 },
+      closestMatch: { winner: { id: "right", name: "Right", seed: 1 }, margin: 4 },
       winners: [{ id: "one" }]
     });
   });

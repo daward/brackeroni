@@ -6,6 +6,7 @@ import { CreateCard, InfiniteScrollControl } from "@/components/shared";
 import { canCopyBracketLink, describeTournamentAudienceMode, formatBracketRuleLabel } from "./presentation";
 import type { BracketDraft } from "@/lib/brackets/types";
 import type { Pagination } from "@/lib/pagination/types";
+import type { PoolDetail } from "@/lib/pools/types";
 import type { BracketPoolOption } from "../types";
 import { ActiveParallelTournamentSection, ActiveStandardTournamentSection } from "./tournament-status-sections";
 import { LiveBracketPicker } from "./live-bracket-picker";
@@ -19,7 +20,6 @@ import type {
   TournamentInvitesState,
   TournamentMatchesState,
   TournamentShareLinksState,
-  WorkspacePoolDetail,
   WorkspaceTournament,
 } from "./workspace-internal-types";
 
@@ -68,14 +68,14 @@ function getPoolForTournament(
   tournament: WorkspaceTournament,
   pools: BracketPoolOption[],
   poolDetails: PoolDetailsState,
-): BracketPoolOption | WorkspacePoolDetail | null {
+): BracketPoolOption | PoolDetail | null {
   const sourcePoolId = tournament.sourcePoolId || "";
   return pools.find((item) => item.id === sourcePoolId) || (sourcePoolId ? poolDetails[sourcePoolId] : null) || null;
 }
 
 function getPoolCandidateCount(
   tournament: WorkspaceTournament,
-  pool: BracketPoolOption | WorkspacePoolDetail | null,
+  pool: BracketPoolOption | PoolDetail | null,
 ) {
   return pool?.candidateCount ?? tournament.entryCount ?? 0;
 }
@@ -145,7 +145,7 @@ export function TournamentWorkspaceSection({
     const viewerParallelBracketComplete = isParallelParent && tournament.viewerParticipantStatus === "complete";
     const primaryParallelActionHref = viewerParallelBracketComplete
       ? `/results/${tournament.id}`
-      : `/vote?parallelTournament=${tournament.id}&returnTo=create`;
+      : `/vote?parallelBracket=${tournament.id}&returnTo=create`;
     const primaryParallelActionLabel = viewerParallelBracketComplete ? "Results" : "Vote";
 
     return (

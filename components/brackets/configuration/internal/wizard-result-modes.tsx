@@ -2,7 +2,7 @@
 
 import { Gauge, ListOrdered, Medal, Trophy, Users } from "lucide-react";
 import type { ComponentType } from "react";
-import type { ResultMode } from "../types";
+import type { BracketResultMode } from "@/lib/brackets/types";
 
 export type WizardResultModeDetail = {
   option: string;
@@ -11,7 +11,7 @@ export type WizardResultModeDetail = {
   note: string;
 };
 
-export const WIZARD_RESULT_MODE_DETAILS: Record<ResultMode, WizardResultModeDetail> = {
+export const WIZARD_RESULT_MODE_DETAILS: Record<BracketResultMode, WizardResultModeDetail> = {
   winner_only: {
     option: "Crown one winner - simple elimination",
     title: "Crown one winner",
@@ -50,7 +50,7 @@ export const WIZARD_RESULT_MODE_DETAILS: Record<ResultMode, WizardResultModeDeta
   },
 };
 
-export const WIZARD_RESULT_MODE_ICONS: Record<ResultMode, ComponentType<{ className?: string; size?: number; strokeWidth?: number }>> = {
+export const WIZARD_RESULT_MODE_ICONS: Record<BracketResultMode, ComponentType<{ className?: string; size?: number; strokeWidth?: number }>> = {
   winner_only: Trophy,
   full_ranking: ListOrdered,
   partial_ranking: Medal,

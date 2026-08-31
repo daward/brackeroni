@@ -25,12 +25,12 @@ export default async function BracketVotingPage({ searchParams }: { searchParams
   const anonymousVoterToken = cookieStore.get(ANONYMOUS_VOTER_COOKIE)?.value ?? null;
   const votePage = Math.max(1, Number.parseInt(firstParam(params.page) ?? "1", 10) || 1);
   const voteOffset = (votePage - 1) * 12;
-  const requestedParallelBracketId = firstParam(params.parallelTournament);
+  const requestedParallelBracketId = firstParam(params.parallelBracket);
 
   if (requestedParallelBracketId) {
     if (!user && !anonymousVoterToken) {
       const returnToParam = typeof params.returnTo === "string" ? `?returnTo=${params.returnTo}` : "";
-      redirect(`/api/parallel-tournaments/${requestedParallelBracketId}/participants/me${returnToParam}`);
+      redirect(`/api/parallel-brackets/${requestedParallelBracketId}/participants/me${returnToParam}`);
     }
 
     const requestedParallelBracket = await getAccessibleParallelBracketByIdForVote({
@@ -50,7 +50,7 @@ export default async function BracketVotingPage({ searchParams }: { searchParams
     });
     const returnTo = firstParam(params.returnTo);
     const returnToParam = returnTo ? `&returnTo=${returnTo}` : "";
-    redirect(`/vote?tournament=${openedParallelBracket.tournamentId}${returnToParam}`);
+    redirect(`/vote?bracket=${openedParallelBracket.bracketId}${returnToParam}`);
   }
 
   const [accessibleTournaments, publicTournaments, accessibleParallelBrackets, publicParallelBrackets] = await Promise.all([
@@ -74,10 +74,10 @@ export default async function BracketVotingPage({ searchParams }: { searchParams
       : Promise.resolve([]),
     listPublicParallelBracketsForVote({ statuses: ["active", "complete"], limit: 12 }),
   ]);
-  const requestedTournamentId = firstParam(params.tournament);
+  const requestedTournamentId = firstParam(params.bracket);
   const tournaments: VoteTournament[] = [
-    ...accessibleTournaments.map((item) => ({ ...item, kind: "standard" as const })),
-    ...publicTournaments.map((item) => ({ ...item, kind: "standard" as const })),
+    ...accessibleTournaments.map((item) => ({ ...item, kind: "standard" as const }) as VoteTournament),
+    ...publicTournaments.map((item) => ({ ...item, kind: "standard" as const }) as VoteTournament),
     ...accessibleParallelBrackets.map(normalizeParallelBracketForVoteIndex),
     ...publicParallelBrackets.map(normalizeParallelBracketForVoteIndex),
   ].filter((tournament, index, items) => items.findIndex((candidate) => candidate.id === tournament.id) === index);
@@ -130,7 +130,7 @@ export default async function BracketVotingPage({ searchParams }: { searchParams
     .slice(0, 12);
   const requestedTournament = requestedTournamentId
     ? await getAccessibleTournamentByIdForVote({
-        tournamentId: requestedTournamentId,
+        bracketId: requestedTournamentId,
         userId: user?.id ?? null,
         anonymousVoterToken,
       }).catch(() => null)
@@ -172,7 +172,7 @@ export default async function BracketVotingPage({ searchParams }: { searchParams
   const lockedFocusedTournament =
     !user && requestedTournamentId
       ? await getAccessibleTournamentByIdForVote({
-          tournamentId: requestedTournamentId,
+          bracketId: requestedTournamentId,
           userId: null,
           anonymousVoterToken,
         }).catch(() => null)

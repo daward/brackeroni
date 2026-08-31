@@ -1,6 +1,7 @@
 import { normalizeParallelBracketItem, sortBrackets } from "./presentation";
 import { sortManagedPools } from "@/components/pools/shared";
-import type { Pagination } from "@/lib/pagination/types";
+import type { Pagination, PaginationOptions, PrefixedPaginationOptions } from "@/lib/pagination/types";
+import type { PoolDetail } from "@/lib/pools/types";
 import {
   getParallelTournament,
   getPool,
@@ -17,7 +18,6 @@ import type {
   TournamentInvitesState,
   WorkspaceMatch,
   WorkspacePool,
-  WorkspacePoolDetail,
   WorkspaceShareLink,
   WorkspaceTournament,
 } from "./workspace-internal-types";
@@ -50,27 +50,48 @@ type ParallelTournamentResponse = {
 
 type WorkspaceInviteLike = TournamentInvitesState[string][number];
 
-type WorkspaceListOptions = {
-  limit?: number;
-  offset?: number;
+type WorkspaceListOptions = PaginationOptions & {
   status?: BracketStageView | null;
 };
 
-type PoolDetailOptions = {
-  candidateLimit?: number | null;
-  candidateOffset?: number;
-};
+type PoolDetailOptions = PrefixedPaginationOptions<"candidate">;
 
-export const getPoolForWorkspace = getPool as unknown as (poolId: string, options?: PoolDetailOptions) => Promise<{ item: WorkspacePoolDetail }>;
-export const listTournamentsForWorkspace = listTournaments as unknown as (options?: WorkspaceListOptions) => Promise<ListResponse<WorkspaceTournament>>;
-export const listParallelTournamentsForWorkspace = listParallelTournaments as unknown as (options?: WorkspaceListOptions) => Promise<ListResponse<WorkspaceTournament>>;
-export const listTournamentMatchesForWorkspace = listTournamentMatches as unknown as (tournamentId: string) => Promise<ListResponse<WorkspaceMatch>>;
+export const getPoolForWorkspace = getPool as unknown as (poolId: string, options?: PoolDetailOptions) => Promise<{ item: PoolDetail }>;
+const listRawTournamentsForWorkspace = listTournaments as unknown as (options?: WorkspaceListOptions) => Promise<ListResponse<WorkspaceTournament>>;
+const listRawParallelTournamentsForWorkspace = listParallelTournaments as unknown as (options?: WorkspaceListOptions) => Promise<ListResponse<WorkspaceTournament>>;
+const listRawTournamentMatchesForWorkspace = listTournamentMatches as unknown as (tournamentId: string) => Promise<ListResponse<WorkspaceMatch>>;
 export const listTournamentInvitesForWorkspace = listTournamentInvites as unknown as (tournamentId: string) => Promise<ListResponse<WorkspaceInviteLike>>;
 export const getParallelTournamentForWorkspace = getParallelTournament as unknown as (tournamentId: string) => Promise<ParallelTournamentResponse>;
 export const listTournamentShareLinksForWorkspace = listTournamentShareLinks as unknown as (tournamentId: string) => Promise<ListResponse<WorkspaceShareLink>>;
 export const listParallelTournamentShareLinksForWorkspace = listParallelTournamentShareLinks as unknown as (
   tournamentId: string,
 ) => Promise<ListResponse<WorkspaceShareLink>>;
+
+export function normalizeWorkspaceMatch(match: WorkspaceMatch): WorkspaceMatch {
+  return match;
+}
+
+export async function listTournamentMatchesForWorkspace(tournamentId: string): Promise<ListResponse<WorkspaceMatch>> {
+  const data = await listRawTournamentMatchesForWorkspace(tournamentId);
+
+  return {
+    ...data,
+    item: data.item ? normalizeWorkspaceMatch(data.item) : undefined,
+    items: data.items?.map(normalizeWorkspaceMatch),
+  };
+}
+
+export async function listTournamentsForWorkspace(options?: WorkspaceListOptions): Promise<ListResponse<WorkspaceTournament>> {
+  return normalizeWorkspaceTournamentList(await listRawTournamentsForWorkspace(options));
+}
+
+export async function listParallelTournamentsForWorkspace(options?: WorkspaceListOptions): Promise<ListResponse<WorkspaceTournament>> {
+  return normalizeWorkspaceTournamentList(await listRawParallelTournamentsForWorkspace(options));
+}
+
+function normalizeWorkspaceTournamentList(data: ListResponse<WorkspaceTournament>): ListResponse<WorkspaceTournament> {
+  return data;
+}
 
 export async function listWorkspacePools(): Promise<WorkspacePool[]> {
   const data = await listPools({ limit: POOL_PAGE_SIZE, offset: 0 });

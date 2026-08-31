@@ -2,21 +2,20 @@
 
 import type { RefObject } from "react";
 import { ContentCard, CreateCard } from "@/components/shared";
+import type { PoolCandidate, PoolSelectionOption } from "@/lib/pools/types";
 import { LocalPoolBuilder } from "./wizard-local-pool-builder";
 import { WizardQuestion } from "./wizard-question";
-import type { BracketPoolOption } from "../types";
-import type { PoolCandidate } from "@/lib/pools/types";
 import styles from "./source-selection-step.module.css";
 import choiceStyles from "./wizard-choice.module.css";
 
 type SourceSelectionStepProps = {
   sourceMode: "existing" | "new";
   sourcePoolId: string;
-  pools: BracketPoolOption[];
+  pools: PoolSelectionOption[];
   hasMorePools: boolean;
   loadingMorePools: boolean;
   loadSentinelRef: RefObject<HTMLDivElement | null>;
-  onSelectPool: (pool: BracketPoolOption) => void;
+  onSelectPool: (pool: PoolSelectionOption) => void;
   onCreatePoolWorkspace?: () => void;
   onSourceModeChange: (mode: "existing" | "new") => void;
   poolName: string;

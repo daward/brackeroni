@@ -20,12 +20,12 @@ test.skipIf(!databaseUrl)("public repository reads execute against the configure
     console.info("No public pools available; pool detail smoke check skipped.");
   }
 
-  const publicTournaments = await directory.listPublicTournaments({ limit: 1 });
+  const publicTournaments = await directory.listPublicBrackets({ limit: 1 });
   const tournament = publicTournaments[0];
 
   if (tournament) {
-    const detail = await directory.getAccessibleTournamentById({
-      tournamentId: tournament.id,
+    const detail = await directory.getAccessibleBracketById({
+      bracketId: tournament.id,
       userId: null
     });
     assert.equal(detail.id, tournament.id);

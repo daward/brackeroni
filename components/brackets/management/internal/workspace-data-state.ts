@@ -1,5 +1,6 @@
 import { sortBrackets } from "./presentation";
 import { sortManagedPools } from "@/components/pools/shared";
+import type { PoolDetail } from "@/lib/pools/types";
 import type {
   PoolDetailsState,
   TournamentInvitesState,
@@ -7,7 +8,6 @@ import type {
   TournamentShareLinksState,
   WorkspaceMatch,
   WorkspacePool,
-  WorkspacePoolDetail,
   WorkspaceTournament,
 } from "./workspace-internal-types";
 import type { StageCache } from "./workspace-data-api";
@@ -45,7 +45,7 @@ export function removeCandidateFromPoolDetails(details: PoolDetailsState, poolId
 export function replaceCandidateInPoolDetails(
   details: PoolDetailsState,
   poolId: string,
-  nextCandidate: WorkspacePoolDetail["candidates"][number],
+  nextCandidate: PoolDetail["candidates"][number],
 ): PoolDetailsState {
   const pool = details[poolId];
 
@@ -62,7 +62,7 @@ export function replaceCandidateInPoolDetails(
   };
 }
 
-export function replacePoolInList(pools: WorkspacePool[], nextPool: WorkspacePool | WorkspacePoolDetail): WorkspacePool[] {
+export function replacePoolInList(pools: WorkspacePool[], nextPool: WorkspacePool | PoolDetail): WorkspacePool[] {
   return sortManagedPools(pools.map((pool) => (pool.id === nextPool.id ? { ...pool, ...nextPool } : pool)));
 }
 

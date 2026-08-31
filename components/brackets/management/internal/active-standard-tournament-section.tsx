@@ -69,7 +69,7 @@ export function ActiveStandardTournamentSection({
   const standardVoteAction = hasOpenVotes
     ? {
         key: `vote:${tournament.id}`,
-        href: `/vote?tournament=${tournament.id}&returnTo=create`,
+        href: `/vote?bracket=${tournament.id}&returnTo=create`,
         label: "Vote",
         className: "cta-link ui-button ui-button-primary",
       }

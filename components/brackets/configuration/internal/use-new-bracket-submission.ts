@@ -46,12 +46,12 @@ export function useNewBracketSubmission(draft: BracketSetupDraft | null) {
       if (input.audienceMode === "private" && tournamentId) {
         if (isParallelResultMode(input.resultMode)) {
           await startParallelTournament(tournamentId);
-          router.push(`/vote?parallelTournament=${tournamentId}&returnTo=create`);
+          router.push(`/vote?parallelBracket=${tournamentId}&returnTo=create`);
           return data.item;
         }
 
         await startTournament(tournamentId);
-        router.push(`/vote?tournament=${tournamentId}&returnTo=create`);
+        router.push(`/vote?bracket=${tournamentId}&returnTo=create`);
         return data.item;
       }
 

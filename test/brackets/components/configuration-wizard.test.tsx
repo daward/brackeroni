@@ -2,7 +2,8 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { BracketCreationWizard } from "@/components/brackets/configuration";
-import type { BracketCreationInput, BracketPoolOption } from "@/components/brackets/configuration";
+import type { BracketCreationInput } from "@/components/brackets/configuration";
+import type { PoolSelectionOption } from "@/lib/pools/types";
 
 const getPool = vi.fn();
 
@@ -11,7 +12,7 @@ vi.mock("@/lib/client-api/create-workspace", () => ({
   listPools: vi.fn().mockResolvedValue({ items: [], meta: { hasNextPage: false } }),
 }));
 
-const pool: BracketPoolOption = {
+const pool: PoolSelectionOption = {
   id: "pool-1",
   name: "Dinner Pool",
   description: "Places to eat",

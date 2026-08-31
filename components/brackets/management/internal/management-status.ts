@@ -35,11 +35,11 @@ export function getActiveStandardBracketStatus(
     currentRoundMatches.length - completedManualResults;
   const roundVoteTotal = currentRoundMatches.reduce(
     (sum, match) =>
-      sum + (match.leftVoteCount ?? 0) + (match.rightVoteCount ?? 0),
+      sum + (match.left?.voteCount ?? 0) + (match.right?.voteCount ?? 0),
     0,
   );
   const activeVotedMatchCount = currentRoundMatches.filter(
-    (match) => (match.leftVoteCount ?? 0) + (match.rightVoteCount ?? 0) > 0,
+    (match) => (match.left?.voteCount ?? 0) + (match.right?.voteCount ?? 0) > 0,
   ).length;
 
   return {

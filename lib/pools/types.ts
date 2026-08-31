@@ -1,5 +1,5 @@
 /** Domain records shared by pool features, independent of any UI package. */
-import type { Pagination } from "@/lib/pagination/types";
+import type { Pagination, PrefixedPaginationOptions } from "@/lib/pagination/types";
 
 export type PoolVisibility = "private" | "public_listed" | "public_unlisted";
 
@@ -84,10 +84,7 @@ export type PoolHandleOptions = {
   isAdmin?: boolean;
 };
 
-export type PoolCandidatePageOptions = {
-  candidateLimit?: number | null;
-  candidateOffset?: number;
-};
+export type PoolCandidatePageOptions = PrefixedPaginationOptions<"candidate">;
 
 export type PoolCandidateImportResult = {
   pool: PoolDetail;

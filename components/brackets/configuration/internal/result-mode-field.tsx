@@ -1,7 +1,8 @@
 "use client";
 
 import { ALL_RESULT_MODES, formatResultModeLabel, isParallelResultMode } from "@/lib/brackets/engine/result-modes";
-import type { ResultMode, ResultModeFieldProps } from "../types";
+import type { BracketResultMode } from "@/lib/brackets/types";
+import type { ResultModeFieldProps } from "../types";
 import styles from "./config-field.module.css";
 
 const DEFAULT_HELP_TITLE = [
@@ -13,7 +14,7 @@ const DEFAULT_HELP_TITLE = [
 ].join(" ");
 
 export function ResultModeField({ value, onChange, className, isParallelParent = false, labelClassName = styles.label, helpTitle = DEFAULT_HELP_TITLE }: ResultModeFieldProps) {
-  const modes = (isParallelParent ? ALL_RESULT_MODES.filter((mode) => isParallelResultMode(mode)) : ALL_RESULT_MODES) as ResultMode[];
+  const modes = (isParallelParent ? ALL_RESULT_MODES.filter((mode) => isParallelResultMode(mode)) : ALL_RESULT_MODES) as BracketResultMode[];
 
   return (
     <div className="space-y-2">
@@ -23,7 +24,7 @@ export function ResultModeField({ value, onChange, className, isParallelParent =
           ?
         </button>
       </div>
-      <select aria-label="Result Mode" value={value} onChange={(event) => onChange(event.target.value as ResultMode)} className={className}>
+      <select aria-label="Result Mode" value={value} onChange={(event) => onChange(event.target.value as BracketResultMode)} className={className}>
         {modes.map((mode) => (
           <option key={mode} value={mode}>
             {formatResultModeLabel(mode)}

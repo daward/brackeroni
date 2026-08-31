@@ -1,8 +1,8 @@
 "use client";
 
 import { Gauge, Globe2, ListOrdered, LockKeyhole, Trophy, Users } from "lucide-react";
-import type { BracketAdvancementMode, BracketPlayStyle, BracketTieBreakMode } from "@/lib/brackets/types";
-import type { AudienceMode, ResultMode, SeedingMode } from "../types";
+import type { BracketAdvancementMode, BracketPlayStyle, BracketResultMode, BracketTieBreakMode } from "@/lib/brackets/types";
+import type { AudienceMode, SeedingMode } from "../types";
 import { WizardQuestion } from "./wizard-question";
 import { WizardReviewItem } from "./wizard-review-item";
 import { WIZARD_RESULT_MODE_DETAILS } from "./wizard-result-modes";
@@ -13,7 +13,7 @@ type ReviewStepProps = {
   selectedName: string;
   selectedCount: number;
   playStyle: BracketPlayStyle;
-  resultMode: ResultMode;
+  resultMode: BracketResultMode;
   seedingMode: SeedingMode;
   advancementMode: BracketAdvancementMode;
   tieBreakMode: BracketTieBreakMode;

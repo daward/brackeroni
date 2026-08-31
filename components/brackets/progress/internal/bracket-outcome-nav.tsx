@@ -4,13 +4,13 @@ import { useState } from "react";
 import Link from "next/link";
 import type { BracketOutcomeNavProps, BracketOutcomeView } from "../types";
 
-function buildViewHref(tournamentId: string, view: BracketOutcomeView) {
-  if (view === "results") return `/results/${tournamentId}`;
-  return `/results/${tournamentId}?view=${encodeURIComponent(view)}`;
+function buildViewHref(bracketId: string, view: BracketOutcomeView) {
+  if (view === "results") return `/results/${bracketId}`;
+  return `/results/${bracketId}?view=${encodeURIComponent(view)}`;
 }
 
 export function BracketOutcomeNav({
-  tournamentId,
+  bracketId,
   activeView = "results",
   showResults = true,
   showRounds = false,
@@ -51,7 +51,7 @@ export function BracketOutcomeNav({
             return (
               <Link
                 key={item.key}
-                href={buildViewHref(tournamentId, item.key)}
+                href={buildViewHref(bracketId, item.key)}
                 className={item.key === activeView ? "results-outcome-nav-link results-outcome-nav-link-active" : "results-outcome-nav-link"}
               >
                 {item.label}

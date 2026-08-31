@@ -1,7 +1,9 @@
+// @vitest-environment node
+
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
-import { describe, it } from "vitest";
+import { beforeAll, describe, it } from "vitest";
 import { fileURLToPath } from "node:url";
 
 describe("lib domain public boundaries", () => {
@@ -10,6 +12,7 @@ describe("lib domain public boundaries", () => {
   const testDirectory = path.join(rootDirectory, "test");
   const boundaryTestPath = fileURLToPath(import.meta.url);
   const adminDirectory = path.join(rootDirectory, "lib", "admin");
+  const apiContractDirectory = path.join(rootDirectory, "openapi");
   const bracketsDirectory = path.join(rootDirectory, "lib", "brackets");
   const dataDirectory = path.join(rootDirectory, "lib", "data");
   const poolsDirectory = path.join(rootDirectory, "lib", "pools");
@@ -23,6 +26,9 @@ describe("lib domain public boundaries", () => {
   const legacyLibFiles = [
     path.join(rootDirectory, "lib", "bracket-modes.js")
   ];
+  let sourceFiles;
+  let testFiles;
+  const fileSources = new Map();
 
   function getSourceFiles(directory) {
     return fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
@@ -32,10 +38,22 @@ describe("lib domain public boundaries", () => {
     });
   }
 
+  function sourceFor(filePath) {
+    if (!fileSources.has(filePath)) {
+      fileSources.set(filePath, fs.readFileSync(filePath, "utf8"));
+    }
+
+    return fileSources.get(filePath);
+  }
+
+  beforeAll(() => {
+    sourceFiles = sourceDirectories.flatMap(getSourceFiles);
+    testFiles = getSourceFiles(testDirectory);
+  });
+
   it("routes runtime data imports through app-owned lib roots", () => {
-    const violations = sourceDirectories
-      .flatMap(getSourceFiles)
-      .filter((filePath) => fs.readFileSync(filePath, "utf8").includes("@/lib/data"));
+    const violations = sourceFiles
+      .filter((filePath) => sourceFor(filePath).includes("@/lib/data"));
 
     assert.deepEqual(violations, []);
   });
@@ -55,19 +73,18 @@ describe("lib domain public boundaries", () => {
   });
 
   it("keeps pool internals private to the pool domain", () => {
-    const violations = sourceDirectories
-      .flatMap(getSourceFiles)
+    const violations = sourceFiles
       .filter((filePath) => !filePath.startsWith(poolsDirectory))
-      .filter((filePath) => fs.readFileSync(filePath, "utf8").includes("@/lib/pools/internal"));
+      .filter((filePath) => sourceFor(filePath).includes("@/lib/pools/internal"));
 
     assert.deepEqual(violations, []);
   });
 
   it("exercises the pool domain through its public package interface", () => {
-    const violations = getSourceFiles(testDirectory)
+    const violations = testFiles
       .filter((filePath) => filePath !== boundaryTestPath)
       .filter((filePath) => {
-        const source = fs.readFileSync(filePath, "utf8");
+        const source = sourceFor(filePath);
         return source.includes("@/lib/pools/internal") || source.includes("../../lib/pools/internal");
       })
       .map((filePath) => path.relative(rootDirectory, filePath));
@@ -80,11 +97,10 @@ describe("lib domain public boundaries", () => {
       "@/lib/pools",
       "@/lib/pools/types"
     ]);
-    const violations = sourceDirectories
-      .flatMap(getSourceFiles)
+    const violations = sourceFiles
       .filter((filePath) => !filePath.startsWith(poolsDirectory))
       .flatMap((filePath) => {
-        const source = fs.readFileSync(filePath, "utf8");
+        const source = sourceFor(filePath);
         const matches = source.matchAll(/@\/lib\/pools(?:\/[A-Za-z0-9_-]+)+/g);
         return [...matches]
           .map((match) => match[0])
@@ -96,19 +112,17 @@ describe("lib domain public boundaries", () => {
   });
 
   it("keeps admin internals private to the admin domain", () => {
-    const violations = sourceDirectories
-      .flatMap(getSourceFiles)
+    const violations = sourceFiles
       .filter((filePath) => !filePath.startsWith(adminDirectory))
-      .filter((filePath) => fs.readFileSync(filePath, "utf8").includes("@/lib/admin/internal"));
+      .filter((filePath) => sourceFor(filePath).includes("@/lib/admin/internal"));
 
     assert.deepEqual(violations, []);
   });
 
   it("keeps bracket internals private to the bracket domain", () => {
-    const violations = sourceDirectories
-      .flatMap(getSourceFiles)
+    const violations = sourceFiles
       .filter((filePath) => !filePath.startsWith(bracketsDirectory))
-      .filter((filePath) => fs.readFileSync(filePath, "utf8").includes("@/lib/brackets/internal"));
+      .filter((filePath) => sourceFor(filePath).includes("@/lib/brackets/internal"));
 
     assert.deepEqual(violations, []);
   });
@@ -118,11 +132,10 @@ describe("lib domain public boundaries", () => {
       .filter((entry) => entry.isFile())
       .map((entry) => entry.name)
       .sort();
-    const violations = sourceDirectories
-      .flatMap(getSourceFiles)
+    const violations = sourceFiles
       .filter((filePath) => !filePath.startsWith(bracketsDirectory))
       .flatMap((filePath) => {
-        const source = fs.readFileSync(filePath, "utf8");
+        const source = sourceFor(filePath);
         const matches = source.matchAll(/@\/lib\/brackets(?:\/[A-Za-z0-9_-]+)+/g);
         return [...matches]
           .map((match) => match[0])
@@ -133,6 +146,18 @@ describe("lib domain public boundaries", () => {
 
     assert.deepEqual(bracketRootFiles, ["index.ts", "types.ts"]);
     assert.deepEqual(violations, []);
+  });
+
+  it("keeps public bracket routes bracket-named", () => {
+    const legacyRoutePattern = /\/api\/(?:admin\/)?(?:parallel-)?tournaments|[?&](?:parallelTournament|tournament)=/;
+    const routeFiles = getSourceFiles(path.join(rootDirectory, "app", "api"))
+      .map((filePath) => path.relative(rootDirectory, filePath).replaceAll(path.sep, "/"));
+    const legacyRouteFiles = routeFiles.filter((filePath) => /tournament/i.test(filePath));
+    const legacyRouteStrings = [...sourceFiles, ...getSourceFiles(apiContractDirectory)]
+      .filter((filePath) => legacyRoutePattern.test(sourceFor(filePath)))
+      .map((filePath) => path.relative(rootDirectory, filePath));
+
+    assert.deepEqual([...legacyRouteFiles, ...legacyRouteStrings], []);
   });
 
   it("keeps bracket engine and internals in TypeScript", () => {
@@ -150,7 +175,17 @@ describe("lib domain public boundaries", () => {
   it("keeps the bracket engine under TypeScript checking", () => {
     const engineSourceFiles = getSourceFiles(path.join(bracketsDirectory, "engine"));
     const violations = engineSourceFiles
-      .filter((filePath) => fs.readFileSync(filePath, "utf8").includes("@ts-nocheck"))
+      .filter((filePath) => sourceFor(filePath).includes("@ts-nocheck"))
+      .map((filePath) => path.relative(rootDirectory, filePath));
+
+    assert.deepEqual(violations, []);
+  });
+
+  it("keeps stateful bracket workflows behind public tests", () => {
+    const statefulWorkflowImportPattern = /lib\/brackets\/internal\/stateful-workflows|@\/lib\/brackets\/internal\/stateful-workflows/;
+    const violations = testFiles
+      .filter((filePath) => filePath !== boundaryTestPath)
+      .filter((filePath) => statefulWorkflowImportPattern.test(sourceFor(filePath)))
       .map((filePath) => path.relative(rootDirectory, filePath));
 
     assert.deepEqual(violations, []);

@@ -1,10 +1,11 @@
-import type { BracketCandidate, SeedingEntryRecord, SeedingPayloadEntry, SeedingStructure, SeedingValidation } from "@/lib/brackets/types";
+import type { SeedingEntryRecord, SeedingPayloadEntry, SeedingStructure, SeedingValidation } from "@/lib/brackets/types";
+import type { PoolCandidate } from "@/lib/pools/types";
 import { buildSeedingGroups, createSeedingStructure, normalizeSeedingStructure } from "./seeding-draft";
 
 let emptySlotCounter = 0;
 
 type FlatCandidateSeedingEntryRecord = Omit<SeedingEntryRecord, "candidate"> & {
-  candidate?: BracketCandidate | null;
+  candidate?: Pick<PoolCandidate, "id" | "name" | "description" | "imageUrl"> | null;
   candidateId?: string | null;
   candidateName?: string | null;
   candidateDescription?: string | null;
@@ -28,7 +29,7 @@ export function createEmptySlot(playInSeed: number, playInSlot = 0): SeedingEntr
   };
 }
 
-function normalizeCandidate(entry: FlatCandidateSeedingEntryRecord): BracketCandidate | null {
+function normalizeCandidate(entry: FlatCandidateSeedingEntryRecord): Pick<PoolCandidate, "id" | "name" | "description" | "imageUrl"> | null {
   if (entry.candidate) return entry.candidate;
   if (!entry.candidateName) return null;
   return {

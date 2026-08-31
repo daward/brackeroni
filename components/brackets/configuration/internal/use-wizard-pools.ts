@@ -3,12 +3,12 @@
 import { useEffect, useState } from "react";
 import { useInfiniteScroll } from "@/components/shared";
 import { listPools } from "@/lib/client-api/create-workspace";
-import type { BracketPoolOption } from "../types";
+import type { PoolSelectionOption } from "@/lib/pools/types";
 
 const PAGE_SIZE = 24;
 
-export function useWizardPools(initialPools: BracketPoolOption[], enabled: boolean, onError: (message: string) => void) {
-  const [pools, setPools] = useState<BracketPoolOption[]>(initialPools);
+export function useWizardPools(initialPools: PoolSelectionOption[], enabled: boolean, onError: (message: string) => void) {
+  const [pools, setPools] = useState<PoolSelectionOption[]>(initialPools);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(initialPools.length >= PAGE_SIZE);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -27,7 +27,7 @@ export function useWizardPools(initialPools: BracketPoolOption[], enabled: boole
       const additions = data.items || [];
       setPools((current) => {
         const ids = new Set(current.map((pool) => pool.id));
-        return [...current, ...additions.filter((pool: BracketPoolOption) => !ids.has(pool.id))];
+        return [...current, ...additions.filter((pool: PoolSelectionOption) => !ids.has(pool.id))];
       });
       setPage((current) => current + 1);
       setHasMore(Boolean(data.meta?.hasNextPage));

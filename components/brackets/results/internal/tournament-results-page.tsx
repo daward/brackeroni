@@ -24,7 +24,7 @@ export function TournamentResultsPage({
   const selectedEntry = orderedEntries.find((entry) => entry.id === selectedEntryId) ?? orderedEntries[0] ?? null;
   const selectedEntryHistory = selectedEntry
     ? matches.filter((match) => {
-        return isVisibleHistoryMatch(match) && (match.leftEntryId === selectedEntry.id || match.rightEntryId === selectedEntry.id);
+        return isVisibleHistoryMatch(match) && (match.left?.id === selectedEntry.id || match.right?.id === selectedEntry.id);
       })
     : [];
   const rankingTitle =

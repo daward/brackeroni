@@ -22,7 +22,7 @@ export function buildVoteUrl({
   const params = new URLSearchParams();
 
   if (tournamentId) {
-    params.set("tournament", tournamentId);
+    params.set("bracket", tournamentId);
   }
 
   if (returnTo) {

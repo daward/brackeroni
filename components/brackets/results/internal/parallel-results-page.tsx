@@ -70,8 +70,8 @@ export function ParallelResultsPage({
       ? selectedParticipant.matches.filter((match) => {
           return (
             isVisibleHistoryMatch(match) &&
-            (match.leftEntryId === participantEntry.participantEntryId ||
-              match.rightEntryId === participantEntry.participantEntryId)
+            (match.left?.id === participantEntry.participantEntryId ||
+              match.right?.id === participantEntry.participantEntryId)
           );
         })
       : [];

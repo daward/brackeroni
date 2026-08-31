@@ -68,7 +68,7 @@ describe("new bracket submission", () => {
       }),
     );
     expect(mocks.startTournament).toHaveBeenCalledWith("tournament-1");
-    expect(mocks.routerPush).toHaveBeenCalledWith("/vote?tournament=tournament-1&returnTo=create");
+    expect(mocks.routerPush).toHaveBeenCalledWith("/vote?bracket=tournament-1&returnTo=create");
   });
 
   it("leaves shared brackets in drafts", async () => {

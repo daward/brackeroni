@@ -179,7 +179,7 @@ export function useVoteScreenActions({
       }
 
       const returnToParam = initialReturnTo ? `&returnTo=${initialReturnTo}` : "";
-      router.push(`/vote?parallelTournament=${tournament.id}${returnToParam}`);
+      router.push(`/vote?parallelBracket=${tournament.id}${returnToParam}`);
       return;
     }
 

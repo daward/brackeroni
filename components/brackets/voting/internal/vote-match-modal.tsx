@@ -19,7 +19,22 @@ type VoteMatchModalProps = {
   onVote: (matchId: string, tournamentId: string, selectedEntryId: string | null | undefined) => void;
 };
 
+function getMatchSide(match: VoteMatch, side: "left" | "right") {
+  const candidate = match[side];
+  const prefix = side === "left" ? "left" : "right";
+
+  return {
+    id: candidate?.id ?? (prefix === "left" ? match.leftEntryId : match.rightEntryId),
+    name: candidate?.name ?? (prefix === "left" ? match.leftName : match.rightName),
+    description: prefix === "left" ? match.leftDescription : match.rightDescription,
+    imageUrl: candidate?.imageUrl ?? (prefix === "left" ? match.leftImageUrl : match.rightImageUrl),
+  };
+}
+
 export function VoteMatchModal({ tournament, match, focusedMatches, currentRoundProgress, pendingVoteMatchId, transitionMessage, onClose, onVote }: VoteMatchModalProps) {
+  const left = getMatchSide(match, "left");
+  const right = getMatchSide(match, "right");
+
   return (
     <div className="vote-modal-overlay">
       <div className="vote-modal-shell vote-match-modal-shell">
@@ -54,11 +69,11 @@ export function VoteMatchModal({ tournament, match, focusedMatches, currentRound
 
         <div className="vote-matchup-grid">
           <CandidateVoteCard
-            name={match.leftName}
-            description={match.leftDescription}
-            imageUrl={match.leftImageUrl}
+            name={left.name}
+            description={left.description}
+            imageUrl={left.imageUrl}
             disabled={pendingVoteMatchId === match.id}
-            onVote={() => onVote(match.id, tournament.id, match.leftEntryId)}
+            onVote={() => onVote(match.id, tournament.id, left.id)}
             side="left"
           />
           <div className="vote-match-vs-column">
@@ -67,11 +82,11 @@ export function VoteMatchModal({ tournament, match, focusedMatches, currentRound
             </div>
           </div>
           <CandidateVoteCard
-            name={match.rightName}
-            description={match.rightDescription}
-            imageUrl={match.rightImageUrl}
+            name={right.name}
+            description={right.description}
+            imageUrl={right.imageUrl}
             disabled={pendingVoteMatchId === match.id}
-            onVote={() => onVote(match.id, tournament.id, match.rightEntryId)}
+            onVote={() => onVote(match.id, tournament.id, right.id)}
             side="right"
           />
         </div>

@@ -25,7 +25,7 @@ export function ActiveParallelTournamentSection({
   onArchiveTournament,
 }: ActiveParallelTournamentSectionProps) {
   const viewerParallelBracketComplete = tournament.viewerParticipantStatus === "complete";
-  const parallelResultsHref = tournament.viewerTournamentId ? `/results/${tournament.viewerTournamentId}` : `/results/${tournament.id}`;
+  const parallelResultsHref = tournament.viewerBracketId ? `/results/${tournament.viewerBracketId}` : `/results/${tournament.id}`;
   const parallelVoteAction = viewerParallelBracketComplete
     ? {
         key: `parallel-vote:${tournament.id}`,

@@ -1,4 +1,5 @@
 import type { PoolCandidate } from "@/lib/pools/types";
+import type { PaginationOptions } from "@/lib/pagination/types";
 
 export type BracketStatus = "draft" | "active" | "complete";
 export type BracketVisibility = "private" | "public_listed" | "public_unlisted";
@@ -14,6 +15,13 @@ export type BracketResultMode =
   | "parallel_partial_ranking";
 export type BracketAdvancementMode = "vote_winner" | "manual_winner";
 export type BracketTieBreakMode = "higher_seed_wins" | "random";
+export type BracketKind = "standard" | "parallel_parent";
+export type BracketCandidate = {
+  id: string;
+  name: string;
+  imageUrl?: string | null;
+  seed: number;
+};
 
 export type BracketAccess = {
   sharingMode?: BracketSharingMode;
@@ -35,7 +43,7 @@ export type BracketDraft = BracketAccess &
     sourcePoolId: string;
   };
 
-/** Draft bracket projection used while configuring an existing tournament draft. */
+/** Draft bracket projection used while configuring an existing bracket draft. */
 export type BracketSetupDraft = Omit<
   {
     [Field in keyof BracketDraft]?: BracketDraft[Field] | null;
@@ -57,30 +65,44 @@ export type BracketInvite = {
   votesCast?: number | null;
 };
 
+export type BracketMatchSide = BracketCandidate & {
+  voteCount?: number | null;
+};
+
 /** A matchup rendered while a creator records manual results. */
 export type BracketMatch = {
   id: string;
   status: string;
-  leftEntryId: string;
-  rightEntryId: string;
-  leftName: string;
-  rightName: string;
-  leftSeed: number;
-  rightSeed: number;
-  leftVoteCount?: number | null;
-  rightVoteCount?: number | null;
+  left: BracketMatchSide | null;
+  right: BracketMatchSide | null;
   winnerEntryId?: string | null;
 };
-
-export type BracketKind = "standard" | "parallel_parent";
-
-export type BracketCandidate = Pick<PoolCandidate, "id" | "name" | "description" | "imageUrl">;
 
 export type BracketTimestamps = {
   completedAt?: string | Date | null;
   archivedAt?: string | Date | null;
   updatedAt?: string | Date | null;
   startedAt?: string | Date | null;
+};
+
+export type BracketEntry = {
+  id: string;
+  candidateId?: string | null;
+  candidateName: string;
+  candidateImageUrl?: string | null;
+  seed: number;
+  subSeed?: number | null;
+  finalRank?: number | null;
+};
+
+export type BracketRound = {
+  id: string;
+  roundNumber: number;
+  status?: string | null;
+  matchCount?: number | null;
+  revealedAt?: string | null;
+  rankingTargetRank?: number | null;
+  rankingRoundNumber?: number | null;
 };
 
 /** Stable identity and lifecycle fields shared by bracket records. */
@@ -115,20 +137,12 @@ export type BracketRoundProgress = {
   openVoteCount?: number | null;
 };
 
-/** Winner projection shown by completed and preview surfaces. */
-export type BracketWinner = {
-  winnerEntryId?: string | null;
-  winnerName?: string | null;
-  winnerSeed?: number | null;
-  winnerImageUrl?: string | null;
-};
-
 /** Aggregate participant progress fields for parallel brackets. */
 export type ParallelBracketProgress = {
   completedParticipantCount?: number | null;
   participantCount?: number | null;
   viewerParticipantStatus?: string | null;
-  viewerTournamentId?: string | null;
+  viewerBracketId?: string | null;
 };
 
 /** Visibility hints that affect what management and public surfaces reveal. */
@@ -141,9 +155,10 @@ export type Bracket = BracketIdentity &
   BracketConfiguration &
   BracketSource &
   BracketRoundProgress &
-  BracketWinner &
   ParallelBracketProgress &
-  BracketVisibilityState;
+  BracketVisibilityState & {
+    winner: BracketCandidate | null;
+  };
 
 export type ParallelBracketSource = BracketIdentity & Omit<Partial<Bracket>, keyof BracketIdentity>;
 
@@ -168,18 +183,45 @@ export type BracketOwnerHandle = {
   rotateShareLink(): Promise<Record<string, unknown>>;
 };
 
-export type BracketHandleOptions = BracketOwnerHandleOptions & {
-  tournamentId: string;
+export type BracketHandleOptions = {
+  bracketId: string;
+  creatorUserId?: string;
+  userId?: string | null;
+  anonymousVoterToken?: string | null;
 };
 
 export type BracketHandle = BracketOwnerHandle & {
   get(): Promise<Bracket>;
   createRerun(): Promise<Bracket>;
   updateEntries(options: { entries: SeedingPayloadEntry[]; seedingStructure?: SeedingStructure }): Promise<Bracket>;
+  listMatches(): Promise<{ bracket: Bracket; matches: Array<Record<string, unknown>> }>;
+  listRounds(): Promise<BracketRound[]>;
+  listVoterScores(options: { bracket: Bracket; includeVoteHistory?: boolean }): Promise<Record<string, unknown>>;
   closeCurrentRound(): Promise<unknown>;
   openNextRound(): Promise<unknown>;
   applyLifecyclePatch(patch: BracketLifecyclePatch): Promise<void>;
   listInvites(): Promise<BracketInvite[]>;
+};
+
+export type BracketRoundHandleOptions = {
+  roundId: string;
+  creatorUserId: string;
+};
+
+export type BracketRoundHandle = {
+  reveal(): Promise<BracketRound>;
+};
+
+export type BracketMatchHandleOptions = {
+  matchId: string;
+  creatorUserId?: string;
+  userId?: string | null;
+  anonymousVoterToken?: string | null;
+};
+
+export type BracketMatchHandle = {
+  setManualWinner(winnerEntryId: string | null): Promise<Record<string, unknown>>;
+  recordVote(selectedEntryId: string): Promise<Record<string, unknown>>;
 };
 
 export type BracketCreateInput = BracketAccess &
@@ -190,10 +232,8 @@ export type BracketCreateInput = BracketAccess &
     seedCandidateIds?: string[];
   };
 
-export type BracketListOptions = {
+export type BracketListOptions = PaginationOptions & {
   status?: BracketStatus | null;
-  limit?: number;
-  offset?: number;
 };
 
 export type BracketList = {
@@ -212,27 +252,21 @@ export type BracketCollection = {
 };
 
 export type BracketAccessibleOptions = {
-  tournamentId: string;
+  bracketId: string;
   userId?: string | null;
   anonymousVoterToken?: string | null;
 };
 
-export type BracketAccessibleListOptions = {
+export type BracketAccessibleListOptions = PaginationOptions & {
   userId: string;
   statuses?: BracketStatus[] | null;
-  limit?: number;
-  offset?: number;
 };
 
-export type BracketPublicListOptions = {
+export type BracketPublicListOptions = PaginationOptions & {
   statuses?: BracketStatus[];
-  limit?: number;
-  offset?: number;
 };
 
-export type BracketFeaturedOptions = {
-  limit?: number;
-};
+export type BracketFeaturedOptions = Pick<PaginationOptions, "limit">;
 
 export type BracketShareTokenOptions = {
   token: string;
@@ -251,10 +285,8 @@ export type ParallelBracketCreateInput = BracketAccess & {
   tieBreakMode: BracketTieBreakMode;
 };
 
-export type ParallelBracketListOptions = BracketListOptions;
-
 export type ParallelBracketCollection = {
-  list(options?: ParallelBracketListOptions): Promise<BracketList>;
+  list(options?: BracketListOptions): Promise<BracketList>;
   statusCounts(): Promise<Partial<Record<BracketStatus, number>>>;
   create(input: ParallelBracketCreateInput): Promise<Bracket>;
 };
@@ -269,17 +301,13 @@ export type ParallelBracketAccessibleListOptions = BracketAccessibleListOptions 
   anonymousVoterToken?: string | null;
 };
 
-export type ParallelBracketPublicListOptions = BracketPublicListOptions;
-
-export type ParallelParticipantOpenOptions = ParallelBracketAccessibleOptions;
-
 export type ParallelBracketDirectory = {
   getAccessibleBracketById(options: ParallelBracketAccessibleOptions): Promise<Bracket>;
   getFeaturedTeaserMatchups(options?: BracketFeaturedOptions): Promise<Array<Record<string, unknown>>>;
   getAggregateResults(options: ParallelBracketAccessibleOptions): Promise<Record<string, unknown>>;
   listAccessibleBrackets(options: ParallelBracketAccessibleListOptions): Promise<Bracket[]>;
-  listPublicBrackets(options?: ParallelBracketPublicListOptions): Promise<Bracket[]>;
-  openParticipantBracket(options: ParallelParticipantOpenOptions): Promise<{ tournamentId: string }>;
+  listPublicBrackets(options?: BracketPublicListOptions): Promise<Bracket[]>;
+  openParticipantBracket(options: ParallelBracketAccessibleOptions): Promise<{ bracketId: string }>;
   canInspectAllParticipants(options: Pick<BracketAccess, "sharingMode" | "visibility">): boolean;
   filterVisibleParticipants<T extends { userId?: string | null; anonymousVoterToken?: string | null }>(options: {
     participants: T[];
@@ -290,14 +318,13 @@ export type ParallelBracketDirectory = {
 };
 
 export type BracketDirectory = {
-  getAccessibleTournamentById(options: BracketAccessibleOptions): Promise<Bracket>;
+  getAccessibleBracketById(options: BracketAccessibleOptions): Promise<Bracket>;
   getFeaturedPublicMatchups(options?: BracketFeaturedOptions): Promise<Array<Record<string, unknown>>>;
   getFeaturedPublicMatchupsForHomepage(options?: BracketFeaturedOptions): Promise<Array<Record<string, unknown>>>;
-  getTournamentByShareToken(options: BracketShareTokenOptions): Promise<Record<string, unknown>>;
-  listAccessibleTournaments(options: BracketAccessibleListOptions): Promise<Bracket[]>;
-  listPublicTournaments(options?: BracketPublicListOptions): Promise<Bracket[]>;
+  getBracketByShareToken(options: BracketShareTokenOptions): Promise<Record<string, unknown>>;
+  listAccessibleBrackets(options: BracketAccessibleListOptions): Promise<Bracket[]>;
+  listPublicBrackets(options?: BracketPublicListOptions): Promise<Bracket[]>;
 };
-
 
 export type BracketTemplateLibrary = {
   list(): Promise<BracketTemplateCollection>;
@@ -357,7 +384,7 @@ export type SeedingEntryRecord = {
   seed: number;
   subSeed?: number | null;
   finalRank?: number | null;
-  candidate?: BracketCandidate | null;
+  candidate?: Pick<PoolCandidate, "id" | "name" | "description" | "imageUrl"> | null;
   isEmptySlot?: boolean;
 };
 

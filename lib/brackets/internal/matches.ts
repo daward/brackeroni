@@ -45,7 +45,7 @@ function getMatchSubBracketName(match, seedingStructure = {}) {
   return subBracketNameById.get(firstBracketId) || null;
 }
 
-export async function listMatchesForTournament({
+export async function listBracketMatches({
   tournamentId,
   creatorUserId,
   userId = null,
@@ -163,7 +163,7 @@ export async function listMatchesForTournament({
   };
 }
 
-export async function listTournamentVoterScores({
+export async function listBracketVoterScores({
   tournament,
   userId = null,
   anonymousVoterToken = null,
@@ -451,7 +451,7 @@ export async function getTournamentAccess({
   return tournament;
 }
 
-export async function setManualMatchWinner({
+export async function setBracketMatchManualWinner({
   matchId,
   creatorUserId,
   winnerEntryId,

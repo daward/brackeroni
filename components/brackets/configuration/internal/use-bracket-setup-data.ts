@@ -4,11 +4,11 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { getPool, listPools, listTournaments } from "@/lib/client-api/create-workspace";
 import type { BracketSetupDraft } from "@/lib/brackets/types";
-import type { BracketPoolOption } from "../types";
+import type { PoolSelectionOption } from "@/lib/pools/types";
 
 export function useBracketSetupData(routeDraftId: string | null) {
   const searchParams = useSearchParams();
-  const [pools, setPools] = useState<BracketPoolOption[]>([]);
+  const [pools, setPools] = useState<PoolSelectionOption[]>([]);
   const [draft, setDraft] = useState<BracketSetupDraft | null>(null);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
@@ -17,7 +17,7 @@ export function useBracketSetupData(routeDraftId: string | null) {
       .then(([poolData, tournamentData, requestedPoolData]) => {
         const listedPools = poolData.items || [];
         const requestedPool = requestedPoolData?.item || null;
-        setPools(requestedPool && !listedPools.some((pool: BracketPoolOption) => pool.id === requestedPool.id) ? [requestedPool, ...listedPools] : listedPools);
+        setPools(requestedPool && !listedPools.some((pool: PoolSelectionOption) => pool.id === requestedPool.id) ? [requestedPool, ...listedPools] : listedPools);
         const draftId = routeDraftId || searchParams?.get("draftId");
         setDraft(draftId ? (tournamentData.items || []).find((item: { id: string; status: string }) => item.id === draftId && item.status === "draft") || null : null);
       })

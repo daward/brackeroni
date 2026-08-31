@@ -10,7 +10,6 @@ export type WorkspaceTournament = Bracket &
   description?: string | null;
 };
 export type WorkspacePool = ManagedPool & { id: string };
-export type WorkspacePoolDetail = PoolDetail;
 export type WorkspaceMatch = BracketMatch & {
   roundId?: string | null;
   roundNumber?: number | null;
@@ -38,7 +37,7 @@ export type CandidateEditorState = {
 export type PoolInlineDrafts = Record<string, { name: string; description: string }>;
 export type ImageSuggestionState = Record<string, ImageSuggestion[]>;
 export type ImageSuggestionLoadingState = Record<string, boolean>;
-export type PoolDetailsState = Record<string, WorkspacePoolDetail | WorkspacePool>;
+export type PoolDetailsState = Record<string, PoolDetail | WorkspacePool>;
 export type TournamentInvitesState = Record<string, WorkspaceInvite[]>;
 export type TournamentShareLinksState = Record<string, WorkspaceShareLink[]>;
 export type TournamentMatchesState = Record<string, WorkspaceMatch[]>;
@@ -57,7 +56,7 @@ export type SetPoolInlineDrafts = Dispatch<SetStateAction<PoolInlineDrafts>>;
 export type ReplaceTournament = (tournamentId: string, tournament: WorkspaceTournament) => void;
 export type ReplaceTournamentMatch = (tournamentId: string, match: WorkspaceMatch) => void;
 export type RefreshTournamentMatches = (tournamentId: string) => Promise<WorkspaceMatch[]>;
-export type ReplacePool = (pool: WorkspacePoolDetail | WorkspacePool) => void;
+export type ReplacePool = (pool: PoolDetail | WorkspacePool) => void;
 export type ReplaceCandidate = (poolId: string, candidate: PoolCandidate) => void;
 export type RemoveCandidate = (poolId: string, candidateId: string) => void;
 

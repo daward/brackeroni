@@ -6,18 +6,18 @@
  * render the chronological rounds view and its optional creator controls.
  *
  * These types deliberately describe component inputs, not presentation policy
- * or private state. Reusable match/entry records and calculation outputs live
- * in `lib/brackets/progress`; internal component props stay under `internal/`.
+ * or private state. Reusable bracket records live in `lib/brackets/types`;
+ * internal component props stay under `internal/`.
  */
 import type { ReactNode } from "react";
-import type { ProgressEntry, ProgressMatch } from "./internal/progress-policy";
+import type { Bracket, BracketEntry, BracketMatch, BracketRound } from "@/lib/brackets/types";
 
 /** Linked views that may be exposed for a bracket outcome. */
 export type BracketOutcomeView = "results" | "rounds" | "scoring";
 
 /** Props for the compact route-level navigation between available outcome views. */
 export type BracketOutcomeNavProps = {
-  tournamentId: string;
+  bracketId: string;
   activeView?: BracketOutcomeView;
   showResults?: boolean;
   showRounds?: boolean;
@@ -28,27 +28,21 @@ export type BracketOutcomeNavProps = {
 };
 
 /** Tournament fields the progress page needs beyond the shared domain policies. */
-export type BracketProgressTournament = {
-  id: string;
-  title: string;
-  status: string;
-  resultMode?: string | null;
-  entries?: ProgressEntry[] | null;
+export type BracketProgressTournament = Pick<Bracket, "id" | "title" | "status" | "resultMode"> & {
+  entries?: BracketEntry[] | null;
 };
 
 /** A displayable tournament round, including its disclosure state and rank metadata. */
-export type BracketProgressRound = {
-  id: string;
-  roundNumber: number;
+export type BracketProgressRound = BracketRound & {
   matchCount: number;
   status: string;
-  revealedAt?: string | null;
-  rankingTargetRank?: number | null;
-  rankingRoundNumber?: number | null;
 };
 
 /** A progress match tied to the round that owns it. */
-export type BracketProgressMatch = ProgressMatch & { roundId: string };
+export type BracketProgressMatch = BracketMatch & {
+  roundId: string;
+  roundNumber: number;
+};
 
 /** Props for the route-level page that renders and tracks the visible round sequence. */
 export type BracketProgressPageProps = {

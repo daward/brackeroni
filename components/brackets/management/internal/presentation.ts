@@ -59,8 +59,8 @@ export function canCopyBracketLink(tournament?: BracketAudienceSource | null) {
 export function buildDirectBracketSharePath(tournament?: Pick<Bracket, "id" | "status" | "kind"> | null) {
   if (!tournament) return "/";
   if (tournament.status === "complete") return `/results/${tournament.id}`;
-  if (tournament.kind === "parallel_parent") return `/vote?parallelTournament=${tournament.id}`;
-  return `/vote?tournament=${tournament.id}`;
+  if (tournament.kind === "parallel_parent") return `/vote?parallelBracket=${tournament.id}`;
+  return `/vote?bracket=${tournament.id}`;
 }
 
 export function normalizeParallelBracketItem(item: ParallelBracketSource): Bracket {
@@ -73,11 +73,8 @@ export function normalizeParallelBracketItem(item: ParallelBracketSource): Brack
     activeRoundNumber: null,
     activeRoundOpenMatchCount: 0,
     openVoteCount: 0,
-    winnerEntryId: item.winnerEntryId ?? null,
-    winnerName: item.winnerName ?? null,
-    winnerSeed: item.winnerSeed ?? null,
-    winnerImageUrl: item.winnerImageUrl ?? null
-  };
+    winner: item.winner ?? null,
+  } as Bracket;
 }
 
 export function sortBrackets<T extends Pick<Bracket, "status" | "createdAt">>(items: T[]) {

@@ -1,9 +1,9 @@
 // @ts-nocheck
 import { getDb } from "@/lib/db";
 import { assertTournamentAccess } from "@/lib/brackets/internal/tournament-access-service";
-import { advanceTournamentRound } from "@/lib/brackets/internal/tournament-round-progression";
+import { advanceTournamentRound } from "@/lib/brackets/internal/stateful-workflows/tournament-round-progression";
 
-export async function recordTournamentVote({
+export async function recordBracketMatchVote({
   matchId,
   userId = null,
   anonymousVoterToken = null,

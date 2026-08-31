@@ -1229,7 +1229,7 @@ export function BookmarkletInstaller({
         {showIntroCopy ? (
           <p className={`${copyTextClassName} text-[var(--muted)]`}>
           Drag this link to your bookmarks bar. Then open any page, optionally highlight the
-          relevant text, and click the bookmark to send the page into Brackeroni's import flow.
+          relevant text, and click the bookmark to send the page into Brackeroni&apos;s import flow.
           </p>
         ) : null}
         <p className="bookmarklet-chip-kicker">Drag this to your bookmarks bar</p>

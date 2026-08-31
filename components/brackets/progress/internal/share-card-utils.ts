@@ -9,9 +9,9 @@ export function buildCreatorPrompt({ tournament, round, stats }: { tournament: S
   const bracketUrl = getBracketRoundsUrl(tournament.id);
   const lines = [
     `${formatRoundTitle(round, tournament)} is in the books for ${tournament.title}.`,
-    stats.biggestUpset ? `Biggest upset: ${stats.biggestUpset.winnerName} knocked out ${stats.biggestUpset.loserName}.` : null,
+    stats.biggestUpset ? `Biggest upset: ${stats.biggestUpset.winner?.name} knocked out ${stats.biggestUpset.loser?.name}.` : null,
     stats.closestMatch
-      ? `Closest call: ${stats.closestMatch.winnerName} over ${stats.closestMatch.loserName}, ${stats.closestMatch.winnerVotes}-${stats.closestMatch.loserVotes}.`
+      ? `Closest call: ${stats.closestMatch.winner?.name} over ${stats.closestMatch.loser?.name}, ${stats.closestMatch.winnerVotes}-${stats.closestMatch.loserVotes}.`
       : null,
     `Follow the bracket here: ${bracketUrl}`,
     "After you vote in the next round, come back here and tell us who you're rooting for.",
@@ -34,27 +34,27 @@ export function getShareCardItems(stats: RoundStats): ShareCardItem[] {
   return [
     {
       label: "Most Votes",
-      value: stats.voteLeader?.name || "No votes yet",
+      value: stats.voteLeader?.candidate.name || "No votes yet",
       detail: stats.voteLeader ? `${stats.voteLeader.votes} votes` : "",
-      imageUrl: stats.voteLeader?.imageUrl || null,
+      imageUrl: stats.voteLeader?.candidate.imageUrl || null,
     },
     {
       label: "Closest Match",
-      value: stats.closestMatch?.winnerName || "No closed match yet",
-      detail: stats.closestMatch ? `Beat ${stats.closestMatch.loserName} by ${stats.closestMatch.margin}` : "",
-      imageUrl: stats.closestMatch?.winnerImageUrl || null,
+      value: stats.closestMatch?.winner?.name || "No closed match yet",
+      detail: stats.closestMatch ? `Beat ${stats.closestMatch.loser?.name} by ${stats.closestMatch.margin}` : "",
+      imageUrl: stats.closestMatch?.winner?.imageUrl || null,
     },
     {
       label: "Biggest Blowout",
-      value: stats.biggestBlowout?.winnerName || "No closed match yet",
-      detail: stats.biggestBlowout ? `${formatPercent(stats.biggestBlowout.winnerPercent)} over ${stats.biggestBlowout.loserName}` : "",
-      imageUrl: stats.biggestBlowout?.winnerImageUrl || null,
+      value: stats.biggestBlowout?.winner?.name || "No closed match yet",
+      detail: stats.biggestBlowout ? `${formatPercent(stats.biggestBlowout.winnerPercent)} over ${stats.biggestBlowout.loser?.name}` : "",
+      imageUrl: stats.biggestBlowout?.winner?.imageUrl || null,
     },
     {
       label: "Biggest Upset",
-      value: stats.biggestUpset?.winnerName || "No seed upset",
-      detail: stats.biggestUpset ? `Seed ${stats.biggestUpset.winnerSeed} beat seed ${stats.biggestUpset.loserSeed}` : "",
-      imageUrl: stats.biggestUpset?.winnerImageUrl || null,
+      value: stats.biggestUpset?.winner?.name || "No seed upset",
+      detail: stats.biggestUpset ? `Seed ${stats.biggestUpset.winner?.seed} beat seed ${stats.biggestUpset.loser?.seed}` : "",
+      imageUrl: stats.biggestUpset?.winner?.imageUrl || null,
     },
   ];
 }

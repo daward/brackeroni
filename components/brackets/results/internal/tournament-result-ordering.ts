@@ -3,7 +3,7 @@ import { isVisibleHistoryMatch } from "./tournament-result-history";
 
 export function getEntryRecordStats(matches: ResultMatch[], entryId: string) {
   const relevantMatches = matches.filter((match) => {
-    return isVisibleHistoryMatch(match) && (match.leftEntryId === entryId || match.rightEntryId === entryId) && match.winnerEntryId;
+    return isVisibleHistoryMatch(match) && (match.left?.id === entryId || match.right?.id === entryId) && match.winnerEntryId;
   });
   const wins = relevantMatches.filter((match) => match.winnerEntryId === entryId).length;
   const losses = relevantMatches.length - wins;
@@ -24,11 +24,11 @@ export function orderResultEntries(entries: ResultEntry[], matches: ResultMatch[
       const leftStats = getEntryRecordStats(matches, left.id);
       const rightStats = getEntryRecordStats(matches, right.id);
 
-      if (left.id === tournament.winnerEntryId) {
+      if (left.id === tournament.winner?.id) {
         return -1;
       }
 
-      if (right.id === tournament.winnerEntryId) {
+      if (right.id === tournament.winner?.id) {
         return 1;
       }
 

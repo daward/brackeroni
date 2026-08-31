@@ -1,6 +1,7 @@
 "use client";
 
-import type { BracketStyle, BracketStyleFieldProps } from "../types";
+import type { BracketPlayStyle } from "@/lib/brackets/types";
+import type { BracketStyleFieldProps } from "../types";
 import styles from "./config-field.module.css";
 
 export function BracketStyleField({ value, onChange, className, labelClassName = styles.label }: BracketStyleFieldProps) {
@@ -12,7 +13,7 @@ export function BracketStyleField({ value, onChange, className, labelClassName =
           ?
         </button>
       </div>
-      <select aria-label="Bracket Style" value={value} onChange={(event) => onChange(event.target.value as BracketStyle)} className={className}>
+      <select aria-label="Bracket Style" value={value} onChange={(event) => onChange(event.target.value as BracketPlayStyle)} className={className}>
         <option value="fixed_bracket">Fixed Bracket</option>
         <option value="reseed">Reseed</option>
       </select>

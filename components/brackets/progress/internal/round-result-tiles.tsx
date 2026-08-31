@@ -12,10 +12,10 @@ export function WinnerTile({ match, swissStats = null }: WinnerTileProps) {
 
   return (
     <div className="progress-result-row">
-      {match.winnerImageUrl ? (
+      {match.winner?.imageUrl ? (
         <BackdropRemoteImage
-          src={match.winnerImageUrl}
-          alt={match.winnerName ?? ""}
+          src={match.winner.imageUrl}
+          alt={match.winner.name}
           className="progress-result-image"
           imageClassName="object-cover object-center"
           undersizedImageClassName="object-contain p-2"
@@ -24,12 +24,12 @@ export function WinnerTile({ match, swissStats = null }: WinnerTileProps) {
         />
       ) : (
         <div className="progress-result-image-fallback">
-          <span className="progress-result-image-label">{match.winnerSeed}</span>
+          <span className="progress-result-image-label">{match.winner?.seed}</span>
         </div>
       )}
       <div className="progress-result-copy">
         <p className="progress-result-title">
-          #{match.winnerSeed} {match.winnerName} ({match.winnerVotes})
+          #{match.winner?.seed} {match.winner?.name} ({match.winnerVotes})
         </p>
         {winnerSwissStats ? (
           <p className="progress-result-accent">
@@ -37,7 +37,7 @@ export function WinnerTile({ match, swissStats = null }: WinnerTileProps) {
           </p>
         ) : null}
         <p className="progress-result-meta">
-          defeated #{match.loserSeed} {match.loserName} ({match.loserVotes})
+          defeated #{match.loser?.seed} {match.loser?.name} ({match.loserVotes})
         </p>
       </div>
     </div>

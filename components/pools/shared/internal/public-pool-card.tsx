@@ -144,7 +144,7 @@ export function PublicPoolCard({ pool, href = null, favoriteMode = "create", sig
         return;
       }
 
-      window.location.assign(`/vote?tournament=${tournament.id}`);
+      window.location.assign(`/vote?bracket=${tournament.id}`);
     });
   }
 

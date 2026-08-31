@@ -2,25 +2,26 @@
 
 import { Trophy } from "lucide-react";
 import { ContentCard } from "@/components/shared";
-import type { AudienceMode, ResultMode } from "../types";
+import type { BracketResultMode } from "@/lib/brackets/types";
+import type { AudienceMode } from "../types";
 import styles from "./wizard-choice.module.css";
 import { WIZARD_RESULT_MODE_DETAILS, WIZARD_RESULT_MODE_ICONS } from "./wizard-result-modes";
 import { WizardQuestion } from "./wizard-question";
 
 type ResultModeTileProps = {
-  mode: ResultMode;
+  mode: BracketResultMode;
   title: string;
   detail: {
     description: string;
     note: string;
   };
   selected: boolean;
-  onSelect: (mode: ResultMode) => void;
+  onSelect: (mode: BracketResultMode) => void;
   disabled?: boolean;
 };
 
-function getResultModeTitle(mode: ResultMode) {
-  const titles: Partial<Record<ResultMode, string>> = {
+function getResultModeTitle(mode: BracketResultMode) {
+  const titles: Partial<Record<BracketResultMode, string>> = {
     full_ranking: "Traditional bracket",
     fast_full_rank: "Faster rounds",
     parallel_full_ranking: "Independent rankings",
@@ -52,10 +53,10 @@ function ResultModeTile({ mode, title, detail, selected, onSelect, disabled = fa
   );
 }
 
-export function ResultModeChoices({ value, audienceMode, onChange }: { value: ResultMode; audienceMode: AudienceMode; onChange: (mode: ResultMode) => void }) {
+export function ResultModeChoices({ value, audienceMode, onChange }: { value: BracketResultMode; audienceMode: AudienceMode; onChange: (mode: BracketResultMode) => void }) {
   const isRanking = value !== "winner_only";
   const chooseRanking = () => onChange(isRanking ? value : "full_ranking");
-  const rankingModes: ResultMode[] =
+  const rankingModes: BracketResultMode[] =
     audienceMode === "private" ? ["full_ranking", "partial_ranking"] : ["full_ranking", "fast_full_rank", "parallel_full_ranking", "partial_ranking"];
 
   return (

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { runSingleFlight } from "@/lib/async/single-flight";
 import { sortManagedPools } from "@/components/pools/shared";
+import type { PoolDetail } from "@/lib/pools/types";
 import type {
   BracketStageView,
   MessageSetter,
@@ -12,7 +13,6 @@ import type {
   TournamentShareLinksState,
   WorkspaceMatch,
   WorkspacePool,
-  WorkspacePoolDetail,
   WorkspaceTournament,
 } from "./workspace-internal-types";
 import { getErrorMessage } from "./workspace-internal-types";
@@ -95,7 +95,7 @@ export function useBracketManagementData({ setErrorMessage, tournamentStage = "d
     setPoolDetails((current) => removeCandidateFromPoolDetails(current, poolId, candidateId));
   }, []);
 
-  const replaceCandidateInWorkspace = useCallback((poolId: string, nextCandidate: WorkspacePoolDetail["candidates"][number]) => {
+  const replaceCandidateInWorkspace = useCallback((poolId: string, nextCandidate: PoolDetail["candidates"][number]) => {
     if (!poolId || !nextCandidate?.id) {
       return;
     }
@@ -103,7 +103,7 @@ export function useBracketManagementData({ setErrorMessage, tournamentStage = "d
     setPoolDetails((current) => replaceCandidateInPoolDetails(current, poolId, nextCandidate));
   }, []);
 
-  const replacePoolInWorkspace = useCallback((nextPool: WorkspacePool | WorkspacePoolDetail) => {
+  const replacePoolInWorkspace = useCallback((nextPool: WorkspacePool | PoolDetail) => {
     if (!nextPool?.id) {
       return;
     }
@@ -199,13 +199,13 @@ export function useBracketManagementData({ setErrorMessage, tournamentStage = "d
     setTournamentShareLinks(Object.fromEntries(linkEntries));
   }, []);
 
-  const ensurePoolDetails = useCallback(async (poolId: string): Promise<WorkspacePoolDetail | null> => {
+  const ensurePoolDetails = useCallback(async (poolId: string): Promise<PoolDetail | null> => {
     if (!poolId) {
       return null;
     }
 
     if (poolDetailsRef.current[poolId]) {
-      return poolDetailsRef.current[poolId] as WorkspacePoolDetail;
+      return poolDetailsRef.current[poolId] as PoolDetail;
     }
 
     if (pendingPoolDetailIdsRef.current.has(poolId)) {

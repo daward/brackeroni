@@ -20,6 +20,7 @@ const tournament: WorkspaceTournament = {
   sourcePoolId: "pool-1",
   sharingMode: "private",
   visibility: "private",
+  winner: null,
 };
 
 describe("workspace draft card", () => {

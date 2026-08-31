@@ -13,7 +13,7 @@ describe("bracket presentation policies", () => {
     expect(getTournamentAudienceMode({ visibility: "public_unlisted" })).toBe("public_unlisted");
     expect(getTournamentAudiencePatch("with_friends")).toEqual({ sharingMode: "with_friends", visibility: "private" });
     expect(buildDirectBracketSharePath({ id: "complete-1", status: "complete" })).toBe("/results/complete-1");
-    expect(buildDirectBracketSharePath({ id: "parallel-1", status: "active", kind: "parallel_parent" })).toBe("/vote?parallelTournament=parallel-1");
+    expect(buildDirectBracketSharePath({ id: "parallel-1", status: "active", kind: "parallel_parent" })).toBe("/vote?parallelBracket=parallel-1");
     expect(canCopyBracketLink({ visibility: "private", sharingMode: "with_friends" })).toBe(true);
   });
 

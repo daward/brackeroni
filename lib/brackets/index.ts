@@ -1,15 +1,14 @@
-export { bracket } from "@/lib/brackets/bracket";
-export { bracketMatches } from "@/lib/brackets/bracket-matches";
-export { bracketRounds } from "@/lib/brackets/bracket-rounds";
-export { bracketVoting } from "@/lib/brackets/bracket-voting";
+export { bracket } from "@/lib/brackets/internal/bracket-handle";
+export { match } from "@/lib/brackets/internal/match-handle";
+export { round } from "@/lib/brackets/internal/round-handle";
 export {
   bracketDirectory,
   brackets,
-} from "@/lib/brackets/bracket-directory";
-export { parallelBracket } from "@/lib/brackets/parallel-bracket";
+} from "@/lib/brackets/internal/bracket-directory";
+export { parallelBracket } from "@/lib/brackets/internal/parallel-bracket-handle";
 export {
   parallelBracketDirectory,
   parallelBrackets,
-} from "@/lib/brackets/parallel-bracket-directory";
-export { bracketTemplates } from "@/lib/brackets/bracket-templates";
-export { shareLinks } from "@/lib/brackets/share-links";
+} from "@/lib/brackets/internal/parallel-bracket-directory";
+export { bracketTemplates } from "@/lib/brackets/internal/bracket-template-library";
+export { shareLink } from "@/lib/brackets/internal/share-link-handle";

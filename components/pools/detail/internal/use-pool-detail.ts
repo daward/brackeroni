@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { parseCandidateTagText } from "@/lib/candidate-tags";
 import { usePaginatedCandidates } from "@/components/pools/candidates";
 import type { CandidateDraft, PoolCandidate } from "@/components/pools/candidates";
+import type { PrefixedPaginationOptions } from "@/lib/pagination/types";
 import type { PoolDetail, PoolDraft } from "@/lib/pools/types";
 import { createCandidateInPool, getPool, removeCandidateFromPool, updateCandidateInPool, updatePool } from "@/lib/client-api/create-workspace";
 import { usePoolDetailStatus } from "./use-pool-detail-status";
@@ -21,7 +22,7 @@ function getErrorText(error: unknown, fallback: string) {
   return error instanceof Error ? error.message : fallback;
 }
 
-const loadPool = getPool as (poolId: string, options?: { candidateLimit?: number | null; candidateOffset?: number }) => Promise<{ item: PoolDetail }>;
+const loadPool = getPool as (poolId: string, options?: PrefixedPaginationOptions<"candidate">) => Promise<{ item: PoolDetail }>;
 
 export function usePoolDetail({ initialPool, onArchive, onImportFallback }: UsePoolDetailOptions) {
   const [pool, setPool] = useState<PoolDetail>(initialPool);

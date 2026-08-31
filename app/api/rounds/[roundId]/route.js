@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { getCurrentUser } from "@/lib/auth/current-user";
-import { bracketRounds } from "@/lib/brackets";
+import { round } from "@/lib/brackets";
 import { json, readJson, withRouteErrorHandling } from "@/lib/api/http";
 
 const roundUpdateSchema = z.object({
@@ -12,10 +12,10 @@ export const PATCH = withRouteErrorHandling(async function PATCH(request, { para
   const { roundId } = await params;
   roundUpdateSchema.parse(await readJson(request));
 
-  const round = await bracketRounds().reveal({
+  const item = await round({
     roundId,
     creatorUserId: user.id
-  });
+  }).reveal();
 
-  return json({ item: round });
+  return json({ item });
 });

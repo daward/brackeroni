@@ -42,9 +42,9 @@ export const openApiDocument = {
         ...uuidPathParameter,
         name: "poolId"
       },
-      tournamentId: {
+      bracketId: {
         ...uuidPathParameter,
-        name: "tournamentId"
+        name: "bracketId"
       },
       roundId: {
         ...uuidPathParameter,
@@ -54,9 +54,9 @@ export const openApiDocument = {
         ...uuidPathParameter,
         name: "matchId"
       },
-      parallelTournamentId: {
+      parallelBracketId: {
         ...uuidPathParameter,
-        name: "parallelTournamentId"
+        name: "parallelBracketId"
       },
       token: {
         name: "token",
@@ -242,7 +242,12 @@ export const openApiDocument = {
           name: { type: "string", minLength: 1, maxLength: 120 },
           description: { type: ["string", "null"], maxLength: 2000 },
           imageUrl: { type: ["string", "null"], format: "uri", maxLength: 2048 },
-          sourceUrl: { type: ["string", "null"], format: "uri", maxLength: 2048 }
+          sourceUrl: { type: ["string", "null"], format: "uri", maxLength: 2048 },
+          tags: {
+            type: "array",
+            maxItems: 12,
+            items: { type: "string", minLength: 1, maxLength: 120 }
+          }
         },
         required: ["name"]
       },
@@ -278,17 +283,65 @@ export const openApiDocument = {
         },
         required: ["name"]
       },
-      PoolUpdateRequest: {
-        type: "object",
-        properties: {
-          name: { type: "string", minLength: 1, maxLength: 120 },
-          description: { type: ["string", "null"], maxLength: 2000 },
-          visibility: {
-            type: "string",
-            enum: ["private", "public_listed", "public_unlisted"]
+      PoolImportRequest: {
+        oneOf: [
+          {
+            type: "object",
+            properties: {
+              sourcePoolId: { type: "string", format: "uuid" }
+            },
+            required: ["sourcePoolId"]
+          },
+          {
+            type: "object",
+            properties: {
+              source: {
+                oneOf: [
+                  { $ref: "#/components/schemas/PoolSourceExtract" },
+                  { $ref: "#/components/schemas/PoolSourceItems" }
+                ]
+              }
+            },
+            required: ["source"]
           }
-        },
-        minProperties: 1
+        ]
+      },
+      PoolUpdateRequest: {
+        anyOf: [
+          {
+            type: "object",
+            properties: {
+              name: { type: "string", minLength: 1, maxLength: 120 },
+              description: { type: ["string", "null"], maxLength: 2000 },
+              visibility: {
+                type: "string",
+                enum: ["private", "public_listed", "public_unlisted"]
+              }
+            },
+            minProperties: 1
+          },
+          {
+            type: "object",
+            properties: {
+              enrichFromSourceUrls: { type: "boolean", const: true }
+            },
+            required: ["enrichFromSourceUrls"]
+          },
+          {
+            type: "object",
+            properties: {
+              removeTag: { type: "string", minLength: 1, maxLength: 120 }
+            },
+            required: ["removeTag"]
+          },
+          {
+            type: "object",
+            properties: {
+              removeTagsAtOrBelowCount: { type: "integer", minimum: 1, maximum: 999 }
+            },
+            required: ["removeTagsAtOrBelowCount"]
+          }
+        ]
       },
       PoolCandidateAttachRequest: {
         type: "object",
@@ -330,6 +383,18 @@ export const openApiDocument = {
           _links: { $ref: "#/components/schemas/HalLinks" }
         },
         required: ["item"]
+      },
+      PoolCandidateListResponse: {
+        type: "object",
+        properties: {
+          items: {
+            type: "array",
+            items: { $ref: "#/components/schemas/PoolCandidate" }
+          },
+          meta: { $ref: "#/components/schemas/MetaCount" },
+          _links: { $ref: "#/components/schemas/HalLinks" }
+        },
+        required: ["items", "meta"]
       },
       TournamentEntry: {
         type: "object",
@@ -511,13 +576,42 @@ export const openApiDocument = {
       TournamentEntriesUpdateRequest: {
         type: "object",
         properties: {
-          entryIds: {
+          entries: {
             type: "array",
             minItems: 2,
-            items: { type: "string", format: "uuid" }
+            items: {
+              type: "object",
+              properties: {
+                id: { type: "string", format: "uuid" },
+                seed: { type: "integer", minimum: 1 },
+                subSeed: { type: "integer", minimum: 0, default: 0 }
+              },
+              required: ["id", "seed"]
+            }
+          },
+          seedingStructure: {
+            type: "object",
+            properties: {
+              subBrackets: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    id: { type: "string" },
+                    index: { type: "integer", minimum: 0 },
+                    name: { type: "string" }
+                  },
+                  required: ["id", "index", "name"]
+                }
+              },
+              entryBrackets: {
+                type: "object",
+                additionalProperties: { type: "string" }
+              }
+            }
           }
         },
-        required: ["entryIds"]
+        required: ["entries"]
       },
       Match: {
         type: "object",
@@ -805,10 +899,9 @@ export const openApiDocument = {
           item: {
             type: "object",
             properties: {
-              parallelTournamentId: { type: "string", format: "uuid" },
-              tournamentId: { type: "string", format: "uuid" }
+              bracketId: { type: "string", format: "uuid" }
             },
-            required: ["parallelTournamentId", "tournamentId"]
+            required: ["bracketId"]
           },
           _links: { $ref: "#/components/schemas/HalLinks" }
         },
@@ -1002,6 +1095,7 @@ export const openApiDocument = {
               }
             }
           },
+          "400": { $ref: "#/components/responses/BadRequest" },
           "401": { $ref: "#/components/responses/Unauthorized" }
         }
       },
@@ -1097,6 +1191,23 @@ export const openApiDocument = {
       }
     },
     "/api/pools/{poolId}/candidates": {
+      get: {
+        summary: "List candidates in a pool",
+        parameters: [{ $ref: "#/components/parameters/poolId" }],
+        responses: {
+          "200": {
+            description: "Pool candidates",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/PoolCandidateListResponse" }
+              }
+            }
+          },
+          "400": { $ref: "#/components/responses/BadRequest" },
+          "403": { $ref: "#/components/responses/Forbidden" },
+          "404": { $ref: "#/components/responses/NotFound" }
+        }
+      },
       post: {
         summary: "Create a candidate in pool or attach existing candidates",
         parameters: [{ $ref: "#/components/parameters/poolId" }],
@@ -1207,13 +1318,7 @@ export const openApiDocument = {
           required: true,
           content: {
             "application/json": {
-              schema: {
-                type: "object",
-                properties: {
-                  sourcePoolId: { type: "string", format: "uuid" }
-                },
-                required: ["sourcePoolId"]
-              }
+              schema: { $ref: "#/components/schemas/PoolImportRequest" }
             }
           }
         },
@@ -1233,12 +1338,12 @@ export const openApiDocument = {
         }
       }
     },
-    "/api/tournaments": {
+    "/api/brackets": {
       get: {
-        summary: "List tournament resources owned by the current user",
+        summary: "List bracket resources owned by the current user",
         responses: {
           "200": {
-            description: "Tournament collection",
+            description: "Bracket collection",
             content: {
               "application/json": {
                 schema: { $ref: "#/components/schemas/TournamentListResponse" }
@@ -1249,7 +1354,7 @@ export const openApiDocument = {
         }
       },
       post: {
-        summary: "Create a tournament resource in draft state",
+        summary: "Create a bracket resource in draft state",
         requestBody: {
           required: true,
           content: {
@@ -1260,7 +1365,7 @@ export const openApiDocument = {
         },
         responses: {
           "201": {
-            description: "Tournament created",
+            description: "Bracket created",
             content: {
               "application/json": {
                 schema: { $ref: "#/components/schemas/TournamentDetailResponse" }
@@ -1273,13 +1378,13 @@ export const openApiDocument = {
         }
       }
     },
-    "/api/tournaments/{tournamentId}": {
+    "/api/brackets/{bracketId}": {
       get: {
-        summary: "Fetch a tournament resource",
-        parameters: [{ $ref: "#/components/parameters/tournamentId" }],
+        summary: "Fetch a bracket resource",
+        parameters: [{ $ref: "#/components/parameters/bracketId" }],
         responses: {
           "200": {
-            description: "Tournament resource",
+            description: "Bracket resource",
             content: {
               "application/json": {
                 schema: { $ref: "#/components/schemas/TournamentDetailResponse" }
@@ -1292,8 +1397,8 @@ export const openApiDocument = {
         }
       },
       patch: {
-        summary: "Update tournament state or configuration",
-        parameters: [{ $ref: "#/components/parameters/tournamentId" }],
+        summary: "Update bracket state or configuration",
+        parameters: [{ $ref: "#/components/parameters/bracketId" }],
         requestBody: {
           required: true,
           content: {
@@ -1304,7 +1409,7 @@ export const openApiDocument = {
         },
         responses: {
           "200": {
-            description: "Tournament updated",
+            description: "Bracket updated",
             content: {
               "application/json": {
                 schema: { $ref: "#/components/schemas/TournamentDetailResponse" }
@@ -1319,11 +1424,11 @@ export const openApiDocument = {
         }
       },
       delete: {
-        summary: "Archive a tournament resource",
-        parameters: [{ $ref: "#/components/parameters/tournamentId" }],
+        summary: "Archive a bracket resource",
+        parameters: [{ $ref: "#/components/parameters/bracketId" }],
         responses: {
           "200": {
-            description: "Tournament archived",
+            description: "Bracket archived",
             content: {
               "application/json": {
                 schema: {
@@ -1340,13 +1445,13 @@ export const openApiDocument = {
         }
       }
     },
-    "/api/tournaments/{tournamentId}/entries": {
+    "/api/brackets/{bracketId}/entries": {
       get: {
-        summary: "List tournament entries",
-        parameters: [{ $ref: "#/components/parameters/tournamentId" }],
+        summary: "List bracket entries",
+        parameters: [{ $ref: "#/components/parameters/bracketId" }],
         responses: {
           "200": {
-            description: "Tournament entries",
+            description: "Bracket entries",
             content: {
               "application/json": {
                 schema: { $ref: "#/components/schemas/TournamentEntriesResponse" }
@@ -1359,8 +1464,8 @@ export const openApiDocument = {
         }
       },
       patch: {
-        summary: "Replace tournament entry order",
-        parameters: [{ $ref: "#/components/parameters/tournamentId" }],
+        summary: "Replace bracket entry order",
+        parameters: [{ $ref: "#/components/parameters/bracketId" }],
         requestBody: {
           required: true,
           content: {
@@ -1371,7 +1476,7 @@ export const openApiDocument = {
         },
         responses: {
           "200": {
-            description: "Tournament entries updated",
+            description: "Bracket entries updated",
             content: {
               "application/json": {
                 schema: { $ref: "#/components/schemas/TournamentEntriesResponse" }
@@ -1385,13 +1490,13 @@ export const openApiDocument = {
         }
       }
     },
-    "/api/tournaments/{tournamentId}/rerun-drafts": {
+    "/api/brackets/{bracketId}/rerun-drafts": {
       post: {
-        summary: "Create a rerun tournament from an existing tournament",
-        parameters: [{ $ref: "#/components/parameters/tournamentId" }],
+        summary: "Create a rerun bracket from an existing bracket",
+        parameters: [{ $ref: "#/components/parameters/bracketId" }],
         responses: {
           "201": {
-            description: "Rerun tournament created",
+            description: "Rerun bracket created",
             content: {
               "application/json": {
                 schema: { $ref: "#/components/schemas/TournamentDetailResponse" }
@@ -1404,12 +1509,12 @@ export const openApiDocument = {
         }
       }
     },
-    "/api/parallel-tournaments": {
+    "/api/parallel-brackets": {
       get: {
-        summary: "List parallel tournament resources for the current user",
+        summary: "List parallel bracket resources for the current user",
         responses: {
           "200": {
-            description: "Parallel tournament collection",
+            description: "Parallel bracket collection",
             content: {
               "application/json": {
                 schema: { $ref: "#/components/schemas/ParallelTournamentListResponse" }
@@ -1420,7 +1525,7 @@ export const openApiDocument = {
         }
       },
       post: {
-        summary: "Create a parallel tournament resource",
+        summary: "Create a parallel bracket resource",
         requestBody: {
           required: true,
           content: {
@@ -1431,7 +1536,7 @@ export const openApiDocument = {
         },
         responses: {
           "201": {
-            description: "Parallel tournament created",
+            description: "Parallel bracket created",
             content: {
               "application/json": {
                 schema: { $ref: "#/components/schemas/ParallelTournamentDetailResponse" }
@@ -1443,13 +1548,13 @@ export const openApiDocument = {
         }
       }
     },
-    "/api/parallel-tournaments/{parallelTournamentId}": {
+    "/api/parallel-brackets/{parallelBracketId}": {
       get: {
-        summary: "Fetch a parallel tournament resource",
-        parameters: [{ $ref: "#/components/parameters/parallelTournamentId" }],
+        summary: "Fetch a parallel bracket resource",
+        parameters: [{ $ref: "#/components/parameters/parallelBracketId" }],
         responses: {
           "200": {
-            description: "Parallel tournament resource",
+            description: "Parallel bracket resource",
             content: {
               "application/json": {
                 schema: { $ref: "#/components/schemas/ParallelTournamentDetailResponse" }
@@ -1462,8 +1567,8 @@ export const openApiDocument = {
         }
       },
       patch: {
-        summary: "Update mutable parallel tournament fields",
-        parameters: [{ $ref: "#/components/parameters/parallelTournamentId" }],
+        summary: "Update mutable parallel bracket fields",
+        parameters: [{ $ref: "#/components/parameters/parallelBracketId" }],
         requestBody: {
           required: true,
           content: {
@@ -1474,7 +1579,7 @@ export const openApiDocument = {
         },
         responses: {
           "200": {
-            description: "Parallel tournament updated",
+            description: "Parallel bracket updated",
             content: {
               "application/json": {
                 schema: { $ref: "#/components/schemas/ParallelTournamentDetailResponse" }
@@ -1488,11 +1593,11 @@ export const openApiDocument = {
         }
       },
       delete: {
-        summary: "Archive a parallel tournament resource",
-        parameters: [{ $ref: "#/components/parameters/parallelTournamentId" }],
+        summary: "Archive a parallel bracket resource",
+        parameters: [{ $ref: "#/components/parameters/parallelBracketId" }],
         responses: {
           "200": {
-            description: "Parallel tournament archived",
+            description: "Parallel bracket archived",
             content: {
               "application/json": {
                 schema: {
@@ -1509,10 +1614,10 @@ export const openApiDocument = {
         }
       }
     },
-    "/api/parallel-tournaments/{parallelTournamentId}/links": {
+    "/api/parallel-brackets/{parallelBracketId}/links": {
       get: {
-        summary: "List share-link resources for a parallel tournament",
-        parameters: [{ $ref: "#/components/parameters/parallelTournamentId" }],
+        summary: "List share-link resources for a parallel bracket",
+        parameters: [{ $ref: "#/components/parameters/parallelBracketId" }],
         responses: {
           "200": {
             description: "Parallel share-link collection",
@@ -1528,8 +1633,8 @@ export const openApiDocument = {
         }
       },
       post: {
-        summary: "Create a new share-link resource for a parallel tournament",
-        parameters: [{ $ref: "#/components/parameters/parallelTournamentId" }],
+        summary: "Create a new share-link resource for a parallel bracket",
+        parameters: [{ $ref: "#/components/parameters/parallelBracketId" }],
         requestBody: {
           required: false,
           content: {
@@ -1553,10 +1658,10 @@ export const openApiDocument = {
         }
       }
     },
-    "/api/parallel-tournaments/{parallelTournamentId}/participants/me": {
+    "/api/parallel-brackets/{parallelBracketId}/participants/me": {
       post: {
         summary: "Create or fetch the current caller participant bracket",
-        parameters: [{ $ref: "#/components/parameters/parallelTournamentId" }],
+        parameters: [{ $ref: "#/components/parameters/parallelBracketId" }],
         responses: {
           "200": {
             description: "Participant bracket opened",
@@ -1573,10 +1678,10 @@ export const openApiDocument = {
         }
       }
     },
-    "/api/tournaments/{tournamentId}/invites": {
+    "/api/brackets/{bracketId}/invites": {
       get: {
-        summary: "List invite resources for a friends tournament",
-        parameters: [{ $ref: "#/components/parameters/tournamentId" }],
+        summary: "List invite resources for a friends bracket",
+        parameters: [{ $ref: "#/components/parameters/bracketId" }],
         responses: {
           "200": {
             description: "Invite collection",
@@ -1592,10 +1697,10 @@ export const openApiDocument = {
         }
       }
     },
-    "/api/tournaments/{tournamentId}/links": {
+    "/api/brackets/{bracketId}/links": {
       get: {
-        summary: "List share-link resources for a tournament",
-        parameters: [{ $ref: "#/components/parameters/tournamentId" }],
+        summary: "List share-link resources for a bracket",
+        parameters: [{ $ref: "#/components/parameters/bracketId" }],
         responses: {
           "200": {
             description: "Share-link collection",
@@ -1612,7 +1717,7 @@ export const openApiDocument = {
       },
       post: {
         summary: "Create a new share-link resource",
-        parameters: [{ $ref: "#/components/parameters/tournamentId" }],
+        parameters: [{ $ref: "#/components/parameters/bracketId" }],
         requestBody: {
           required: false,
           content: {
@@ -1636,10 +1741,10 @@ export const openApiDocument = {
         }
       }
     },
-    "/api/tournaments/{tournamentId}/matches": {
+    "/api/brackets/{bracketId}/matches": {
       get: {
-        summary: "List match resources for a tournament",
-        parameters: [{ $ref: "#/components/parameters/tournamentId" }],
+        summary: "List match resources for a bracket",
+        parameters: [{ $ref: "#/components/parameters/bracketId" }],
         responses: {
           "200": {
             description: "Match collection",
@@ -1655,10 +1760,10 @@ export const openApiDocument = {
         }
       }
     },
-    "/api/tournaments/{tournamentId}/rounds": {
+    "/api/brackets/{bracketId}/rounds": {
       get: {
-        summary: "List round resources for a tournament",
-        parameters: [{ $ref: "#/components/parameters/tournamentId" }],
+        summary: "List round resources for a bracket",
+        parameters: [{ $ref: "#/components/parameters/bracketId" }],
         responses: {
           "200": {
             description: "Round collection placeholder",
@@ -1852,10 +1957,10 @@ export const openApiDocument = {
         }
       }
     },
-    "/api/admin/tournaments/{tournamentId}": {
+    "/api/admin/brackets/{bracketId}": {
       patch: {
-        summary: "Admin update for tournament visibility",
-        parameters: [{ $ref: "#/components/parameters/tournamentId" }],
+        summary: "Admin update for bracket visibility",
+        parameters: [{ $ref: "#/components/parameters/bracketId" }],
         requestBody: {
           required: true,
           content: {
@@ -1875,7 +1980,7 @@ export const openApiDocument = {
         },
         responses: {
           "200": {
-            description: "Tournament updated",
+            description: "Bracket updated",
             content: {
               "application/json": {
                 schema: {
@@ -1892,11 +1997,11 @@ export const openApiDocument = {
         }
       },
       delete: {
-        summary: "Admin delete of an archived tournament",
-        parameters: [{ $ref: "#/components/parameters/tournamentId" }],
+        summary: "Admin delete of an archived bracket",
+        parameters: [{ $ref: "#/components/parameters/bracketId" }],
         responses: {
           "200": {
-            description: "Tournament deleted",
+            description: "Bracket deleted",
             content: {
               "application/json": {
                 schema: {

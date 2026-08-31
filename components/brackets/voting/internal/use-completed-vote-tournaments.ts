@@ -19,7 +19,7 @@ export function useCompletedVoteTournaments({
   const loadCompletedPage = useCallback(async ({ offset }: { offset: number }) => {
     setError("");
     try {
-      const response = await fetch(`/api/tournaments?scope=vote-completed&offset=${offset}&limit=12`, {
+      const response = await fetch(`/api/brackets?scope=vote-completed&offset=${offset}&limit=12`, {
         cache: "no-store",
       });
 

@@ -1,10 +1,10 @@
-import { bracketDirectory, bracketMatches, parallelBracketDirectory } from "@/lib/brackets";
+import { bracket, bracketDirectory, parallelBracketDirectory } from "@/lib/brackets";
 import type { VoteMatch, VoteTournament } from "./voting-internal-types";
 
 export type VotePageSearchParams = Record<string, string | string[] | undefined>;
 export type VoteStatusFilter = Array<"active" | "complete">;
 
-export type ParallelBracketVoteIndexItem = {
+export type ParallelBracketVoteIndexItem = VoteTournament & {
   id: string;
   title: string;
   description?: string | null;
@@ -26,8 +26,7 @@ export type ParallelBracketVoteIndexItem = {
   completedParticipantCount?: number | null;
   viewerParticipantId?: string | null;
   viewerParticipantStatus?: string | null;
-  viewerTournamentId?: string | null;
-  winnerImageUrl?: string | null;
+  viewerBracketId?: string | null;
 };
 
 const directory = bracketDirectory();
@@ -49,7 +48,7 @@ export function openParallelBracketParticipantForVote(args: {
   parallelBracketId: string;
   userId: string | null;
   anonymousVoterToken: string | null;
-}): Promise<{ tournamentId: string }> {
+}): Promise<{ bracketId: string }> {
   return parallelDirectory.openParticipantBracket({
     parallelBracketId: args.parallelBracketId,
     userId: args.userId,
@@ -57,14 +56,14 @@ export function openParallelBracketParticipantForVote(args: {
   });
 }
 
-export const listAccessibleTournamentsForVote = directory.listAccessibleTournaments as unknown as (args: {
+export const listAccessibleTournamentsForVote = directory.listAccessibleBrackets as unknown as (args: {
   userId: string;
   statuses: VoteStatusFilter;
   limit: number;
   offset: number;
 }) => Promise<VoteTournament[]>;
 
-export const listPublicTournamentsForVote = directory.listPublicTournaments as unknown as (args: {
+export const listPublicTournamentsForVote = directory.listPublicBrackets as unknown as (args: {
   statuses: VoteStatusFilter;
   limit: number;
 }) => Promise<VoteTournament[]>;
@@ -82,14 +81,23 @@ export const listPublicParallelBracketsForVote = parallelDirectory.listPublicBra
   limit: number;
 }) => Promise<ParallelBracketVoteIndexItem[]>;
 
-export const listMatchesForTournamentForVote = bracketMatches().list as unknown as (args: {
+export const listMatchesForTournamentForVote = ((args: {
+  tournamentId: string;
+  userId: string | null;
+  anonymousVoterToken: string | null;
+}) =>
+  bracket({
+    bracketId: args.tournamentId,
+    userId: args.userId,
+    anonymousVoterToken: args.anonymousVoterToken,
+  }).listMatches()) as unknown as (args: {
   tournamentId: string;
   userId: string | null;
   anonymousVoterToken: string | null;
 }) => Promise<{ matches: VoteMatch[] }>;
 
-export const getAccessibleTournamentByIdForVote = directory.getAccessibleTournamentById as unknown as (args: {
-  tournamentId: string;
+export const getAccessibleTournamentByIdForVote = directory.getAccessibleBracketById as unknown as (args: {
+  bracketId: string;
   userId: string | null;
   anonymousVoterToken: string | null;
 }) => Promise<VoteTournament>;
@@ -100,6 +108,7 @@ export function firstParam(value: string | string[] | undefined): string | null 
 
 export function normalizeParallelBracketForVoteIndex(item: ParallelBracketVoteIndexItem): VoteTournament {
   return {
+    ...item,
     id: item.id,
     title: item.title,
     description: item.description,
@@ -122,9 +131,9 @@ export function normalizeParallelBracketForVoteIndex(item: ParallelBracketVoteIn
     completedParticipantCount: item.completedParticipantCount ?? 0,
     viewerParticipantId: item.viewerParticipantId ?? null,
     viewerParticipantStatus: item.viewerParticipantStatus ?? null,
-    viewerTournamentId: item.viewerTournamentId ?? null,
-    winnerImageUrl: item.winnerImageUrl ?? null,
+    viewerTournamentId: item.viewerBracketId ?? null,
     kind: "parallel_parent",
     matches: [],
-  };
+    winner: item.winner ?? null,
+  } as VoteTournament;
 }

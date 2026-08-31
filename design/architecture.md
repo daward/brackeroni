@@ -165,6 +165,8 @@ Use:
 
 The bracket engine should be heavily unit tested.
 
+API routes should be tested against the OpenAPI document as the external contract. See `design/testing.md` for the contract-testing strategy.
+
 # Deployment Recommendation
 ## MVP Recommendation
 Use:
@@ -449,6 +451,8 @@ Use server-side services for:
 8. Public featured-content management
 
 These services should own authorization and transactional updates.
+
+Stateful bracket workflows that mix SQL, authorization-sensitive state, and transactional orchestration should live under `lib/brackets/internal/stateful-workflows/`. Treat this as a danger boundary: tests should reach it through public bracket handles or directories, not by importing workflow modules directly just to improve coverage numbers.
 
 # API and Mutation Style
 Prefer explicit REST route handlers over server actions for core domain operations, since the system should have a clean OpenAPI-described interface.
