@@ -1,5 +1,6 @@
 import type { PoolCandidate } from "@/lib/pools/types";
 import type { PaginationOptions } from "@/lib/pagination/types";
+import type { BracketIntentPresetId } from "@/lib/brackets/intent-presets";
 
 export type BracketStatus = "draft" | "active" | "complete";
 export type BracketVisibility = "private" | "public_listed" | "public_unlisted";
@@ -16,6 +17,7 @@ export type BracketResultMode =
 export type BracketAdvancementMode = "vote_winner" | "manual_winner";
 export type BracketTieBreakMode = "higher_seed_wins" | "random";
 export type BracketKind = "standard" | "parallel_parent";
+export type BracketIntentPreset = BracketIntentPresetId;
 export type BracketCandidate = {
   id: string;
   name: string;
@@ -41,6 +43,7 @@ export type BracketDraft = BracketAccess &
   BracketRules & {
     title: string;
     sourcePoolId: string;
+    intentPreset?: BracketIntentPreset | null;
   };
 
 /** Draft bracket projection used while configuring an existing bracket draft. */
@@ -116,6 +119,7 @@ export type BracketIdentity = {
 
 /** Configuration fields a creator can inspect or edit while managing a bracket. */
 export type BracketConfiguration = BracketAccess & {
+  intentPreset?: BracketIntentPreset | null;
   resultMode?: BracketResultMode | string | null;
   playStyle?: BracketPlayStyle | string | null;
   advancementMode?: BracketAdvancementMode | null;
@@ -230,6 +234,7 @@ export type BracketCreateInput = BracketAccess &
     description?: string | null;
     sourcePoolId?: string | null;
     seedCandidateIds?: string[];
+    intentPreset?: BracketIntentPreset | null;
   };
 
 export type BracketListOptions = PaginationOptions & {
@@ -283,6 +288,7 @@ export type ParallelBracketCreateInput = BracketAccess & {
   sourcePoolId: string;
   resultMode: Extract<BracketResultMode, "parallel_full_ranking" | "parallel_partial_ranking">;
   tieBreakMode: BracketTieBreakMode;
+  intentPreset?: BracketIntentPreset | null;
 };
 
 export type ParallelBracketCollection = {

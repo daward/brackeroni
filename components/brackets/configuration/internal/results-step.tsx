@@ -2,6 +2,7 @@
 
 import { estimateTournamentEffort } from "@/lib/brackets/engine/effort-estimates";
 import type { BracketAdvancementMode, BracketPlayStyle, BracketResultMode } from "@/lib/brackets/types";
+import { PresetGuidance } from "./preset-guidance";
 import { ResultModeChoices } from "./wizard-choice-controls";
 import { WizardQuestion } from "./wizard-question";
 import styles from "./wizard-choice.module.css";
@@ -9,20 +10,32 @@ import styles from "./wizard-choice.module.css";
 type ResultsStepProps = {
   playStyle: BracketPlayStyle;
   resultMode: BracketResultMode;
+  recommendedResultMode?: BracketResultMode | null;
+  guidance?: string | null;
   advancementMode: BracketAdvancementMode;
   audienceMode: "private" | "friends" | "public";
   candidateCount: number;
   onResultModeChange: (value: BracketResultMode) => void;
 };
 
-export function ResultsStep({ playStyle, resultMode, advancementMode, audienceMode, candidateCount, onResultModeChange }: ResultsStepProps) {
+export function ResultsStep({
+  playStyle,
+  resultMode,
+  recommendedResultMode = null,
+  guidance = null,
+  advancementMode,
+  audienceMode,
+  candidateCount,
+  onResultModeChange,
+}: ResultsStepProps) {
   const effortEstimate = estimateTournamentEffort({ candidateCount, resultMode, playStyle, advancementMode });
 
   return (
     <div className={styles.decisionStack}>
       <div className={styles.decisionGroup}>
         <WizardQuestion>What should the bracket decide?</WizardQuestion>
-        <ResultModeChoices value={resultMode} audienceMode={audienceMode} onChange={onResultModeChange} />
+        {guidance ? <PresetGuidance>{guidance}</PresetGuidance> : null}
+        <ResultModeChoices value={resultMode} audienceMode={audienceMode} recommendedResultMode={recommendedResultMode} onChange={onResultModeChange} />
       </div>
       <EffortEstimate estimate={effortEstimate} />
     </div>

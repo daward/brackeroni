@@ -15,6 +15,20 @@ export async function getParallelTournamentSchemaSupport(sql) {
           ) as "hasParentParallelTournamentId",
           exists (
             select 1
+            from information_schema.columns
+            where table_schema = 'public'
+              and table_name = 'tournament'
+              and column_name = 'intent_preset'
+          ) as "hasTournamentIntentPreset",
+          exists (
+            select 1
+            from information_schema.columns
+            where table_schema = 'public'
+              and table_name = 'parallel_tournament'
+              and column_name = 'intent_preset'
+          ) as "hasParallelTournamentIntentPreset",
+          exists (
+            select 1
             from information_schema.tables
             where table_schema = 'public'
               and table_name = 'parallel_tournament_participant'
@@ -23,6 +37,8 @@ export async function getParallelTournamentSchemaSupport(sql) {
 
       return {
         hasParentParallelTournamentId: Boolean(row?.hasParentParallelTournamentId),
+        hasTournamentIntentPreset: Boolean(row?.hasTournamentIntentPreset),
+        hasParallelTournamentIntentPreset: Boolean(row?.hasParallelTournamentIntentPreset),
         hasParallelTournamentParticipantTable: Boolean(
           row?.hasParallelTournamentParticipantTable
         )

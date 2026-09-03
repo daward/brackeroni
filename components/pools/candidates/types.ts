@@ -62,9 +62,24 @@ export type CandidateEditor = {
 export type CandidateActions = {
   onCreate: () => void;
   onImport?: () => void;
+  onGenerate?: () => void;
   onEdit: (candidate: PoolCandidate) => void;
   onRemove: (candidate: PoolCandidate) => void;
   removingCandidateId?: string | null;
+};
+
+/** Prompt-only candidate generation hosted by a pool detail page. */
+export type CandidateGeneration = {
+  isOpen: boolean;
+  count: number;
+  prompt: string;
+  includeImages: boolean;
+  isPending?: boolean;
+  onCountChange: (count: number) => void;
+  onPromptChange: (prompt: string) => void;
+  onIncludeImagesChange: (includeImages: boolean) => void;
+  onSubmit: () => void;
+  onClose: () => void;
 };
 
 /**
@@ -93,6 +108,7 @@ export type CandidateManagerView = {
 export type CandidateManagerProps = {
   collection: CandidateCollection;
   editor: CandidateEditor;
+  generation?: CandidateGeneration;
   actions: CandidateActions;
   tagManagement: CandidateTagManagement;
   view: CandidateManagerView;

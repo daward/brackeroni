@@ -6,7 +6,14 @@ import { usePaginatedCandidates } from "@/components/pools/candidates";
 import type { CandidateDraft, PoolCandidate } from "@/components/pools/candidates";
 import type { PrefixedPaginationOptions } from "@/lib/pagination/types";
 import type { PoolDetail, PoolDraft } from "@/lib/pools/types";
-import { createCandidateInPool, getPool, removeCandidateFromPool, updateCandidateInPool, updatePool } from "@/lib/client-api/create-workspace";
+import {
+  createCandidateInPool,
+  generateCandidatesInPool,
+  getPool,
+  removeCandidateFromPool,
+  updateCandidateInPool,
+  updatePool,
+} from "@/lib/client-api/create-workspace";
 import { usePoolDetailStatus } from "./use-pool-detail-status";
 import { useCandidateImageSuggestions } from "./use-candidate-image-suggestions";
 import { useCandidateEditorState } from "./use-candidate-editor-state";
@@ -31,6 +38,10 @@ export function usePoolDetail({ initialPool, onArchive, onImportFallback }: UseP
     description: initialPool.description || "",
     visibility: initialPool.visibility || "private",
   }));
+  const [isGenerationOpen, setIsGenerationOpen] = useState(false);
+  const [generationCount, setGenerationCount] = useState(8);
+  const [generationIncludeImages, setGenerationIncludeImages] = useState(true);
+  const [generationPrompt, setGenerationPrompt] = useState("");
   const editorState = useCandidateEditorState();
   const { candidateDraft, candidateEditor, setCandidateDraft, setCandidateEditor } = editorState;
   const { begin, end, errorMessage, isPending, setErrorMessage, setSuccessMessage, successMessage } = usePoolDetailStatus();
@@ -50,6 +61,12 @@ export function usePoolDetail({ initialPool, onArchive, onImportFallback }: UseP
     },
     [editorState, resetImageSuggestions],
   );
+  const openCandidateGeneration = useCallback(() => {
+    const defaultPrompt = poolDraft.name.trim() || pool.name.trim();
+
+    setGenerationPrompt((current) => current.trim() ? current : defaultPrompt);
+    setIsGenerationOpen(true);
+  }, [pool.name, poolDraft.name]);
   const candidateCollection = usePaginatedCandidates({
     poolId: pool.id,
     candidates: pool.candidates,
@@ -183,6 +200,40 @@ export function usePoolDetail({ initialPool, onArchive, onImportFallback }: UseP
     [begin, candidateEditor?.id, end, isPending, pool.id],
   );
 
+  const generateCandidates = useCallback(async () => {
+    const action = "generate-candidates";
+    if (isPending(action)) return;
+    begin(action);
+    setErrorMessage("");
+    try {
+      const data = await generateCandidatesInPool(pool.id, {
+        count: generationCount,
+        includeImages: generationIncludeImages,
+        prompt: generationPrompt,
+      });
+      replacePool(data.item);
+      setIsGenerationOpen(false);
+      setGenerationPrompt("");
+      const importedCount = data.meta?.importedCount ?? 0;
+      const skippedCount = data.meta?.skippedCount ?? 0;
+      const generatedImageCount = data.meta?.generatedImageCount ?? 0;
+      const imageCount = data.meta?.imageCount ?? 0;
+      let imageMessage = "";
+
+      if (generationIncludeImages && imageCount > 0) {
+        imageMessage = ` Added ${imageCount} picture${imageCount === 1 ? "" : "s"}.`;
+      } else if (generationIncludeImages) {
+        imageMessage = ` AI returned ${generatedImageCount} usable picture link${generatedImageCount === 1 ? "" : "s"}.`;
+      }
+
+      setSuccessMessage(`Generated ${importedCount} candidate${importedCount === 1 ? "" : "s"}.${imageMessage}${skippedCount ? ` Skipped ${skippedCount} duplicate${skippedCount === 1 ? "" : "s"}.` : ""}`);
+    } catch (error) {
+      setErrorMessage(getErrorText(error, "Failed to generate candidates."));
+    } finally {
+      end(action);
+    }
+  }, [begin, end, generationCount, generationIncludeImages, generationPrompt, isPending, pool.id, replacePool]);
+
   const poolActions = usePoolDetailActions({
     pool,
     onArchive,
@@ -203,11 +254,17 @@ export function usePoolDetail({ initialPool, onArchive, onImportFallback }: UseP
     candidateEditor,
     createCandidate,
     errorMessage,
+    generationCount,
+    generationIncludeImages,
+    generationPrompt,
+    generateCandidates,
     imageSuggestions,
     isImageSuggestionLoading,
+    isGenerationOpen,
     isPending,
     openCandidateCreator,
     openCandidateEditor,
+    openCandidateGeneration,
     pool,
     poolDraft,
     removeCandidate,
@@ -215,6 +272,10 @@ export function usePoolDetail({ initialPool, onArchive, onImportFallback }: UseP
     savePool,
     setCandidateDraft,
     setCandidateEditor,
+    setGenerationCount,
+    setGenerationIncludeImages,
+    setGenerationPrompt,
+    setIsGenerationOpen,
     setPoolDraft,
     successMessage,
     suggestCandidateImages,

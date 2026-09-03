@@ -5,6 +5,7 @@ import { parseSeedingStructure } from "@/lib/brackets/engine/seeding-structure";
 
 export async function getTournamentById({ tournamentId, creatorUserId }) {
   const sql = getDb();
+  const { hasTournamentIntentPreset } = await getParallelTournamentSchemaSupport(sql);
 
   const [tournament] = await sql`
     select
@@ -21,6 +22,7 @@ export async function getTournamentById({ tournamentId, creatorUserId }) {
       t.result_mode as "resultMode",
       t.tie_break_mode as "tieBreakMode",
       t.advancement_mode as "advancementMode",
+      ${hasTournamentIntentPreset ? sql`t.intent_preset` : sql`null`} as "intentPreset",
       t.status,
       t.round_closure_mode as "roundClosureMode",
       t.seeding_structure as "seedingStructure",
@@ -133,6 +135,7 @@ export async function getTournamentById({ tournamentId, creatorUserId }) {
     resultMode: tournament.resultMode,
     tieBreakMode: tournament.tieBreakMode,
     advancementMode: tournament.advancementMode,
+    intentPreset: tournament.intentPreset,
     status: tournament.status,
     roundClosureMode: tournament.roundClosureMode,
     seedingStructure: parseSeedingStructure(tournament.seedingStructure),
@@ -159,7 +162,7 @@ export async function getAccessibleTournamentById({
   anonymousVoterToken = null
 }) {
   const sql = getDb();
-  const { hasParallelTournamentParticipantTable } = await getParallelTournamentSchemaSupport(sql);
+  const { hasParallelTournamentParticipantTable, hasTournamentIntentPreset } = await getParallelTournamentSchemaSupport(sql);
   const typedAnonymousVoterToken = anonymousVoterToken ?? null;
 
   const participantJoin = hasParallelTournamentParticipantTable
@@ -195,6 +198,7 @@ export async function getAccessibleTournamentById({
       t.result_mode as "resultMode",
       t.tie_break_mode as "tieBreakMode",
       t.advancement_mode as "advancementMode",
+      ${hasTournamentIntentPreset ? sql`t.intent_preset` : sql`null`} as "intentPreset",
       t.status,
       t.round_closure_mode as "roundClosureMode",
       t.seeding_structure as "seedingStructure",
@@ -327,6 +331,7 @@ export async function getAccessibleTournamentById({
     resultMode: tournament.resultMode,
     tieBreakMode: tournament.tieBreakMode,
     advancementMode: tournament.advancementMode,
+    intentPreset: tournament.intentPreset,
     status: tournament.status,
     roundClosureMode: tournament.roundClosureMode,
     seedingStructure: parseSeedingStructure(tournament.seedingStructure),
@@ -346,4 +351,3 @@ export async function getAccessibleTournamentById({
     entries
   };
 }
-

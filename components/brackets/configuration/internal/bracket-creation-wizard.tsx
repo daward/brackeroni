@@ -12,6 +12,7 @@ export function BracketCreationWizard({
   onCreatePoolWorkspace,
   initialPoolId = "",
   initialConfig = null,
+  presetContext = null,
   initialStep = 0,
   onStepChange,
   fullPage = false,
@@ -52,6 +53,7 @@ export function BracketCreationWizard({
       selectedCount={wizard.selectedCount}
       error={wizard.error}
       creating={creating}
+      presetContext={presetContext}
       onCancel={onCancel}
       onStepChange={wizard.setStep}
       onSelectPool={wizard.selectPool}

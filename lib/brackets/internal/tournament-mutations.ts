@@ -31,7 +31,8 @@ export async function createTournament({
   resultMode,
   tieBreakMode,
   seedCandidateIds = null,
-  advancementMode = "vote_winner"
+  advancementMode = "vote_winner",
+  intentPreset = null
 }) {
   const sql = getDb();
   let poolCandidates = [];
@@ -91,6 +92,7 @@ export async function createTournament({
         result_mode,
         tie_break_mode,
         advancement_mode,
+        intent_preset,
         round_closure_mode
       )
       values (
@@ -105,6 +107,7 @@ export async function createTournament({
         ${resultMode},
         ${tieBreakMode},
         ${advancementMode},
+        ${intentPreset},
         ${roundClosureMode}
       )
       returning id
@@ -157,6 +160,7 @@ export async function createTournamentRerun({ tournamentId, creatorUserId }) {
         result_mode,
         tie_break_mode,
         advancement_mode,
+        intent_preset,
         round_closure_mode,
         status
       )
@@ -172,6 +176,7 @@ export async function createTournamentRerun({ tournamentId, creatorUserId }) {
         ${sourceTournament.resultMode},
         ${sourceTournament.tieBreakMode},
         ${sourceTournament.advancementMode || "vote_winner"},
+        ${sourceTournament.intentPreset ?? null},
         ${rerunRoundClosureMode},
         'draft'
       )
@@ -225,6 +230,9 @@ export async function updateTournament({ tournamentId, creatorUserId, patch }) {
   const nextAdvancementMode = Object.hasOwn(patch, "advancementMode")
     ? patch.advancementMode
     : current.advancementMode;
+  const nextIntentPreset = Object.hasOwn(patch, "intentPreset")
+    ? patch.intentPreset ?? null
+    : current.intentPreset ?? null;
   const nextRoundClosureMode = getRoundClosureModeForAudience({
     sharingMode: nextSharingMode,
     visibility: nextVisibility
@@ -244,6 +252,7 @@ export async function updateTournament({ tournamentId, creatorUserId, patch }) {
       Object.hasOwn(patch, "playStyle") ||
       Object.hasOwn(patch, "resultMode") ||
       Object.hasOwn(patch, "advancementMode") ||
+      Object.hasOwn(patch, "intentPreset") ||
       Object.hasOwn(patch, "tieBreakMode") ||
       patch.syncWithPool === true)
   ) {
@@ -259,6 +268,7 @@ export async function updateTournament({ tournamentId, creatorUserId, patch }) {
       Object.hasOwn(patch, "playStyle") ||
       Object.hasOwn(patch, "resultMode") ||
       Object.hasOwn(patch, "advancementMode") ||
+      Object.hasOwn(patch, "intentPreset") ||
       Object.hasOwn(patch, "tieBreakMode"))
   ) {
     throw new Error("TOURNAMENT_CONFIG_LOCKED");
@@ -322,6 +332,7 @@ export async function updateTournament({ tournamentId, creatorUserId, patch }) {
           result_mode = ${nextResultMode},
           tie_break_mode = ${nextTieBreakMode},
           advancement_mode = ${nextAdvancementMode},
+          intent_preset = ${nextIntentPreset},
           round_closure_mode = ${nextRoundClosureMode},
           updated_at = now()
         where id = ${tournamentId}
@@ -344,6 +355,7 @@ export async function updateTournament({ tournamentId, creatorUserId, patch }) {
     Object.hasOwn(patch, "playStyle") ||
     Object.hasOwn(patch, "resultMode") ||
     Object.hasOwn(patch, "advancementMode") ||
+    Object.hasOwn(patch, "intentPreset") ||
     Object.hasOwn(patch, "tieBreakMode");
 
   if (shouldReplaceSource) {
@@ -398,6 +410,7 @@ export async function updateTournament({ tournamentId, creatorUserId, patch }) {
           result_mode = ${nextResultMode},
           tie_break_mode = ${nextTieBreakMode},
           advancement_mode = ${nextAdvancementMode},
+          intent_preset = ${nextIntentPreset},
           round_closure_mode = ${nextRoundClosureMode},
           updated_at = now()
         where id = ${tournamentId}
@@ -449,6 +462,7 @@ export async function updateTournament({ tournamentId, creatorUserId, patch }) {
           result_mode = ${nextResultMode},
           tie_break_mode = ${nextTieBreakMode},
           advancement_mode = ${nextAdvancementMode},
+          intent_preset = ${nextIntentPreset},
           round_closure_mode = ${nextRoundClosureMode},
           status = 'active',
           started_at = coalesce(started_at, now()),
@@ -471,6 +485,7 @@ export async function updateTournament({ tournamentId, creatorUserId, patch }) {
             result_mode = ${nextResultMode},
             tie_break_mode = ${nextTieBreakMode},
             advancement_mode = ${nextAdvancementMode},
+            intent_preset = ${nextIntentPreset},
             round_closure_mode = ${nextRoundClosureMode},
             status = 'complete',
             completed_at = coalesce(completed_at, now()),
@@ -502,6 +517,7 @@ export async function updateTournament({ tournamentId, creatorUserId, patch }) {
         result_mode = ${nextResultMode},
         tie_break_mode = ${nextTieBreakMode},
         advancement_mode = ${nextAdvancementMode},
+        intent_preset = ${nextIntentPreset},
         round_closure_mode = ${nextRoundClosureMode},
         updated_at = now()
       where id = ${tournamentId}
@@ -652,4 +668,3 @@ export async function updateTournamentEntries({
 
   return getTournamentById({ tournamentId, creatorUserId });
 }
-

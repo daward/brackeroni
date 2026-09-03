@@ -306,6 +306,16 @@ export const openApiDocument = {
           }
         ]
       },
+      PoolCandidateGenerationRequest: {
+        type: "object",
+        properties: {
+          count: { type: "integer", minimum: 1, maximum: 100 },
+          includeImages: { type: "boolean", default: true },
+          prompt: { type: "string", minLength: 1, maxLength: 12000 },
+          model: { type: "string", maxLength: 120 }
+        },
+        required: ["count", "prompt"]
+      },
       PoolUpdateRequest: {
         anyOf: [
           {
@@ -384,6 +394,45 @@ export const openApiDocument = {
         },
         required: ["item"]
       },
+      PoolCandidateGenerationResponse: {
+        type: "object",
+        properties: {
+          item: { $ref: "#/components/schemas/PoolDetail" },
+          meta: {
+            type: "object",
+            properties: {
+              importedCount: { type: "integer", minimum: 0 },
+              skippedCount: { type: "integer", minimum: 0 },
+              importedNames: {
+                type: "array",
+                items: { type: "string" }
+              },
+              skippedNames: {
+                type: "array",
+                items: { type: "string" }
+              },
+              requestedCount: { type: "integer", minimum: 1, maximum: 100 },
+              generatedCount: { type: "integer", minimum: 0 },
+              generatedImageCount: { type: "integer", minimum: 0 },
+              imageCount: { type: "integer", minimum: 0 },
+              model: { type: "string" }
+            },
+            required: [
+              "importedCount",
+              "skippedCount",
+              "importedNames",
+              "skippedNames",
+              "requestedCount",
+              "generatedCount",
+              "generatedImageCount",
+              "imageCount",
+              "model"
+            ]
+          },
+          _links: { $ref: "#/components/schemas/HalLinks" }
+        },
+        required: ["item", "meta"]
+      },
       PoolCandidateListResponse: {
         type: "object",
         properties: {
@@ -437,6 +486,10 @@ export const openApiDocument = {
             enum: ["winner_only", "full_ranking", "fast_full_rank"]
           },
           tieBreakMode: { type: "string", enum: ["higher_seed_wins", "random"] },
+          intentPreset: {
+            type: ["string", "null"],
+            enum: ["travel_group_decision", null]
+          },
           status: { type: "string", enum: ["draft", "active", "complete"] },
           roundClosureMode: {
             type: "string",
@@ -508,7 +561,11 @@ export const openApiDocument = {
             type: "string",
             enum: ["winner_only", "full_ranking", "fast_full_rank"]
           },
-          tieBreakMode: { type: "string", enum: ["higher_seed_wins", "random"] }
+          tieBreakMode: { type: "string", enum: ["higher_seed_wins", "random"] },
+          intentPreset: {
+            type: ["string", "null"],
+            enum: ["travel_group_decision", null]
+          }
         },
         required: ["title", "sharingMode", "playStyle", "resultMode", "tieBreakMode"]
       },
@@ -530,6 +587,10 @@ export const openApiDocument = {
             enum: ["winner_only", "full_ranking", "fast_full_rank"]
           },
           tieBreakMode: { type: "string", enum: ["higher_seed_wins", "random"] },
+          intentPreset: {
+            type: ["string", "null"],
+            enum: ["travel_group_decision", null]
+          },
           status: { type: "string", enum: ["draft", "active", "complete"] },
           closeCurrentRound: { type: "boolean" },
           syncWithPool: { type: "boolean" }
@@ -785,6 +846,10 @@ export const openApiDocument = {
           },
           votingAccess: { type: "string", enum: ["signed_in_only", "anyone"] },
           tieBreakMode: { type: "string", enum: ["higher_seed_wins", "random"] },
+          intentPreset: {
+            type: ["string", "null"],
+            enum: ["travel_group_decision", null]
+          },
           status: { type: "string", enum: ["draft", "active", "complete"] },
           startedAt: { type: ["string", "null"], format: "date-time" },
           completedAt: { type: ["string", "null"], format: "date-time" },
@@ -872,6 +937,10 @@ export const openApiDocument = {
             type: "string",
             enum: ["higher_seed_wins", "random"],
             default: "higher_seed_wins"
+          },
+          intentPreset: {
+            type: ["string", "null"],
+            enum: ["travel_group_decision", null]
           }
         },
         required: ["title", "sourcePoolId", "sharingMode"]
@@ -889,6 +958,10 @@ export const openApiDocument = {
           },
           votingAccess: { type: "string", enum: ["signed_in_only", "anyone"] },
           tieBreakMode: { type: "string", enum: ["higher_seed_wins", "random"] },
+          intentPreset: {
+            type: ["string", "null"],
+            enum: ["travel_group_decision", null]
+          },
           status: { type: "string", enum: ["draft", "active", "complete"] }
         },
         minProperties: 1
@@ -1307,6 +1380,35 @@ export const openApiDocument = {
           "401": { $ref: "#/components/responses/Unauthorized" },
           "403": { $ref: "#/components/responses/Forbidden" },
           "404": { $ref: "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/api/pools/{poolId}/generations": {
+      post: {
+        summary: "Generate candidates directly into a pool",
+        parameters: [{ $ref: "#/components/parameters/poolId" }],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/PoolCandidateGenerationRequest" }
+            }
+          }
+        },
+        responses: {
+          "200": {
+            description: "Generated candidates imported",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/PoolCandidateGenerationResponse" }
+              }
+            }
+          },
+          "400": { $ref: "#/components/responses/BadRequest" },
+          "401": { $ref: "#/components/responses/Unauthorized" },
+          "403": { $ref: "#/components/responses/Forbidden" },
+          "404": { $ref: "#/components/responses/NotFound" },
+          "502": { $ref: "#/components/responses/InternalError" }
         }
       }
     },

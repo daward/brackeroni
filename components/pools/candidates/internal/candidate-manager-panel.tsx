@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { CandidateEditorForm } from "./candidate-editor-form";
 import { CandidateCreationCards } from "./candidate-creation-cards";
+import { CandidateGenerationDrawer } from "./candidate-generation-drawer";
 import { CandidateList } from "./candidate-list";
 import { CandidateListToolbar } from "./candidate-list-toolbar";
 import { CandidateTagDrawer } from "./candidate-tag-drawer";
@@ -10,7 +11,7 @@ import { useCandidateTags } from "./use-candidate-tags";
 import styles from "./candidate-manager-panel.module.css";
 import type { CandidateManagerProps, PoolCandidate } from "../types";
 
-export function CandidateManagerPanel({ collection, editor, actions, tagManagement, view }: CandidateManagerProps) {
+export function CandidateManagerPanel({ collection, editor, generation, actions, tagManagement, view }: CandidateManagerProps) {
   const { readOnly = false, showTopRule = true, listHeading = null, listEmptyMessage = "No candidates in this pool yet." } = view;
   const {
     showControl = true,
@@ -21,7 +22,7 @@ export function CandidateManagerPanel({ collection, editor, actions, tagManageme
     onRemoveTag,
     onRemoveLowValueTags,
   } = tagManagement;
-  const { onCreate, onImport, onEdit, onRemove, removingCandidateId = null } = actions;
+  const { onCreate, onImport, onGenerate, onEdit, onRemove, removingCandidateId = null } = actions;
   const [expandedReadOnlyCandidateId, setExpandedReadOnlyCandidateId] = useState<string | null>(null);
   const tags = useCandidateTags({
     candidates: collection.candidates,
@@ -65,7 +66,7 @@ export function CandidateManagerPanel({ collection, editor, actions, tagManageme
             onRemoveCandidate: onRemove,
           }}
         >
-          {!readOnly ? <CandidateCreationCards actions={{ onCreate, onImport }} /> : null}
+          {!readOnly ? <CandidateCreationCards actions={{ onCreate, onImport, onGenerate }} /> : null}
         </CandidateList>
       </div>
       <CandidateTagDrawer
@@ -87,6 +88,7 @@ export function CandidateManagerPanel({ collection, editor, actions, tagManageme
         }}
       />
       <CandidateEditorForm editor={{ ...editor, readOnly }} />
+      <CandidateGenerationDrawer generation={generation} readOnly={readOnly} />
     </>
   );
 }

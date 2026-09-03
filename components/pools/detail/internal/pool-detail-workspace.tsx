@@ -4,7 +4,14 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { WorkspaceSectionTabs } from "@/components/navigation/workspace-section-tabs";
-import { CandidateManagerPanel, type CandidateActions, type CandidateEditor, type CandidateManagerView, type CandidateTagManagement } from "@/components/pools/candidates";
+import {
+  CandidateManagerPanel,
+  type CandidateActions,
+  type CandidateEditor,
+  type CandidateGeneration,
+  type CandidateManagerView,
+  type CandidateTagManagement,
+} from "@/components/pools/candidates";
 import { ToastMessages } from "@/components/shared";
 import type { PoolDetailWorkspaceProps } from "../types";
 import { PoolDetailActions } from "./pool-detail-actions";
@@ -41,9 +48,22 @@ export function PoolDetailWorkspace({ initialPool }: PoolDetailWorkspaceProps) {
   const actions: CandidateActions = {
     onCreate: detail.openCandidateCreator,
     onImport: detail.continueImport,
+    onGenerate: detail.openCandidateGeneration,
     onEdit: detail.openCandidateEditor,
     onRemove: detail.removeCandidate,
     removingCandidateId: detail.candidateCollection.candidates.find((candidate) => detail.isPending(`remove-candidate:${candidate.id}`))?.id || null,
+  };
+  const generation: CandidateGeneration = {
+    isOpen: detail.isGenerationOpen,
+    count: detail.generationCount,
+    prompt: detail.generationPrompt,
+    includeImages: detail.generationIncludeImages,
+    isPending: detail.isPending("generate-candidates"),
+    onCountChange: detail.setGenerationCount,
+    onPromptChange: detail.setGenerationPrompt,
+    onIncludeImagesChange: detail.setGenerationIncludeImages,
+    onSubmit: detail.generateCandidates,
+    onClose: () => detail.setIsGenerationOpen(false),
   };
   const tagManagement: CandidateTagManagement = {
     showControl: false,
@@ -85,7 +105,14 @@ export function PoolDetailWorkspace({ initialPool }: PoolDetailWorkspaceProps) {
         />
       </PoolDetailHeader>
       <section className="pool-detail-content">
-        <CandidateManagerPanel collection={detail.candidateCollection} editor={editor} actions={actions} tagManagement={tagManagement} view={view} />
+        <CandidateManagerPanel
+          collection={detail.candidateCollection}
+          editor={editor}
+          generation={generation}
+          actions={actions}
+          tagManagement={tagManagement}
+          view={view}
+        />
       </section>
     </div>
   );

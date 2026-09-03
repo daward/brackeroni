@@ -3,6 +3,7 @@ import { randomBytes } from "node:crypto";
 import { getDb } from "@/lib/db";
 import { getCandidateSchemaSupport } from "@/lib/shared-data/candidate-schema";
 import { getParticipantChildResultMode } from "@/lib/brackets/engine/result-modes";
+import { getParallelTournamentSchemaSupport } from "@/lib/brackets/internal/tournament-schema-support";
 
 function isPublicParallelVisibility(visibility) {
   return visibility === "public_listed" || visibility === "public_unlisted";
@@ -91,6 +92,7 @@ async function createParticipantChildTournament(
   {
     parallelTournament,
     parallelTournamentId,
+    hasTournamentIntentPreset,
     existingParticipant = null,
     userId = null,
     anonymousVoterToken = null
@@ -128,6 +130,7 @@ async function createParticipantChildTournament(
       play_style,
       result_mode,
       tie_break_mode,
+      ${hasTournamentIntentPreset ? tx`intent_preset,` : tx``}
       round_closure_mode,
       status,
       started_at,
@@ -144,6 +147,7 @@ async function createParticipantChildTournament(
       ${parallelTournament.playStyle},
       ${getParticipantChildResultMode(parallelTournament.resultMode)},
       ${parallelTournament.tieBreakMode},
+      ${hasTournamentIntentPreset ? tx`${parallelTournament.intentPreset ?? null},` : tx``}
       'automatic_when_settled',
       'active',
       now(),
@@ -219,6 +223,7 @@ export async function getParallelBracketStatusCounts({ creatorUserId }) {
 export async function listParallelBrackets({ creatorUserId, status = null, limit = 24, offset = 0 }) {
   const sql = getDb();
   const candidateSupport = await getCandidateSchemaSupport(sql);
+  const { hasParallelTournamentIntentPreset } = await getParallelTournamentSchemaSupport(sql);
   await ensureParallelTournamentSupport(sql);
 
   const rows = await sql`
@@ -235,6 +240,7 @@ export async function listParallelBrackets({ creatorUserId, status = null, limit
       pt.play_style as "playStyle",
       pt.result_mode as "resultMode",
       pt.tie_break_mode as "tieBreakMode",
+      ${hasParallelTournamentIntentPreset ? sql`pt.intent_preset` : sql`null`} as "intentPreset",
       pt.status,
       pt.started_at as "startedAt",
       pt.completed_at as "completedAt",
@@ -316,6 +322,7 @@ export async function listAccessibleParallelBrackets({
   offset = 0
 }) {
   const sql = getDb();
+  const { hasParallelTournamentIntentPreset } = await getParallelTournamentSchemaSupport(sql);
   await ensureParallelTournamentSupport(sql);
   const typedAnonymousVoterToken = anonymousVoterToken ?? null;
 
@@ -333,6 +340,7 @@ export async function listAccessibleParallelBrackets({
       pt.play_style as "playStyle",
       pt.result_mode as "resultMode",
       pt.tie_break_mode as "tieBreakMode",
+      ${hasParallelTournamentIntentPreset ? sql`pt.intent_preset` : sql`null`} as "intentPreset",
       pt.status,
       pt.started_at as "startedAt",
       pt.completed_at as "completedAt",
@@ -391,6 +399,7 @@ export async function listPublicParallelBrackets({
   offset = 0
 }) {
   const sql = getDb();
+  const { hasParallelTournamentIntentPreset } = await getParallelTournamentSchemaSupport(sql);
   await ensureParallelTournamentSupport(sql);
 
   return sql`
@@ -407,6 +416,7 @@ export async function listPublicParallelBrackets({
       pt.play_style as "playStyle",
       pt.result_mode as "resultMode",
       pt.tie_break_mode as "tieBreakMode",
+      ${hasParallelTournamentIntentPreset ? sql`pt.intent_preset` : sql`null`} as "intentPreset",
       pt.status,
       pt.started_at as "startedAt",
       pt.completed_at as "completedAt",
@@ -453,6 +463,7 @@ export async function getAccessibleParallelBracketById({
   anonymousVoterToken = null
 }) {
   const sql = getDb();
+  const { hasParallelTournamentIntentPreset } = await getParallelTournamentSchemaSupport(sql);
   await ensureParallelTournamentSupport(sql);
   const typedAnonymousVoterToken = anonymousVoterToken ?? null;
 
@@ -470,6 +481,7 @@ export async function getAccessibleParallelBracketById({
       pt.play_style as "playStyle",
       pt.result_mode as "resultMode",
       pt.tie_break_mode as "tieBreakMode",
+      ${hasParallelTournamentIntentPreset ? sql`pt.intent_preset` : sql`null`} as "intentPreset",
       pt.status,
       pt.started_at as "startedAt",
       pt.completed_at as "completedAt",
@@ -589,9 +601,11 @@ export async function createParallelBracket({
   votingAccess = "signed_in_only",
   playStyle = "fixed_bracket",
   resultMode = "parallel_full_ranking",
-  tieBreakMode = "higher_seed_wins"
+  tieBreakMode = "higher_seed_wins",
+  intentPreset = null
 }) {
   const sql = getDb();
+  const { hasTournamentIntentPreset, hasParallelTournamentIntentPreset } = await getParallelTournamentSchemaSupport(sql);
   await ensureParallelTournamentSupport(sql);
   await getAccessibleSourcePool(sql, { sourcePoolId, creatorUserId });
 
@@ -607,7 +621,8 @@ export async function createParallelBracket({
         voting_access,
         play_style,
         result_mode,
-        tie_break_mode
+        tie_break_mode,
+        intent_preset
       )
       values (
         ${creatorUserId},
@@ -619,7 +634,8 @@ export async function createParallelBracket({
         ${votingAccess},
         ${playStyle},
         ${resultMode},
-        ${tieBreakMode}
+        ${tieBreakMode},
+        ${intentPreset}
       )
       returning id
     `;
@@ -903,6 +919,9 @@ export async function updateParallelBracket({
   const nextTieBreakMode = Object.hasOwn(patch, "tieBreakMode")
     ? patch.tieBreakMode
     : current.tieBreakMode;
+  const nextIntentPreset = Object.hasOwn(patch, "intentPreset")
+    ? patch.intentPreset ?? null
+    : current.intentPreset ?? null;
   const shouldLockPublishedParallelBracket =
     current.status !== "draft" && isPublicParallelVisibility(current.visibility);
 
@@ -916,6 +935,7 @@ export async function updateParallelBracket({
       Object.hasOwn(patch, "votingAccess") ||
       Object.hasOwn(patch, "playStyle") ||
       Object.hasOwn(patch, "resultMode") ||
+      Object.hasOwn(patch, "intentPreset") ||
       Object.hasOwn(patch, "tieBreakMode") ||
       Object.hasOwn(patch, "status"))
   ) {
@@ -930,6 +950,7 @@ export async function updateParallelBracket({
       Object.hasOwn(patch, "votingAccess") ||
       Object.hasOwn(patch, "playStyle") ||
       Object.hasOwn(patch, "resultMode") ||
+      Object.hasOwn(patch, "intentPreset") ||
       Object.hasOwn(patch, "tieBreakMode"))
   ) {
     throw new Error("TOURNAMENT_CONFIG_LOCKED");
@@ -966,6 +987,7 @@ export async function updateParallelBracket({
       play_style = ${nextPlayStyle},
       result_mode = ${nextResultMode},
       tie_break_mode = ${nextTieBreakMode},
+      intent_preset = ${nextIntentPreset},
       status = ${nextStatus},
       started_at = case
         when ${nextStatus} = 'active' then coalesce(started_at, now())
@@ -1012,6 +1034,8 @@ export async function openParallelBracketParticipant({
   anonymousVoterToken = null
 }) {
   const sql = getDb();
+  const { hasTournamentIntentPreset, hasParallelTournamentIntentPreset } =
+    await getParallelTournamentSchemaSupport(sql);
   await ensureParallelTournamentSupport(sql);
 
   if (!userId && !anonymousVoterToken) {
@@ -1032,6 +1056,7 @@ export async function openParallelBracketParticipant({
         pt.voting_access as "votingAccess",
         pt.result_mode as "resultMode",
         pt.tie_break_mode as "tieBreakMode",
+        ${hasParallelTournamentIntentPreset ? tx`pt.intent_preset` : tx`null`} as "intentPreset",
         pt.status
       from parallel_tournament pt
       left join parallel_tournament_participant access_participant
@@ -1081,6 +1106,7 @@ export async function openParallelBracketParticipant({
     const tournamentId = await createParticipantChildTournament(tx, {
       parallelTournament,
       parallelTournamentId,
+      hasTournamentIntentPreset,
       existingParticipant,
       userId,
       anonymousVoterToken: typedAnonymousVoterToken
@@ -1334,6 +1360,7 @@ export async function getParallelBracketAggregateResults({
       playStyle: parallelTournament.playStyle,
       resultMode: parallelTournament.resultMode,
       tieBreakMode: parallelTournament.tieBreakMode,
+      intentPreset: parallelTournament.intentPreset,
       status: parallelTournament.status,
       viewerParticipantId: parallelTournament.viewerParticipantId ?? null,
       viewerParticipantStatus: parallelTournament.viewerParticipantStatus ?? null,

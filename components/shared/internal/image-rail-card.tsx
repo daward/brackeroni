@@ -1,4 +1,5 @@
 import { ContentCard } from "./content-card";
+import { ResilientRemoteImage } from "./resilient-remote-image";
 import type { ElementType, ReactElement } from "react";
 import type { ImageRailCardProps } from "../types";
 
@@ -17,7 +18,12 @@ function ImageRailCardImplementation({
 }: ImageRailCardProps) {
   return (
     <ContentCard as={as} className={`image-rail-card ${className}`.trim()} {...props}>
-      {imageUrl ? <img src={imageUrl} alt={imageAlt} className="image-rail-card-image" /> : null}
+      <ResilientRemoteImage
+        src={imageUrl}
+        alt={imageAlt}
+        className="image-rail-card-image"
+        proxyOnError
+      />
       <div className={`image-rail-card-rail ${railClassName}`.trim()}>{children}</div>
     </ContentCard>
   );

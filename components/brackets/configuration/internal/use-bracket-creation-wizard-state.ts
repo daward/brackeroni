@@ -32,6 +32,7 @@ export function useBracketCreationWizardState({ pools, initialPoolId = "", initi
   const [customSeedLoading, setCustomSeedLoading] = useState(false);
   const [draggingSeedCandidateId, setDraggingSeedCandidateId] = useState<string | null>(null);
   const [audienceMode, setAudienceMode] = useState<AudienceMode>(initialConfig?.audienceMode || "private");
+  const [intentPreset] = useState(initialConfig?.intentPreset ?? null);
   const [error, setError] = useState("");
   const {
     pools: availablePools,
@@ -174,6 +175,7 @@ export function useBracketCreationWizardState({ pools, initialPoolId = "", initi
       seedingMode,
       seedCandidateIds: sourceMode === "existing" && seedingMode === "custom" ? customSeedEntries.map((candidate) => candidate.id) : null,
       audienceMode,
+      intentPreset,
     };
   }
 
@@ -196,6 +198,7 @@ export function useBracketCreationWizardState({ pools, initialPoolId = "", initi
     customSeedLoading,
     draggingSeedCandidateId,
     audienceMode,
+    intentPreset,
     title,
     selectedName: getSelectedName(sourceMode, selectedPool, poolName),
     selectedCount: getSelectedCount(sourceMode, selectedPool, candidates),

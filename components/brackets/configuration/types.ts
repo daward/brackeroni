@@ -1,5 +1,6 @@
 /** Public props and callbacks for bracket-configuration entry points. */
 import type { BracketAdvancementMode, BracketPlayStyle, BracketResultMode, BracketTieBreakMode, SeedingStructure } from "@/lib/brackets/types";
+import type { BracketIntentPreset, BracketIntentPresetId } from "@/lib/brackets/intent-presets";
 import type { SeedingGroup, SeedingGroupEntry } from "./internal/seeding-draft";
 import type { PoolSelectionOption } from "@/lib/pools/types";
 
@@ -78,6 +79,7 @@ export type BracketCreationInput = {
   seedingMode: SeedingMode;
   seedCandidateIds: string[] | null;
   audienceMode: AudienceMode;
+  intentPreset: BracketIntentPresetId | null;
 };
 
 export type UseSeedingActionsOptions = {
@@ -126,7 +128,9 @@ export type BracketCreationWizardProps = {
     advancementMode: BracketAdvancementMode;
     tieBreakMode: BracketTieBreakMode;
     audienceMode: AudienceMode;
+    intentPreset: BracketIntentPresetId | null;
   }> | null;
+  presetContext?: BracketIntentPreset | null;
   initialStep?: number;
   onStepChange?: (step: number) => void;
   fullPage?: boolean;

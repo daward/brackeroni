@@ -12,6 +12,7 @@ export type {
   CandidateCollection,
   CandidateDraft,
   CandidateEditor,
+  CandidateGeneration,
   CandidateManagerProps,
   CandidateManagerView,
   CandidatePaginationSource,

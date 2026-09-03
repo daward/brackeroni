@@ -17,7 +17,7 @@ export async function getTournamentStatusCounts({ creatorUserId }) {
 }
 export async function listTournaments({ creatorUserId, status = null, limit = 24, offset = 0 }) {
   const sql = getDb();
-  const { hasParentParallelTournamentId } = await getParallelTournamentSchemaSupport(sql);
+  const { hasParentParallelTournamentId, hasTournamentIntentPreset } = await getParallelTournamentSchemaSupport(sql);
 
   const rows = await sql`
     select
@@ -33,6 +33,7 @@ export async function listTournaments({ creatorUserId, status = null, limit = 24
       t.result_mode as "resultMode",
       t.tie_break_mode as "tieBreakMode",
       t.advancement_mode as "advancementMode",
+      ${hasTournamentIntentPreset ? sql`t.intent_preset` : sql`null`} as "intentPreset",
       t.status,
       t.round_closure_mode as "roundClosureMode",
       t.seeding_structure as "seedingStructure",
@@ -140,7 +141,7 @@ export async function listTournaments({ creatorUserId, status = null, limit = 24
 
 export async function listAccessibleTournaments({ userId, statuses = null, limit = 24, offset = 0 }) {
   const sql = getDb();
-  const { hasParentParallelTournamentId } = await getParallelTournamentSchemaSupport(sql);
+  const { hasParentParallelTournamentId, hasTournamentIntentPreset } = await getParallelTournamentSchemaSupport(sql);
 
   return sql`
     select
@@ -156,6 +157,7 @@ export async function listAccessibleTournaments({ userId, statuses = null, limit
       t.result_mode as "resultMode",
       t.tie_break_mode as "tieBreakMode",
       t.advancement_mode as "advancementMode",
+      ${hasTournamentIntentPreset ? sql`t.intent_preset` : sql`null`} as "intentPreset",
       t.status,
       t.round_closure_mode as "roundClosureMode",
       t.seeding_structure as "seedingStructure",
@@ -239,7 +241,7 @@ export async function listAccessibleTournaments({ userId, statuses = null, limit
 
 export async function listPublicTournaments({ statuses = ["active", "complete"], limit = 12, offset = 0 }) {
   const sql = getDb();
-  const { hasParentParallelTournamentId } = await getParallelTournamentSchemaSupport(sql);
+  const { hasParentParallelTournamentId, hasTournamentIntentPreset } = await getParallelTournamentSchemaSupport(sql);
 
   return sql`
     select
@@ -255,6 +257,7 @@ export async function listPublicTournaments({ statuses = ["active", "complete"],
       t.result_mode as "resultMode",
       t.tie_break_mode as "tieBreakMode",
       t.advancement_mode as "advancementMode",
+      ${hasTournamentIntentPreset ? sql`t.intent_preset` : sql`null`} as "intentPreset",
       t.status,
       t.round_closure_mode as "roundClosureMode",
       t.seeding_structure as "seedingStructure",
@@ -515,4 +518,3 @@ export async function getFeaturedPublicMatchupsForHomepage({ limit = 6 } = {}) {
     limit ${limit}
   `;
 }
-

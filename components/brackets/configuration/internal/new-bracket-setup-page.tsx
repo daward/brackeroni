@@ -2,6 +2,7 @@
 
 import { usePathname, useRouter } from "next/navigation";
 import type { BracketResultMode } from "@/lib/brackets/types";
+import { getBracketIntentPreset } from "@/lib/brackets/intent-presets";
 import { BracketCreationWizard } from "./bracket-creation-wizard";
 import type { AudienceMode, BracketCreationWizardProps, NewBracketSetupPageProps } from "../types";
 import { useBracketSetupData } from "./use-bracket-setup-data";
@@ -38,14 +39,19 @@ function getInitialConfig(draft: SetupData["draft"], searchParams: SetupData["se
       advancementMode: draft.advancementMode ?? undefined,
       tieBreakMode: draft.tieBreakMode ?? undefined,
       audienceMode: getAudienceMode(draft.visibility, draft.sharingMode),
+      intentPreset: draft.intentPreset ?? null,
     };
   }
 
+  const preset = getBracketIntentPreset(searchParams?.get("preset"));
+
   return {
-    resultMode: getInitialResultMode(searchParams?.get("resultMode") || ""),
-    advancementMode: searchParams?.get("advancementMode") === "manual_winner" ? "manual_winner" : "vote_winner",
-    playStyle: searchParams?.get("playStyle") === "reseed" ? "reseed" : "fixed_bracket",
-    audienceMode: getSearchAudienceMode(searchParams?.get("audienceMode") ?? null),
+    resultMode: preset?.defaults.resultMode ?? getInitialResultMode(searchParams?.get("resultMode") || ""),
+    advancementMode: preset?.defaults.advancementMode ?? (searchParams?.get("advancementMode") === "manual_winner" ? "manual_winner" : "vote_winner"),
+    playStyle: preset?.defaults.playStyle ?? (searchParams?.get("playStyle") === "reseed" ? "reseed" : "fixed_bracket"),
+    tieBreakMode: preset?.defaults.tieBreakMode,
+    audienceMode: preset?.defaults.audienceMode ?? getSearchAudienceMode(searchParams?.get("audienceMode") ?? null),
+    intentPreset: preset?.id ?? null,
   };
 }
 
@@ -54,6 +60,7 @@ export function NewBracketSetupPage({ draftId: routeDraftId = null }: NewBracket
   const pathname = usePathname();
   const { searchParams, pools, draft, loading } = useBracketSetupData(routeDraftId);
   const { creating, createBracket } = useNewBracketSubmission(draft);
+  const preset = draft ? getBracketIntentPreset(draft.intentPreset) : getBracketIntentPreset(searchParams?.get("preset"));
 
   if (loading) return <p className={styles.loading}>Loading your pools...</p>;
 
@@ -62,6 +69,7 @@ export function NewBracketSetupPage({ draftId: routeDraftId = null }: NewBracket
       pools={pools}
       initialPoolId={searchParams?.get("poolId") || ""}
       initialConfig={getInitialConfig(draft, searchParams)}
+      presetContext={preset}
       initialStep={getWizardStepFromSlug(searchParams?.get("step"))}
       onStepChange={(step) => {
         const nextParams = new URLSearchParams(searchParams?.toString());

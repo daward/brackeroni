@@ -1,6 +1,7 @@
 "use client";
 
 import type { RefObject } from "react";
+import type { BracketIntentPreset } from "@/lib/brackets/intent-presets";
 import type { BracketAdvancementMode, BracketPlayStyle, BracketResultMode, BracketTieBreakMode } from "@/lib/brackets/types";
 import type { PoolCandidate, PoolSelectionOption } from "@/lib/pools/types";
 import type { AudienceMode, SeedingMode } from "../types";
@@ -39,6 +40,7 @@ type WizardLayoutProps = {
   selectedCount: number;
   error: string;
   creating: boolean;
+  presetContext?: BracketIntentPreset | null;
   onCancel: () => void;
   onStepChange: (step: number) => void;
   onSelectPool: (pool: PoolSelectionOption) => void;
@@ -145,7 +147,14 @@ function getStepContent(props: WizardLayoutProps) {
         />
       );
     case 1:
-      return <AccessStep audienceMode={props.audienceMode} onAudienceModeChange={props.onAudienceModeChange} />;
+      return (
+        <AccessStep
+          audienceMode={props.audienceMode}
+          recommendedAudienceMode={props.presetContext?.defaults.audienceMode ?? null}
+          guidance={props.presetContext?.stepGuidance.audience ?? null}
+          onAudienceModeChange={props.onAudienceModeChange}
+        />
+      );
     case 2:
       return (
         <MatchupsStep
@@ -175,6 +184,8 @@ function getStepContent(props: WizardLayoutProps) {
         <ResultsStep
           playStyle={props.playStyle}
           resultMode={props.resultMode}
+          recommendedResultMode={props.presetContext?.defaults.resultMode ?? null}
+          guidance={props.presetContext?.stepGuidance.results ?? null}
           advancementMode={props.advancementMode}
           audienceMode={props.audienceMode}
           candidateCount={props.selectedCount}

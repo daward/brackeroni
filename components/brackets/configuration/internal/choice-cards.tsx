@@ -8,9 +8,10 @@ type ChoiceCardsProps = {
   value: string;
   choices: WizardChoice[];
   onChange: (value: string) => void;
+  recommendedValue?: string | null;
 };
 
-export function ChoiceCards({ value, choices, onChange }: ChoiceCardsProps) {
+export function ChoiceCards({ value, choices, onChange, recommendedValue = null }: ChoiceCardsProps) {
   return (
     <div className={styles.choiceGrid}>
       {choices.map((choice) => {
@@ -29,6 +30,7 @@ export function ChoiceCards({ value, choices, onChange }: ChoiceCardsProps) {
             <span className={styles.titleRow}>
               {Icon ? <Icon aria-hidden="true" size={18} strokeWidth={2} className={styles.icon} /> : null}
               <span className={`display-face ${styles.title}`}>{choice.title}</span>
+              {choice.value === recommendedValue ? <span className={`display-face ${styles.recommendedBadge}`}>Recommended</span> : null}
             </span>
             <span className={`ui-copy ${styles.description}`}>{choice.description}</span>
           </ContentCard>

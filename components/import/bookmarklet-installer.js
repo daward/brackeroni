@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 
-function buildBookmarkletHref(origin, poolId = null, poolName = null) {
+export function buildBookmarkletHref(origin, poolId = null, poolName = null) {
   const script = `
  (async () => {
  const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -10,6 +10,7 @@ function buildBookmarkletHref(origin, poolId = null, poolName = null) {
   const BRIDGE_ORIGIN = new URL(BRIDGE_URL).origin;
   const IMPORT_PAYLOAD_MESSAGE_TYPE = "BRACKERONI_IMPORT_PAYLOAD";
   const IMPORT_READY_MESSAGE_TYPE = "BRACKERONI_IMPORT_READY";
+  const CAPTURE_CURSOR_STORAGE_PREFIX = "brackeroni-import-cursor";
   const bridgeWindow = window.open("", "_blank");
   try {
     window.focus();
@@ -192,6 +193,71 @@ function buildBookmarkletHref(origin, poolId = null, poolName = null) {
     };
   }
 
+  function buildCaptureCursorStorageKey(pageUrl, poolIdValue) {
+    const normalizedPoolId = collapseWhitespace(poolIdValue);
+    const normalizedPageUrl = collapseWhitespace(pageUrl);
+
+    if (!normalizedPoolId || !normalizedPageUrl) {
+      return "";
+    }
+
+    return [
+      CAPTURE_CURSOR_STORAGE_PREFIX,
+      BRIDGE_ORIGIN,
+      normalizedPoolId,
+      normalizedPageUrl
+    ].join(":");
+  }
+
+  function readStoredCaptureCursor(poolIdValue, pageUrl) {
+    try {
+      const key = buildCaptureCursorStorageKey(pageUrl, poolIdValue);
+      if (!key) {
+        return null;
+      }
+
+      const stored = window.localStorage.getItem(key);
+      if (!stored) {
+        return null;
+      }
+
+      const parsed = JSON.parse(stored);
+      const cursor = parsed?.cursor || null;
+
+      if (!cursor?.mode || (!cursor.lastKey && !Number.isFinite(cursor.emittedCount))) {
+        return null;
+      }
+
+      return {
+        mode: cursor.mode || null,
+        selector: cursor.selector || null,
+        lastKey: cursor.lastKey || null,
+        lastTitle: cursor.lastTitle || null,
+        emittedCount: Number.isFinite(cursor.emittedCount) ? cursor.emittedCount : 0,
+        lastItem: cursor.lastItem || null
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  function writeStoredCaptureCursor(poolIdValue, pageUrl, cursor) {
+    try {
+      const key = buildCaptureCursorStorageKey(pageUrl, poolIdValue);
+      if (!key || !cursor?.mode) {
+        return;
+      }
+
+      window.localStorage.setItem(
+        key,
+        JSON.stringify({
+          cursor,
+          updatedAt: Date.now()
+        })
+      );
+    } catch {}
+  }
+
   async function collectVirtualizedGridHtml(resumeState = null) {
     const grids = [...document.querySelectorAll('[role="grid"][aria-rowcount], [role="list"][aria-setsize], [role="feed"]')]
       .sort(
@@ -276,7 +342,7 @@ function buildBookmarkletHref(origin, poolId = null, poolName = null) {
     );
     if (selectedSlice) {
       startIndex = selectedSlice.startIndex;
-      endIndex = Math.min(selectedSlice.endIndex, selectedSlice.startIndex + MAX_CAPTURED_ITEMS);
+      endIndex = Math.min(orderedEntries.length, selectedSlice.startIndex + MAX_CAPTURED_ITEMS);
     }
 
     if (resumeState?.mode === "virtualized-grid") {
@@ -656,7 +722,7 @@ function buildBookmarkletHref(origin, poolId = null, poolName = null) {
     return title;
   }
 
-  function collectRepeatedItemHtml(root, maxItems = MAX_CAPTURED_ITEMS, resumeState = null) {
+  function collectRepeatedItemHtmlSnapshot(root, maxItems = MAX_CAPTURED_ITEMS, resumeState = null) {
     if (!root) {
       return {
         html: "",
@@ -714,12 +780,7 @@ function buildBookmarkletHref(origin, poolId = null, poolName = null) {
             identity,
             title: cardTitleFromElement(item) || identity,
             href: collapseWhitespace(item.querySelector("a[href]")?.getAttribute("href")) || null,
-            imageUrl:
-              collapseWhitespace(item.querySelector("img")?.getAttribute("src")) ||
-              collapseWhitespace(item.querySelector("img")?.getAttribute("data-thumb")) ||
-              collapseWhitespace(item.querySelector("img")?.getAttribute("data-src")) ||
-              collapseWhitespace(item.querySelector("img")?.currentSrc) ||
-              null,
+            imageUrl: extractImageUrl(item) || null,
             metadata:
               collectCardMetadata(item, cardTitleFromElement(item) || identity)
                 .join(" • ") || null,
@@ -736,7 +797,7 @@ function buildBookmarkletHref(origin, poolId = null, poolName = null) {
         );
         if (selectedSlice) {
           startIndex = selectedSlice.startIndex;
-          endIndex = Math.min(selectedSlice.endIndex, selectedSlice.startIndex + maxItems);
+          endIndex = Math.min(uniqueItems.length, selectedSlice.startIndex + maxItems);
         }
 
         if (preferredSelector && selector === preferredSelector) {
@@ -827,6 +888,194 @@ function buildBookmarkletHref(origin, poolId = null, poolName = null) {
       cursor: bestCursor,
       debug: bestDebug
     };
+  }
+
+  async function collectRepeatedItemHtml(root, maxItems = MAX_CAPTURED_ITEMS, resumeState = null) {
+    if (!root) {
+      return {
+        html: "",
+        cursor: null,
+        debug: null
+      };
+    }
+
+    const selectors = [
+      "article",
+      '[role="listitem"]',
+      '[role="row"]',
+      '[class*="card"]',
+      '[class*="tile"]',
+      '[class*="item"]',
+      '[class*="entry"]',
+      '[class*="result"]',
+      "li"
+    ];
+    const preferredSelector = resumeState?.mode === "repeated-list" ? resumeState.selector : null;
+    const orderedSelectors = preferredSelector
+      ? [preferredSelector, ...selectors.filter((selector) => selector !== preferredSelector)]
+      : selectors;
+    let bestCapture = collectRepeatedItemHtmlSnapshot(root, maxItems, resumeState);
+
+    function appendItems(selector, seen, uniqueItems) {
+      const selectionIdentityCount = window.__brackeroniSelectionState?.identities?.length || 0;
+      const shouldScanFullSelection = selectionIdentityCount > 0;
+      const items = [...root.querySelectorAll(selector)]
+        .filter((item) => collapseWhitespace(item.textContent).length > 0)
+        .slice(0, shouldScanFullSelection ? 5000 : Math.max(maxItems * 3, maxItems));
+
+      for (const item of items) {
+        const identity = cardIdentityFromElement(item);
+
+        if (!identity || seen.has(identity)) {
+          continue;
+        }
+
+        const html = compactCardHtml(item);
+        if (!html) {
+          continue;
+        }
+
+        seen.add(identity);
+        uniqueItems.push({
+          identity,
+          title: cardTitleFromElement(item) || identity,
+          href: collapseWhitespace(item.querySelector("a[href]")?.getAttribute("href")) || null,
+          imageUrl: extractImageUrl(item) || null,
+          metadata:
+            collectCardMetadata(item, cardTitleFromElement(item) || identity)
+              .join(" â€¢ ") || null,
+          html
+        });
+      }
+    }
+
+    function buildCapture(selector, uniqueItems) {
+      let startIndex = 0;
+      let endIndex = Math.min(uniqueItems.length, maxItems);
+      const selectedSlice = findSelectionSliceBounds(
+        uniqueItems,
+        (item) => item?.identity || ""
+      );
+
+      if (selectedSlice) {
+        startIndex = selectedSlice.startIndex;
+        endIndex = Math.min(uniqueItems.length, selectedSlice.startIndex + maxItems);
+      }
+
+      if (preferredSelector && selector === preferredSelector) {
+        const resumeIndex = resumeState?.lastKey
+          ? uniqueItems.findIndex((item) => item.identity === resumeState.lastKey)
+          : -1;
+
+        if (resumeIndex >= 0) {
+          startIndex = resumeIndex + 1;
+          endIndex = Math.min(uniqueItems.length, startIndex + maxItems);
+        } else if (Number.isFinite(resumeState?.emittedCount) && resumeState.emittedCount > 0) {
+          startIndex = Math.min(resumeState.emittedCount, uniqueItems.length);
+          endIndex = Math.min(uniqueItems.length, startIndex + maxItems);
+        }
+      }
+
+      const emittedItems = uniqueItems.slice(startIndex, endIndex);
+
+      return {
+        html: emittedItems.length
+          ? \`<div data-brackeroni-captured-list="true" data-selector="\${selector}">\${emittedItems.map((item) => item.html).join("")}</div>\`
+          : "",
+        cursor: emittedItems.length
+          ? {
+              mode: "repeated-list",
+              selector,
+              lastKey: emittedItems[emittedItems.length - 1].identity,
+              lastTitle: emittedItems[emittedItems.length - 1].title,
+              lastItem: {
+                title: emittedItems[emittedItems.length - 1].title,
+                href: emittedItems[emittedItems.length - 1].href,
+                imageUrl: emittedItems[emittedItems.length - 1].imageUrl,
+                metadata: emittedItems[emittedItems.length - 1].metadata
+              },
+              emittedCount: startIndex + emittedItems.length
+            }
+          : null,
+        debug: {
+          mode: "repeated-list",
+          selector,
+          domItemCount: uniqueItems.length,
+          uniqueItemCount: uniqueItems.length,
+          selectedSliceStart: selectedSlice?.startIndex ?? null,
+          selectedSliceEnd: selectedSlice?.endIndex ?? null,
+          startIndex,
+          endIndex,
+          emittedCount: emittedItems.length,
+          firstIdentity: emittedItems[0]?.identity || null,
+          lastIdentity: emittedItems[emittedItems.length - 1]?.identity || null
+        },
+        emittedCount: emittedItems.length
+      };
+    }
+
+    for (const selector of orderedSelectors) {
+      const seen = new Set();
+      const uniqueItems = [];
+      const scrollTargets = getScrollTargets(root);
+      const originals = scrollTargets.map((target) => [target, scrollTopOf(target)]);
+
+      for (const scrollTarget of scrollTargets) {
+        let stablePasses = 0;
+        let previousSeenCount = uniqueItems.length;
+
+        setScrollTop(scrollTarget, 0);
+        await wait(120);
+
+        for (let iteration = 0; iteration < 100; iteration += 1) {
+          appendItems(selector, seen, uniqueItems);
+
+          const capture = buildCapture(selector, uniqueItems);
+          if (capture.emittedCount >= maxItems) {
+            break;
+          }
+
+          if (uniqueItems.length === previousSeenCount) {
+            stablePasses += 1;
+          } else {
+            stablePasses = 0;
+            previousSeenCount = uniqueItems.length;
+          }
+
+          if (stablePasses >= 8) {
+            break;
+          }
+
+          const nextScrollTop = Math.min(
+            scrollTopOf(scrollTarget) + Math.max(280, clientHeightOf(scrollTarget) * 0.7),
+            scrollHeightOf(scrollTarget)
+          );
+
+          setScrollTop(scrollTarget, nextScrollTop);
+          await wait(160);
+        }
+      }
+
+      for (const [target, scrollTop] of originals) {
+        setScrollTop(target, scrollTop);
+      }
+
+      if (uniqueItems.length < 4) {
+        continue;
+      }
+
+      const capture = buildCapture(selector, uniqueItems);
+      if (preferredSelector && selector === preferredSelector && capture.html) {
+        return capture;
+      }
+
+      const bestCount = bestCapture.debug?.emittedCount || 0;
+      if (capture.emittedCount > bestCount) {
+        bestCapture = capture;
+      }
+    }
+
+    return bestCapture;
   }
 
   function compactHtml(value, maxLength = MAX_HTML_CHARS) {
@@ -922,7 +1171,7 @@ function buildBookmarkletHref(origin, poolId = null, poolName = null) {
 
         if (key && !seenBlocks.has(key)) {
           seenBlocks.add(key);
-          selectedBlocks.push(block.outerHTML);
+          selectedBlocks.push(compactCardHtml(block) || block.outerHTML);
         }
       }
     }
@@ -962,15 +1211,24 @@ function buildBookmarkletHref(origin, poolId = null, poolName = null) {
       const lastKey = params.get("brackeroni-continue-last-key");
       const lastTitle = params.get("brackeroni-continue-last-title");
       const emittedCount = Number(params.get("brackeroni-continue-count") || 0);
+      const resolvedPoolId = hashPoolId || ${JSON.stringify(poolId)};
+      const storedCursor =
+        mode || lastKey || emittedCount > 0
+          ? null
+          : readStoredCaptureCursor(resolvedPoolId, buildSanitizedPageUrl());
 
       return {
-        continuePoolId: hashPoolId || ${JSON.stringify(poolId)},
+        continuePoolId: resolvedPoolId,
         continuePoolName: hashPoolName || ${JSON.stringify(poolName)},
-        continueMode: mode || null,
-        continueSelector: selector || null,
-        continueLastKey: lastKey || null,
-        continueLastTitle: lastTitle || null,
-        continueCount: Number.isFinite(emittedCount) ? emittedCount : 0
+        continueMode: mode || storedCursor?.mode || null,
+        continueSelector: selector || storedCursor?.selector || null,
+        continueLastKey: lastKey || storedCursor?.lastKey || null,
+        continueLastTitle: lastTitle || storedCursor?.lastTitle || null,
+        continueCount:
+          Number.isFinite(emittedCount) && emittedCount > 0
+            ? emittedCount
+            : storedCursor?.emittedCount || 0,
+        usedStoredCursor: Boolean(storedCursor)
       };
     } catch {
       return {
@@ -980,7 +1238,8 @@ function buildBookmarkletHref(origin, poolId = null, poolName = null) {
         continueSelector: null,
         continueLastKey: null,
         continueLastTitle: null,
-        continueCount: 0
+        continueCount: 0,
+        usedStoredCursor: false
       };
     }
   }
@@ -1037,7 +1296,7 @@ function buildBookmarkletHref(origin, poolId = null, poolName = null) {
     : null;
   const virtualizedCapture = await collectVirtualizedGridHtml(resumeState);
   const repeatedItemCapture = !virtualizedCapture.html
-    ? collectRepeatedItemHtml(preferredRoot || document.body, MAX_CAPTURED_ITEMS, resumeState)
+    ? await collectRepeatedItemHtml(preferredRoot || document.body, MAX_CAPTURED_ITEMS, resumeState)
     : { html: "", cursor: null, debug: null };
   const resumedHtml = virtualizedCapture.html || repeatedItemCapture.html || "";
   if (continuationState.continuePoolId && hasContinuationCursor && !selectionHtml.trim() && !resumedHtml) {
@@ -1056,15 +1315,18 @@ function buildBookmarkletHref(origin, poolId = null, poolName = null) {
         : resumedHtml || fallbackHtml)
   );
   const text = compactText(selectionText || preferredRoot?.innerText || document.body?.innerText || "");
+  const pageUrl = buildSanitizedPageUrl();
+  const captureCursor = virtualizedCapture.cursor || repeatedItemCapture.cursor || null;
+  writeStoredCaptureCursor(continuationState.continuePoolId, pageUrl, captureCursor);
   const payload = {
     pageTitle: document.title || "",
-    pageUrl: buildSanitizedPageUrl(),
+    pageUrl,
     continuePoolId: continuationState.continuePoolId,
     continuePoolName: continuationState.continuePoolName,
     selectionHtml,
     html,
     text,
-    captureCursor: virtualizedCapture.cursor || repeatedItemCapture.cursor || null,
+    captureCursor,
     debug: {
       selection: {
         textLength: selectionText.length,
@@ -1075,7 +1337,8 @@ function buildBookmarkletHref(origin, poolId = null, poolName = null) {
       continuation: {
         hasContinuationCursor,
         continueMode: continuationState.continueMode || null,
-        continueCount: continuationState.continueCount || 0
+        continueCount: continuationState.continueCount || 0,
+        usedStoredCursor: Boolean(continuationState.usedStoredCursor)
       },
       capture: {
         chosenSource: selectedIdentityHtml

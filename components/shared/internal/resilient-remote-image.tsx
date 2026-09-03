@@ -4,6 +4,16 @@ import { useEffect, useState, type SyntheticEvent } from "react";
 import type { BackdropRemoteImageProps, ResilientRemoteImageProps } from "../types";
 import styles from "./resilient-remote-image.module.css";
 
+function normalizeRemoteImageUrl(url: string) {
+  const normalized = url.trim();
+
+  if (normalized.startsWith("//")) {
+    return `https:${normalized}`;
+  }
+
+  return normalized;
+}
+
 function proxiedImageUrl(url: string) {
   if (!url) {
     return "";
@@ -17,7 +27,7 @@ function useResilientImageSource(
   proxyOnError: boolean,
   onError: ResilientRemoteImageProps["onError"]
 ) {
-  const normalizedSrc = String(src || "").trim();
+  const normalizedSrc = normalizeRemoteImageUrl(String(src || ""));
   const proxySrc = proxiedImageUrl(normalizedSrc);
   const [currentSrc, setCurrentSrc] = useState(normalizedSrc);
   const [hasTriedProxy, setHasTriedProxy] = useState(false);
@@ -60,6 +70,7 @@ export function ResilientRemoteImage({
     proxyOnError,
     onError
   );
+  const effectiveSrc = currentSrc || normalizedSrc;
 
   if (!normalizedSrc) {
     return null;
@@ -68,7 +79,7 @@ export function ResilientRemoteImage({
   return (
     <img
       {...props}
-      src={currentSrc}
+      src={effectiveSrc}
       loading={props.loading ?? "lazy"}
       decoding={props.decoding ?? "async"}
       referrerPolicy={props.referrerPolicy ?? "no-referrer"}
@@ -97,6 +108,7 @@ export function BackdropRemoteImage({
     onError
   );
   const [isUndersized, setIsUndersized] = useState(false);
+  const effectiveSrc = currentSrc || normalizedSrc;
 
   useEffect(() => {
     setIsUndersized(false);
@@ -111,7 +123,7 @@ export function BackdropRemoteImage({
       {isUndersized ? (
         <>
           <img
-            src={currentSrc}
+            src={effectiveSrc}
             alt=""
             aria-hidden="true"
             loading={props.loading ?? "lazy"}
@@ -129,7 +141,7 @@ export function BackdropRemoteImage({
         >
           <img
             {...props}
-            src={currentSrc}
+            src={effectiveSrc}
             alt={alt}
             loading={props.loading ?? "lazy"}
             decoding={props.decoding ?? "async"}
@@ -150,7 +162,7 @@ export function BackdropRemoteImage({
       ) : (
         <img
           {...props}
-          src={currentSrc}
+          src={effectiveSrc}
           alt={alt}
           loading={props.loading ?? "lazy"}
           decoding={props.decoding ?? "async"}

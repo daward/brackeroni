@@ -37,6 +37,7 @@ export function useNewBracketSubmission(draft: BracketSetupDraft | null) {
         advancementMode: input.advancementMode,
         tieBreakMode: input.tieBreakMode,
         seedCandidateIds: input.seedingMode === "custom" ? input.seedCandidateIds : undefined,
+        intentPreset: input.intentPreset,
         ...audience,
       };
 
@@ -81,6 +82,7 @@ async function submitBracket(
     sharingMode: string;
     visibility: string;
     votingAccess: string;
+    intentPreset: BracketCreationInput["intentPreset"];
   },
   draft: BracketSetupDraft | null,
 ) {
@@ -95,6 +97,7 @@ async function submitBracket(
       playStyle: input.playStyle,
       resultMode: input.resultMode,
       tieBreakMode: input.tieBreakMode,
+      intentPreset: payload.intentPreset,
     });
   }
 

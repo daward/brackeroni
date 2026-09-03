@@ -16,6 +16,7 @@ type ResultModeTileProps = {
     note: string;
   };
   selected: boolean;
+  recommended?: boolean;
   onSelect: (mode: BracketResultMode) => void;
   disabled?: boolean;
 };
@@ -30,7 +31,7 @@ function getResultModeTitle(mode: BracketResultMode) {
   return titles[mode] ?? "Traditional bracket";
 }
 
-function ResultModeTile({ mode, title, detail, selected, onSelect, disabled = false }: ResultModeTileProps) {
+function ResultModeTile({ mode, title, detail, selected, recommended = false, onSelect, disabled = false }: ResultModeTileProps) {
   const Icon = WIZARD_RESULT_MODE_ICONS[mode] || Trophy;
   return (
     <ContentCard
@@ -46,6 +47,7 @@ function ResultModeTile({ mode, title, detail, selected, onSelect, disabled = fa
       <span className={styles.titleRow}>
         <Icon aria-hidden="true" size={18} strokeWidth={2} className={styles.icon} />
         <span className={`display-face ${styles.title}`}>{title}</span>
+        {recommended ? <span className={`display-face ${styles.recommendedBadge}`}>Recommended</span> : null}
       </span>
       <span className={`ui-copy ${styles.description}`}>{detail.description}</span>
       <span className={`ui-copy ${styles.description} ${styles.resultModeNote}`}>{detail.note}</span>
@@ -53,7 +55,17 @@ function ResultModeTile({ mode, title, detail, selected, onSelect, disabled = fa
   );
 }
 
-export function ResultModeChoices({ value, audienceMode, onChange }: { value: BracketResultMode; audienceMode: AudienceMode; onChange: (mode: BracketResultMode) => void }) {
+export function ResultModeChoices({
+  value,
+  audienceMode,
+  recommendedResultMode = null,
+  onChange,
+}: {
+  value: BracketResultMode;
+  audienceMode: AudienceMode;
+  recommendedResultMode?: BracketResultMode | null;
+  onChange: (mode: BracketResultMode) => void;
+}) {
   const isRanking = value !== "winner_only";
   const chooseRanking = () => onChange(isRanking ? value : "full_ranking");
   const rankingModes: BracketResultMode[] =
@@ -70,6 +82,7 @@ export function ResultModeChoices({ value, audienceMode, onChange }: { value: Br
             note: "Best when only the final pick matters.",
           }}
           selected={!isRanking}
+          recommended={recommendedResultMode === "winner_only"}
           onSelect={onChange}
         />
         <div className={styles.versusDivider}>
@@ -83,6 +96,7 @@ export function ResultModeChoices({ value, audienceMode, onChange }: { value: Br
             note: "Choose this when the result should be more than a champion.",
           }}
           selected={isRanking}
+          recommended={Boolean(recommendedResultMode && recommendedResultMode !== "winner_only")}
           onSelect={chooseRanking}
         />
       </div>
@@ -96,6 +110,7 @@ export function ResultModeChoices({ value, audienceMode, onChange }: { value: Br
               title={getResultModeTitle(mode)}
               detail={WIZARD_RESULT_MODE_DETAILS[mode]}
               selected={value === mode}
+              recommended={recommendedResultMode === mode}
               onSelect={onChange}
               disabled={!isRanking}
             />

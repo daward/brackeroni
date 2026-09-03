@@ -27,7 +27,7 @@ function getAccessDetails(audienceMode: ReviewStepProps["audienceMode"]) {
     return { icon: LockKeyhole, label: "private" };
   }
   if (audienceMode === "friends") {
-    return { icon: Users, label: "Share with friends" };
+    return { icon: Users, label: "Share with a group" };
   }
   return { icon: Globe2, label: "public" };
 }

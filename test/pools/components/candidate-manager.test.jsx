@@ -33,6 +33,20 @@ function renderManager(overrides = {}) {
     onSelectSuggestedImage: vi.fn(),
     ...overrides.editor
   };
+  const generation = overrides.generation
+    ? {
+        isOpen: false,
+        count: 8,
+        prompt: "",
+        includeImages: true,
+        onCountChange: vi.fn(),
+        onPromptChange: vi.fn(),
+        onIncludeImagesChange: vi.fn(),
+        onSubmit: vi.fn(),
+        onClose: vi.fn(),
+        ...overrides.generation
+      }
+    : undefined;
   const view = { readOnly: false, showTopRule: false, ...overrides.view };
   const tagManagement = { showControl: true, ...overrides.tagManagement };
 
@@ -40,13 +54,14 @@ function renderManager(overrides = {}) {
     <CandidateManagerPanel
       collection={{ candidates: [candidate], hasNextPage: false, isLoadingMore: false, loadMore: vi.fn() }}
       editor={editor}
+      generation={generation}
       actions={actions}
       tagManagement={tagManagement}
       view={view}
     />
   );
 
-  return { ...result, actions, editor };
+  return { ...result, actions, editor, generation };
 }
 
 describe("CandidateManagerPanel", () => {
@@ -84,5 +99,21 @@ describe("CandidateManagerPanel", () => {
     expect(screen.getByRole("dialog", { name: "Pool Tags" })).not.toBeNull();
     expect(screen.getByRole("button", { name: "All Tags" })).not.toBeNull();
     expect(screen.queryByText("Delete Tag")).toBeNull();
+  });
+
+  it("opens the AI generation drawer and submits a prompt", async () => {
+    const user = userEvent.setup();
+    const { actions, generation } = renderManager({
+      actions: { onGenerate: vi.fn() },
+      generation: { isOpen: true, prompt: "snacks for a movie night" }
+    });
+
+    await user.click(screen.getByRole("button", { name: "Generate with AI" }));
+    await user.click(screen.getByRole("button", { name: "Generate Candidates" }));
+
+    expect(actions.onGenerate).toHaveBeenCalled();
+    expect(screen.getByRole("dialog", { name: "Generate Candidates" })).not.toBeNull();
+    expect(screen.getByRole("checkbox", { name: "Ask AI for picture links" }).checked).toBe(true);
+    expect(generation.onSubmit).toHaveBeenCalled();
   });
 });

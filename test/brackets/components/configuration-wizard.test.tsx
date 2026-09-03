@@ -44,7 +44,64 @@ describe("bracket configuration wizard", () => {
       seedingMode: "pool_order",
       seedCandidateIds: null,
       audienceMode: "private",
+      intentPreset: null,
     });
+  });
+
+  it("keeps preset intent with the preselected settings", async () => {
+    const user = userEvent.setup();
+    const onCreate = vi.fn<(_: BracketCreationInput) => Promise<boolean>>().mockResolvedValue(true);
+
+    render(
+      <BracketCreationWizard
+        pools={[pool]}
+        creating={false}
+        onCancel={vi.fn()}
+        onCreate={onCreate}
+        initialConfig={{
+          audienceMode: "friends",
+          resultMode: "parallel_full_ranking",
+          intentPreset: "travel_group_decision",
+        }}
+        presetContext={{
+          id: "travel_group_decision",
+          label: "Travel group decision",
+          titleSuggestion: "Trip decision",
+          recommendedIntent: "Preset title from test",
+          explanation: "Preset explanation from test.",
+          stepGuidance: {
+            audience: "Audience guidance from test.",
+            results: "Results guidance from test.",
+          },
+          defaults: {
+            audienceMode: "friends",
+            advancementMode: "vote_winner",
+            playStyle: "fixed_bracket",
+            resultMode: "parallel_full_ranking",
+            tieBreakMode: "higher_seed_wins",
+          },
+        }}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: /Dinner Pool/ }));
+    expect(screen.getByText("Audience guidance from test.")).not.toBeNull();
+    expect(screen.getByText("Recommended")).not.toBeNull();
+
+    await user.click(screen.getByRole("button", { name: "Continue" }));
+    await user.click(screen.getByRole("button", { name: "Continue" }));
+    await user.click(screen.getByRole("button", { name: "Continue" }));
+    expect(screen.getByText("Results guidance from test.")).not.toBeNull();
+    await user.click(screen.getByRole("button", { name: "Continue" }));
+    await user.click(screen.getByRole("button", { name: "Create bracket" }));
+
+    expect(onCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        audienceMode: "friends",
+        resultMode: "parallel_full_ranking",
+        intentPreset: "travel_group_decision",
+      }),
+    );
   });
 
   it("blocks existing pools that do not have enough candidates", async () => {
@@ -98,7 +155,7 @@ describe("bracket configuration wizard", () => {
     render(<BracketCreationWizard pools={[pool]} creating={false} onCancel={vi.fn()} onCreate={vi.fn()} />);
 
     await user.click(screen.getByRole("button", { name: /Dinner Pool/ }));
-    await user.click(screen.getByRole("button", { name: /Share with friends/ }));
+    await user.click(screen.getByRole("button", { name: /Share with a group/ }));
     await user.click(screen.getByRole("button", { name: "Continue" }));
     await user.click(screen.getByRole("button", { name: "Continue" }));
     await user.click(screen.getByRole("button", { name: "Continue" }));

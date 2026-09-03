@@ -12,6 +12,7 @@ import {
   ensureParallelTournamentShareLink,
   ensureTournamentShareLink,
   getPool,
+  generateCandidatesInPool,
   listParallelTournaments,
   listPools,
   listTournaments,
@@ -118,6 +119,11 @@ test("workspace client maps pool requests to API endpoints", async () => {
   await expectRequest(() => removeCandidateFromPool("pool-1", "candidate-1"), {
     path: "/api/pools/pool-1/candidates/candidate-1",
     method: "DELETE"
+  });
+  await expectRequest(() => generateCandidatesInPool("pool-1", { count: 8, includeImages: true, prompt: "movie night" }), {
+    path: "/api/pools/pool-1/generations",
+    method: "POST",
+    body: { count: 8, includeImages: true, prompt: "movie night" }
   });
 });
 

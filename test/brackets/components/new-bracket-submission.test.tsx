@@ -43,6 +43,7 @@ const privateInput: BracketCreationInput = {
   seedingMode: "pool_order",
   seedCandidateIds: null,
   audienceMode: "private",
+  intentPreset: null,
 };
 
 describe("new bracket submission", () => {
@@ -79,6 +80,30 @@ describe("new bracket submission", () => {
     });
 
     expect(mocks.startTournament).not.toHaveBeenCalled();
+    expect(mocks.routerPush).toHaveBeenCalledWith("/brackets?stage=draft");
+  });
+
+  it("passes intent presets to parallel bracket creation", async () => {
+    mocks.createParallelTournament.mockResolvedValue({ item: { id: "parallel-1" } });
+    const { result } = renderHook(() => useNewBracketSubmission(null));
+
+    await act(async () => {
+      await result.current.createBracket({
+        ...privateInput,
+        audienceMode: "friends",
+        resultMode: "parallel_full_ranking",
+        intentPreset: "travel_group_decision",
+      });
+    });
+
+    expect(mocks.createParallelTournament).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sourcePoolId: "pool-1",
+        sharingMode: "with_friends",
+        resultMode: "parallel_full_ranking",
+        intentPreset: "travel_group_decision",
+      }),
+    );
     expect(mocks.routerPush).toHaveBeenCalledWith("/brackets?stage=draft");
   });
 });

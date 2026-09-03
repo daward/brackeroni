@@ -147,6 +147,24 @@ async function usePoolModules() {
       };
     })
   }));
+  vi.doMock("@/lib/gemini/generate-candidates", () => ({
+    generateCandidatesWithGemini: vi.fn(async (payload) => {
+      scenario.calls.push(["generateCandidatesWithGemini", payload]);
+      return {
+        candidates: [
+          {
+            name: "Blade Runner",
+            description: "Replicant noir",
+            imageUrl: "https://images.example.test/blade-runner.jpg",
+            sourceUrl: null,
+            tags: ["sci-fi"]
+          }
+        ],
+        generatedImageCount: 1,
+        model: "gemini-test"
+      };
+    })
+  }));
   vi.doMock("@/lib/pools", () => ({
     listPools: vi.fn(async (options) => {
       scenario.calls.push(["listPools", options]);
@@ -404,5 +422,50 @@ describe("pool route contracts", () => {
 
     expectValidResponse("post", "/api/pools/{poolId}/imports", 200, await responseJson(response));
     assert.equal(scenario.calls.filter(([name]) => name === "importCandidates").length, 2);
+  });
+
+  it("generates candidates directly into a pool", async () => {
+    const { POST } = await import("../../app/api/pools/[poolId]/generations/route.js");
+    scenario.poolDetail = poolDetail({
+      candidates: [
+        {
+          id: candidateId,
+          name: "Blade Runner",
+          description: "Replicant noir",
+          imageUrl: "https://images.example.test/blade-runner.jpg",
+          displayOrder: 0
+        }
+      ]
+    });
+    const body = { count: 4, includeImages: true, prompt: "sci-fi movie night" };
+
+    expectValidRequest("post", "/api/pools/{poolId}/generations", body);
+    const response = await POST(routeRequest(`/api/pools/${poolId}/generations`, { method: "POST", body }), {
+      params: Promise.resolve({ poolId })
+    });
+    const responseBody = await responseJson(response);
+
+    assert.equal(response.status, 200);
+    expectValidResponse("post", "/api/pools/{poolId}/generations", 200, responseBody);
+    assert.equal(responseBody.meta.generatedCount, 1);
+    assert.equal(responseBody.meta.generatedImageCount, 1);
+    assert.equal(responseBody.meta.imageCount, 1);
+    assert.deepEqual(scenario.calls.filter(([name]) => name === "generateCandidatesWithGemini" || name === "importCandidates"), [
+      ["generateCandidatesWithGemini", body],
+      [
+        "importCandidates",
+        {
+          candidates: [
+            {
+              name: "Blade Runner",
+              description: "Replicant noir",
+              imageUrl: "https://images.example.test/blade-runner.jpg",
+              sourceUrl: null,
+              tags: ["sci-fi"]
+            }
+          ]
+        }
+      ]
+    ]);
   });
 });
