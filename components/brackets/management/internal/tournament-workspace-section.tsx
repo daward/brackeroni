@@ -11,6 +11,7 @@ import type { BracketPoolOption } from "../types";
 import { ActiveParallelTournamentSection, ActiveStandardTournamentSection } from "./tournament-status-sections";
 import { LiveBracketPicker } from "./live-bracket-picker";
 import { LiveBracketRail } from "./live-bracket-rail";
+import { PromptDraftBracketCard } from "./prompt-draft-bracket-card";
 import { WorkspaceCompletedCard } from "./workspace-completed-card";
 import { WorkspaceDraftCard } from "./workspace-draft-card";
 import type {
@@ -46,6 +47,9 @@ type TournamentWorkspaceSectionProps = {
   poolDetails: PoolDetailsState;
   isActionPending: PendingActionChecker;
   onOpenBracketWizard: () => void;
+  onPromptDraftCreated: () => Promise<void> | void;
+  setErrorMessage: (message: string) => void;
+  setSuccessMessage: (message: string) => void;
   handleCopyShareLink: (tournamentId: string) => void;
   handleStartTournament: (tournamentId: string) => void;
   handleArchiveTournament: (tournamentId: string, title: string) => void;
@@ -100,6 +104,9 @@ export function TournamentWorkspaceSection({
   poolDetails,
   isActionPending,
   onOpenBracketWizard,
+  onPromptDraftCreated,
+  setErrorMessage,
+  setSuccessMessage,
   handleCopyShareLink,
   handleStartTournament,
   handleArchiveTournament,
@@ -239,6 +246,12 @@ export function TournamentWorkspaceSection({
           icon="+"
           title="Add a bracket"
           description="Set up a new bracket."
+        />
+        <PromptDraftBracketCard
+          disabled={isActionPending("create-tournament")}
+          onCreated={onPromptDraftCreated}
+          onError={setErrorMessage}
+          onSuccess={setSuccessMessage}
         />
         {draftTournaments.map((tournament) => {
           const pool = getPoolForTournament(tournament, pools, poolDetails);

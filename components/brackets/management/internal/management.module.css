@@ -133,14 +133,101 @@
   flex-wrap: wrap;
   gap: 0.75rem;
 }
+.promptDraftCard {
+  display: flex;
+  min-height: 10.5rem;
+  height: 100%;
+  width: 100%;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.025);
+  padding: 1.1rem;
+  text-align: left;
+}
+.promptDraftHeader {
+  display: grid;
+  gap: 0.35rem;
+}
+.promptDraftTitle {
+  color: var(--ink);
+  font-size: 1.125rem;
+  font-weight: 900;
+  line-height: 1.15;
+}
+.promptDraftInput {
+  min-width: 0;
+  width: 100%;
+  height: 3rem;
+  border: 0;
+  border-bottom: 1px solid var(--line-strong);
+  background: rgba(255, 255, 255, 0.045);
+  padding: 0 0.85rem;
+  color: var(--ink);
+  font-size: 1rem;
+}
+.promptDraftField {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  width: 100%;
+  margin-top: auto;
+}
+.promptDraftInput:focus {
+  background: rgba(255, 255, 255, 0.09);
+  border-color: var(--accent-3);
+  outline: none;
+}
+.promptDraftInput::placeholder {
+  color: rgba(232, 226, 214, 0.62);
+}
+.promptDraftButton {
+  align-self: flex-start;
+  border: 1px solid var(--accent-2);
+  background: rgba(255, 216, 77, 0.12);
+  color: var(--accent-2);
+  min-width: 0;
+  padding: 0.55rem 0.8rem;
+  font-size: 0.8125rem;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.promptDraftButton:hover,
+.promptDraftButton:focus-visible {
+  border-color: var(--accent-3);
+  background: rgba(52, 211, 196, 0.12);
+  color: var(--accent-3);
+  outline: none;
+}
+.promptDraftButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
 @media (min-width: 1024px) {
   .completedSection {
     flex-direction: row;
     align-items: center;
     justify-content: space-between;
   }
+
+  .promptDraftField {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+  }
+
+  .promptDraftButton {
+    align-self: center;
+  }
 }
 @media (min-width: 1280px) {
+  .promptDraftCard {
+    grid-column: span 2;
+  }
+
   .draftActions {
     flex-direction: row;
     align-items: flex-end;

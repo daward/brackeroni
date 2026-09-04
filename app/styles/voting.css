@@ -286,11 +286,11 @@
 }
 
 .vote-candidate-card {
-  display: flex;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) 7.75rem;
   min-height: 14rem;
   max-height: 17rem;
   height: 100%;
-  flex-direction: column;
   overflow: hidden;
   background: transparent;
   text-align: left;
@@ -306,7 +306,6 @@
   position: relative;
   min-height: 0;
   max-height: 13.5rem;
-  flex: 1;
   overflow: hidden;
   background: rgba(0, 0, 0, 0.14);
 }
@@ -353,27 +352,49 @@
   padding: 1rem 1.25rem;
 }
 
-.vote-candidate-copy {
-  margin-top: auto;
-  padding: 0.75rem 1rem 1rem;
+.vote-candidate-image-fallback {
+  display: block;
+  width: 100%;
+  height: 100%;
+  transition: transform 200ms ease;
 }
 
-.vote-candidate-copy-no-image {
-  margin-top: auto;
+.vote-candidate-card:hover .vote-candidate-image-fallback,
+.vote-candidate-card:focus-visible .vote-candidate-image-fallback {
+  transform: scale(1.03);
 }
 
-.vote-candidate-name {
-  font-size: 1.45rem;
+.vote-candidate-fallback-initials {
+  font-size: 4rem;
   font-weight: 900;
   line-height: 1;
 }
 
+.vote-candidate-copy {
+  min-height: 0;
+  padding: 0.75rem 1rem 1rem;
+}
+
+.vote-candidate-name {
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: 1.45rem;
+  font-weight: 900;
+  line-height: 1;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
 .vote-candidate-description {
+  display: -webkit-box;
+  overflow: hidden;
   margin-top: 0.35rem;
   max-width: 40rem;
   color: var(--muted);
   font-size: 0.875rem;
   line-height: 1.6;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .vote-waiting-stats {

@@ -211,7 +211,32 @@ When building from a pool, the user should choose:
 
 In practice, seeding controls such as manual seed ordering and pool sync only make sense after a pool has been attached.
 
+### Prompt-driven bracket creation
+Prompt-driven bracket creation should produce a draft bracket from a user's natural-language request while preserving the same safety rules as the normal create flow.
+
+The prompt interpreter should distinguish between these source intents:
+
+1. Use an existing pool owned by the user
+2. Use an existing published pool as a starting point
+3. Create a new private pool from explicit candidates in the prompt
+4. Create a new private pool by generating candidates from the prompt
+5. Create a new private pool by extracting candidates from supplied source text, HTML, or URLs
+
+If the prompt clearly references an existing pool, the system should prefer that pool over creating a duplicate. If more than one existing pool could match, the system should return a clarification or preview instead of guessing. If the prompt asks for a new pool, the system should create a new private pool unless the user explicitly requests another visibility.
+
+Prompt-created brackets must be draft-only by default:
+
+1. Do not start the bracket automatically.
+2. Do not publish or list the bracket automatically.
+3. Do not create a public shareable bracket unless the user explicitly requests public visibility.
+4. Do not enable anonymous voting unless the user explicitly requests voting by anyone.
+5. Do not publish a newly created pool unless the user explicitly requests pool publishing.
+
+Public intent must be explicit. Words such as "make a bracket", "share with friends", "send this around", or "make a link" are not enough to publish or list a bracket. The system may create or prepare share-link controls for a friends or unlisted workflow, but the resulting bracket still remains a draft until the creator starts it through an explicit action.
+
 For `parallel_full_ranking`, creation should still feel like normal bracket creation. The user should not be sent through a special separate create product just because the participation model differs.
+
+Prompt-created brackets should infer `parallel_full_ranking` when the user asks for a group or family consensus, asks what everyone agrees on, or asks to compare everyone's picks. Explicit winner language such as "pick one winner" or "single champion" should override that inference.
 
 Operationally:
 

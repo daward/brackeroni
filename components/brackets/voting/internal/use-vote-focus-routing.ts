@@ -41,7 +41,11 @@ export function useVoteFocusRouting({
     [active],
   );
   const waitingTournamentKey = waitingTournamentIds.join(":");
-  const postRoundPollEnabled = waitingTournamentIds.length > 0 && postRoundPollCount < 18 && !pendingVoteMatchId;
+  const postRoundPollEnabled =
+    initialReturnTo !== "create" &&
+    waitingTournamentIds.length > 0 &&
+    postRoundPollCount < 18 &&
+    !pendingVoteMatchId;
   const isFocusedTournamentWaiting =
     focusedTournament !== null &&
     focusedTournament.kind !== "parallel_parent" &&
@@ -132,18 +136,22 @@ export function useVoteFocusRouting({
       return;
     }
 
+    if (initialReturnTo === "create") {
+      return;
+    }
+
     setFocusedTournamentId(null);
     writeStoredFocusedTournamentId(null);
     replaceIfChanged(buildVoteUrl({ returnTo: initialReturnTo }));
-  }, [focusedTournament, focusedMatch, isFocusedTournamentWaiting, replaceIfChanged, initialReturnTo]);
+  }, [focusedTournament, focusedMatch, isFocusedTournamentWaiting, pendingVoteMatchId, replaceIfChanged, initialReturnTo]);
 
   useEffect(() => {
-    if (initialReturnTo !== "create" || !focusedTournament || focusedMatch || isFocusedTournamentWaiting || pendingVoteMatchId) {
+    if (initialReturnTo !== "create" || !focusedTournament || focusedMatch || pendingVoteMatchId) {
       return;
     }
 
     replaceIfChanged(buildCreateReturnUrl(focusedTournament.id, "active"));
-  }, [initialReturnTo, focusedTournament, focusedMatch, isFocusedTournamentWaiting, pendingVoteMatchId, replaceIfChanged]);
+  }, [initialReturnTo, focusedTournament, focusedMatch, pendingVoteMatchId, replaceIfChanged]);
 
   return {
     isFocusedTournamentWaiting,

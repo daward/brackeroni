@@ -1,3 +1,4 @@
+import { getCurrentUser } from "@/lib/auth/current-user";
 import { json, withRouteErrorHandling } from "@/lib/api/http";
 
 function isHttpUrl(value) {
@@ -10,6 +11,8 @@ function isHttpUrl(value) {
 }
 
 export const GET = withRouteErrorHandling(async function GET(request) {
+  await getCurrentUser(request);
+
   const targetUrl = request.nextUrl.searchParams.get("url")?.trim() ?? "";
 
   if (!isHttpUrl(targetUrl)) {

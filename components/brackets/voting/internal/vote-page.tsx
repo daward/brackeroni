@@ -146,6 +146,10 @@ export default async function BracketVotingPage({ searchParams }: { searchParams
   const requestedTournamentHasRemainingVotes = requestedTournamentMatches.some((match: VoteMatch) => match.status === "open" && !match.userVoteEntryId);
 
   if (requestedTournament && requestedTournament.status === "active" && requestedTournamentId && !requestedTournamentHasRemainingVotes) {
+    if (firstParam(params.returnTo) === "create") {
+      redirect("/brackets?stage=active");
+    }
+
     redirect(`/results/${requestedTournament.parentParallelTournamentId || requestedTournament.id}`);
   }
 

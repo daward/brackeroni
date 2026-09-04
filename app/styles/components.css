@@ -256,7 +256,7 @@
   align-items: flex-start;
   justify-content: flex-start;
   border: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.025);
+  background: rgba(255, 255, 255, 0.045);
   padding: 1.25rem;
   color: inherit;
   text-align: left;
@@ -269,7 +269,10 @@
 .object-list-card:hover,
 .object-list-card:focus-visible {
   border-color: var(--accent-3);
-  background: rgba(45, 211, 201, 0.06);
+  background: rgba(45, 211, 201, 0.075);
+}
+
+.object-list-card:focus-visible {
   outline: 2px solid var(--accent-3);
   outline-offset: 2px;
 }

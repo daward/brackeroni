@@ -463,6 +463,45 @@ Keep SQL in explicit query modules or repository-style files rather than scatter
 
 Keep tournament logic in plain services rather than embedding domain behavior directly in route files.
 
+# Prompt and MCP Creation Boundary
+Natural-language bracket creation should be implemented as an orchestration layer over the existing Pools and Brackets services, not as a separate bracket engine or a bypass around authorization.
+
+Recommended internal shape:
+
+1. A prompt-to-plan service that turns user text into a structured, Zod-validated creation plan.
+2. A preview operation that returns the interpreted source pool choice, candidate set, bracket settings, and safety-sensitive defaults before mutation when the intent is ambiguous.
+3. A creation operation that applies an accepted plan by calling the same pool and bracket services used by REST routes.
+4. An optional MCP server that exposes typed tools around the same service or REST contracts.
+
+The creation plan should represent the source decision explicitly:
+
+1. `existing_owned_pool`
+2. `existing_published_pool`
+3. `new_pool_from_items`
+4. `new_pool_from_generation`
+5. `new_pool_from_extract`
+
+The orchestration layer must enforce these defaults regardless of model output:
+
+1. Created brackets default to `status: draft`.
+2. Created brackets default to `visibility: private`.
+3. Created pools default to `visibility: private`.
+4. `votingAccess` defaults to `signed_in_only`.
+5. No prompt-created bracket is started automatically.
+6. No prompt-created bracket or pool is public unless public visibility or publishing is explicitly requested by the user.
+7. Ambiguous existing-pool matches return a preview or clarification instead of picking one silently.
+
+MCP tools should be narrow and typed. Useful tools include:
+
+1. `preview_bracket_from_prompt`
+2. `create_bracket_from_plan`
+3. `list_candidate_pools`
+4. `create_candidate_pool`
+5. `create_bracket`
+6. `update_bracket_entries`
+
+MCP tools should not expose low-level SQL behavior. They should use the app's public services or REST endpoints so authentication, authorization, validation, rate limits, and lifecycle rules remain centralized.
+
 # Authorization Rules
 At minimum enforce:
 

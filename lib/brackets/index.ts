@@ -5,6 +5,10 @@ export {
   bracketDirectory,
   brackets,
 } from "@/lib/brackets/internal/bracket-directory";
+export {
+  createBracketFromPrompt,
+  previewBracketIntent,
+} from "@/lib/brackets/internal/prompt-creation";
 export { parallelBracket } from "@/lib/brackets/internal/parallel-bracket-handle";
 export {
   parallelBracketDirectory,

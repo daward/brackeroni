@@ -623,6 +623,166 @@ export const openApiDocument = {
         },
         required: ["item"]
       },
+      BracketIntentSourcePlan: {
+        oneOf: [
+          {
+            type: "object",
+            properties: {
+              type: { type: "string", enum: ["existing_owned_pool"] },
+              poolId: { type: "string", format: "uuid" }
+            },
+            required: ["type", "poolId"]
+          },
+          {
+            type: "object",
+            properties: {
+              type: { type: "string", enum: ["existing_published_pool"] },
+              poolId: { type: "string", format: "uuid" }
+            },
+            required: ["type", "poolId"]
+          },
+          {
+            type: "object",
+            properties: {
+              type: { type: "string", enum: ["new_pool_from_items"] },
+              poolName: { type: "string", minLength: 1, maxLength: 120 },
+              candidates: {
+                type: "array",
+                minItems: 2,
+                maxItems: 1000,
+                items: { $ref: "#/components/schemas/PoolSourceItem" }
+              }
+            },
+            required: ["type", "poolName", "candidates"]
+          },
+          {
+            type: "object",
+            properties: {
+              type: { type: "string", enum: ["new_pool_from_generation"] },
+              poolName: { type: "string", minLength: 1, maxLength: 120 },
+              candidateCount: { type: "integer", minimum: 2, maximum: 100 },
+              prompt: { type: "string", minLength: 1, maxLength: 12000 },
+              includeImages: { type: "boolean" }
+            },
+            required: ["type", "poolName", "candidateCount", "prompt", "includeImages"]
+          }
+        ]
+      },
+      BracketIntentPlan: {
+        type: "object",
+        properties: {
+          title: { type: "string", minLength: 1, maxLength: 120 },
+          description: { type: ["string", "null"], maxLength: 2000 },
+          source: { $ref: "#/components/schemas/BracketIntentSourcePlan" },
+          sharingMode: { type: "string", enum: ["private", "with_friends"] },
+          visibility: {
+            type: "string",
+            enum: ["private", "public_listed", "public_unlisted"]
+          },
+          votingAccess: { type: "string", enum: ["signed_in_only", "anyone"] },
+          playStyle: { type: "string", enum: ["reseed", "fixed_bracket"] },
+          resultMode: {
+            type: "string",
+            enum: [
+              "winner_only",
+              "full_ranking",
+              "partial_ranking",
+              "fast_full_rank",
+              "parallel_full_ranking",
+              "parallel_partial_ranking"
+            ]
+          },
+          tieBreakMode: { type: "string", enum: ["higher_seed_wins", "random"] },
+          advancementMode: { type: "string", enum: ["vote_winner", "manual_winner"] },
+          intentPreset: { type: ["string", "null"] }
+        },
+        required: [
+          "title",
+          "description",
+          "source",
+          "sharingMode",
+          "visibility",
+          "votingAccess",
+          "playStyle",
+          "resultMode",
+          "tieBreakMode",
+          "advancementMode",
+          "intentPreset"
+        ]
+      },
+      BracketIntentRequest: {
+        type: "object",
+        properties: {
+          prompt: { type: "string", minLength: 1, maxLength: 12000 },
+          action: { type: "string", enum: ["preview", "create"], default: "preview" }
+        },
+        required: ["prompt"]
+      },
+      BracketIntentPreviewResponse: {
+        type: "object",
+        properties: {
+          item: { $ref: "#/components/schemas/BracketIntentPlan" },
+          meta: {
+            type: "object",
+            properties: {
+              sourceSummary: { type: "string" },
+              safety: {
+                type: "object",
+                properties: {
+                  startsAutomatically: { type: "boolean", const: false },
+                  publishesAutomatically: { type: "boolean", const: false },
+                  createsPrivatePoolByDefault: { type: "boolean", const: true }
+                },
+                required: [
+                  "startsAutomatically",
+                  "publishesAutomatically",
+                  "createsPrivatePoolByDefault"
+                ]
+              },
+              matchedPools: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    id: { type: "string", format: "uuid" },
+                    name: { type: "string" },
+                    candidateCount: { type: ["integer", "null"], minimum: 0 },
+                    visibility: {
+                      type: ["string", "null"],
+                      enum: ["private", "public_listed", "public_unlisted", null]
+                    }
+                  },
+                  required: ["id", "name"]
+                }
+              }
+            },
+            required: ["sourceSummary", "safety", "matchedPools"]
+          }
+        },
+        required: ["item", "meta"]
+      },
+      BracketIntentCreateResponse: {
+        type: "object",
+        properties: {
+          item: {
+            oneOf: [
+              { $ref: "#/components/schemas/TournamentDetail" },
+              { $ref: "#/components/schemas/ParallelTournamentSummary" }
+            ]
+          },
+          plan: { $ref: "#/components/schemas/BracketIntentPlan" },
+          meta: {
+            type: "object",
+            properties: {
+              sourceSummary: { type: "string" },
+              startedAutomatically: { type: "boolean", const: false },
+              publishedAutomatically: { type: "boolean", const: false }
+            },
+            required: ["sourceSummary", "startedAutomatically", "publishedAutomatically"]
+          }
+        },
+        required: ["item", "plan", "meta"]
+      },
       TournamentEntriesResponse: {
         type: "object",
         properties: {
@@ -1105,7 +1265,6 @@ export const openApiDocument = {
     "/api/image-proxy": {
       get: {
         summary: "Fetch and proxy a remote image",
-        security: [],
         parameters: [
           {
             name: "url",
@@ -1127,6 +1286,7 @@ export const openApiDocument = {
             }
           },
           "400": { $ref: "#/components/responses/BadRequest" },
+          "401": { $ref: "#/components/responses/Unauthorized" },
           "502": { $ref: "#/components/responses/InternalError" }
         }
       }
@@ -1437,6 +1597,41 @@ export const openApiDocument = {
           "401": { $ref: "#/components/responses/Unauthorized" },
           "403": { $ref: "#/components/responses/Forbidden" },
           "404": { $ref: "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/api/bracket-intents": {
+      post: {
+        summary: "Preview or create a draft bracket from a natural-language prompt",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/BracketIntentRequest" }
+            }
+          }
+        },
+        responses: {
+          "200": {
+            description: "Prompt interpreted as a bracket creation plan",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/BracketIntentPreviewResponse" }
+              }
+            }
+          },
+          "201": {
+            description: "Draft bracket created from prompt",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/BracketIntentCreateResponse" }
+              }
+            }
+          },
+          "400": { $ref: "#/components/responses/BadRequest" },
+          "401": { $ref: "#/components/responses/Unauthorized" },
+          "409": { $ref: "#/components/responses/Conflict" },
+          "502": { $ref: "#/components/responses/InternalError" }
         }
       }
     },

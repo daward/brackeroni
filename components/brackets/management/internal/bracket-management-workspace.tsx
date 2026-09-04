@@ -436,6 +436,9 @@ export function BracketManagementWorkspace() {
         poolDetails={poolDetails}
         isActionPending={isActionPending}
         onOpenBracketWizard={() => router.push("/brackets/configuration")}
+        onPromptDraftCreated={() => loadWorkspace({ force: true })}
+        setErrorMessage={setErrorMessage}
+        setSuccessMessage={setSuccessMessage}
         handleCopyShareLink={handleCopyShareLink}
         handleStartTournament={handleStartTournament}
         handleArchiveTournament={handleArchiveTournament}
