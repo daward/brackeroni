@@ -4,7 +4,7 @@ import type { RefObject } from "react";
 import type { BracketIntentPreset } from "@/lib/brackets/intent-presets";
 import type { BracketAdvancementMode, BracketPlayStyle, BracketResultMode, BracketTieBreakMode } from "@/lib/brackets/types";
 import type { PoolCandidate, PoolSelectionOption } from "@/lib/pools/types";
-import type { AudienceMode, SeedingMode } from "../types";
+import type { AudienceMode, BracketCreationAction, SeedingMode } from "../types";
 import { AccessStep } from "./access-step";
 import { MatchupsStep } from "./matchups-step";
 import { ResultsStep } from "./results-step";
@@ -60,7 +60,7 @@ type WizardLayoutProps = {
   onTitleChange: (title: string) => void;
   onBack: () => void;
   onNext: () => void;
-  onCreate: () => void;
+  onCreate: (action: BracketCreationAction) => void;
 };
 
 export function WizardLayout(props: WizardLayoutProps) {
@@ -99,16 +99,23 @@ export function WizardLayout(props: WizardLayoutProps) {
           <button type="button" onClick={props.onBack} className="ui-button ui-button-muted">
             {getBackLabel(props.step, props.fullPage)}
           </button>
-          {canContinue ? (
-            <button type="button" onClick={props.onNext} className="ui-button ui-button-primary">
-              Continue
-            </button>
-          ) : null}
-          {props.step === STEPS.length - 1 ? (
-            <button type="button" onClick={props.onCreate} disabled={props.creating} className="ui-button ui-button-primary">
-              {props.creating ? "Creating" : "Create bracket"}
-            </button>
-          ) : null}
+          <div className={setupStyles.actionGroup}>
+            {canContinue ? (
+              <button type="button" onClick={props.onNext} className="ui-button ui-button-primary">
+                Continue
+              </button>
+            ) : null}
+            {props.step === STEPS.length - 1 ? (
+              <>
+                <button type="button" onClick={() => props.onCreate("save_draft")} disabled={props.creating} className="ui-button ui-button-muted">
+                  {props.creating ? "Saving" : "Save as draft"}
+                </button>
+                <button type="button" onClick={() => props.onCreate("start_voting")} disabled={props.creating} className="ui-button ui-button-primary">
+                  {props.creating ? "Starting" : "Start voting"}
+                </button>
+              </>
+            ) : null}
+          </div>
         </footer>
       </section>
     </div>

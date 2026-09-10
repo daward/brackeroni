@@ -6,9 +6,15 @@ const bracketId = "11111111-1111-4111-8111-111111111111";
 
 let scenario: {
   redirect: ReturnType<typeof vi.fn>;
+  user: { id: string } | null;
+  anonymousVoterToken: string | null;
+  bracket: ReturnType<typeof activeBracket>;
+  publicBrackets: ReturnType<typeof activeBracket>[];
+  votedBrackets: ReturnType<typeof activeBracket>[];
+  calls: Array<[string, unknown?]>;
 };
 
-function activeBracket() {
+function activeBracket(overrides = {}) {
   return {
     id: bracketId,
     title: "Creator Bracket",
@@ -19,6 +25,7 @@ function activeBracket() {
     votingAccess: "signed_in_only",
     createdAt: "2026-01-01T00:00:00.000Z",
     updatedAt: "2026-01-01T00:00:00.000Z",
+    ...overrides,
   };
 }
 
@@ -29,11 +36,21 @@ describe("vote page routing", () => {
       redirect: vi.fn((href: string) => {
         throw new Error(`redirect:${href}`);
       }),
+      user: { id: "user-1" },
+      anonymousVoterToken: null,
+      bracket: activeBracket(),
+      publicBrackets: [],
+      votedBrackets: [],
+      calls: [],
     };
 
     vi.doMock("next/navigation", () => ({ redirect: scenario.redirect }));
-    vi.doMock("next/headers", () => ({ cookies: vi.fn(async () => ({ get: vi.fn(() => null) })) }));
-    vi.doMock("@/lib/auth/current-user", () => ({ getOptionalCurrentUser: vi.fn(async () => ({ id: "user-1" })) }));
+    vi.doMock("next/headers", () => ({
+      cookies: vi.fn(async () => ({
+        get: vi.fn(() => scenario.anonymousVoterToken ? { value: scenario.anonymousVoterToken } : null),
+      })),
+    }));
+    vi.doMock("@/lib/auth/current-user", () => ({ getOptionalCurrentUser: vi.fn(async () => scenario.user) }));
     vi.doMock("@/lib/auth/viewer", () => ({ ANONYMOUS_VOTER_COOKIE: "anon-voter" }));
     vi.doMock("@/lib/brackets", () => ({
       bracket: vi.fn(() => ({
@@ -42,9 +59,13 @@ describe("vote page routing", () => {
         })),
       })),
       bracketDirectory: vi.fn(() => ({
-        getAccessibleBracketById: vi.fn(async () => activeBracket()),
-        listAccessibleBrackets: vi.fn(async () => [activeBracket()]),
-        listPublicBrackets: vi.fn(async () => []),
+        getAccessibleBracketById: vi.fn(async () => scenario.bracket),
+        listAccessibleBrackets: vi.fn(async () => [scenario.bracket]),
+        listPublicBrackets: vi.fn(async () => scenario.publicBrackets),
+        listVotedBrackets: vi.fn(async (options) => {
+          scenario.calls.push(["listVotedBrackets", options]);
+          return scenario.votedBrackets;
+        }),
       })),
       parallelBracketDirectory: vi.fn(() => ({
         listAccessibleBrackets: vi.fn(async () => []),
@@ -60,5 +81,45 @@ describe("vote page routing", () => {
       BracketVotingPage({ searchParams: Promise.resolve({ bracket: bracketId, returnTo: "create" }) }),
     ).rejects.toThrow("redirect:/brackets?stage=active");
     expect(scenario.redirect).toHaveBeenCalledWith("/brackets?stage=active");
+  });
+
+  it("keeps anonymous public active brackets on the vote page after the guest has voted", async () => {
+    scenario.user = null;
+    scenario.anonymousVoterToken = "anon-1";
+    scenario.bracket = activeBracket({
+      visibility: "public_unlisted",
+      votingAccess: "anyone",
+    });
+    const { default: BracketVotingPage } = await import("../../../components/brackets/voting/internal/vote-page");
+
+    await BracketVotingPage({ searchParams: Promise.resolve({ bracket: bracketId }) });
+
+    expect(scenario.redirect).not.toHaveBeenCalled();
+  });
+
+  it("includes anonymous voted public unlisted brackets in the vote list", async () => {
+    scenario.user = null;
+    scenario.anonymousVoterToken = "anon-1";
+    scenario.bracket = activeBracket({
+      visibility: "public_unlisted",
+      votingAccess: "anyone",
+    });
+    scenario.votedBrackets = [scenario.bracket];
+    const { default: BracketVotingPage } = await import("../../../components/brackets/voting/internal/vote-page");
+
+    const page = await BracketVotingPage({ searchParams: Promise.resolve({}) });
+    const panels = page.props.children;
+
+    expect(scenario.calls[0]).toEqual([
+      "listVotedBrackets",
+      {
+        userId: null,
+        anonymousVoterToken: "anon-1",
+        statuses: ["active", "complete"],
+        limit: 12,
+        offset: 0,
+      },
+    ]);
+    expect(panels.props.activeTournaments.map((tournament: { id: string }) => tournament.id)).toContain(bracketId);
   });
 });

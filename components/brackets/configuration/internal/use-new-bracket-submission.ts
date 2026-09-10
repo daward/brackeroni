@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { isParallelResultMode } from "@/lib/brackets/engine/result-modes";
 import { createParallelTournament, createPool, createTournament, startParallelTournament, startTournament, updateTournament } from "@/lib/client-api/create-workspace";
 import type { BracketSetupDraft } from "@/lib/brackets/types";
-import type { BracketCreationInput } from "../types";
+import type { BracketCreationAction, BracketCreationInput } from "../types";
 
 type AudienceMode = "private" | "friends" | "public";
 
@@ -23,7 +23,7 @@ export function useNewBracketSubmission(draft: BracketSetupDraft | null) {
   const router = useRouter();
   const [creating, setCreating] = useState(false);
 
-  async function createBracket(input: BracketCreationInput) {
+  async function createBracket(input: BracketCreationInput, action: BracketCreationAction) {
     setCreating(true);
     try {
       const pool = await getSubmissionPool(input);
@@ -44,7 +44,7 @@ export function useNewBracketSubmission(draft: BracketSetupDraft | null) {
       const data = await submitBracket(input, payload, draft);
       const tournamentId = data.item?.id ?? draft?.id;
 
-      if (input.audienceMode === "private" && tournamentId) {
+      if (action === "start_voting" && tournamentId) {
         if (isParallelResultMode(input.resultMode)) {
           await startParallelTournament(tournamentId);
           router.push(`/vote?parallelBracket=${tournamentId}&returnTo=create`);
@@ -52,7 +52,7 @@ export function useNewBracketSubmission(draft: BracketSetupDraft | null) {
         }
 
         await startTournament(tournamentId);
-        router.push(`/vote?bracket=${tournamentId}&returnTo=create`);
+        router.push(input.audienceMode === "private" ? `/vote?bracket=${tournamentId}&returnTo=create` : "/brackets?stage=active");
         return data.item;
       }
 

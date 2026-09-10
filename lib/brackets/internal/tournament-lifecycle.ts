@@ -184,6 +184,7 @@ export async function closeTournamentRound({ tournamentId, creatorUserId }) {
         status
       from tournament
       where id = ${tournamentId}
+      for update
     `;
 
     if (!tournament) {
@@ -266,10 +267,15 @@ export async function openTournamentRound({ tournamentId, creatorUserId }) {
       throw new Error("FORBIDDEN");
     }
 
-    if (
-      !["public_listed", "public_unlisted"].includes(tournament.visibility) ||
-      tournament.status !== "active"
-    ) {
+    if (!["public_listed", "public_unlisted"].includes(tournament.visibility)) {
+      throw new Error("ROUND_NOT_REVEALABLE");
+    }
+
+    if (tournament.status === "complete") {
+      return { advanced: true, completed: true, alreadyOpen: true };
+    }
+
+    if (tournament.status !== "active") {
       throw new Error("ROUND_NOT_REVEALABLE");
     }
 
@@ -281,9 +287,23 @@ export async function openTournamentRound({ tournamentId, creatorUserId }) {
         and revealed_at is null
       order by sequence_number desc
       limit 1
+      for update
     `;
 
     if (!closedRound) {
+      const [activeRound] = await tx`
+        select id
+        from tournament_round
+        where tournament_id = ${tournamentId}
+          and status = 'active'
+        order by sequence_number desc
+        limit 1
+      `;
+
+      if (activeRound) {
+        return { advanced: true, completed: false, alreadyOpen: true };
+      }
+
       throw new Error("ROUND_NOT_REVEALABLE");
     }
 

@@ -6,6 +6,7 @@ import type { PoolSelectionOption } from "@/lib/pools/types";
 
 export type AudienceMode = "private" | "friends" | "public";
 export type SeedingMode = "pool_order" | "custom";
+export type BracketCreationAction = "start_voting" | "save_draft";
 
 export type BracketStyleFieldProps = {
   value: BracketPlayStyle;
@@ -117,7 +118,7 @@ export type BracketCreationWizardProps = {
   pools: PoolSelectionOption[];
   creating: boolean;
   onCancel: () => void;
-  onCreate: (input: BracketCreationInput) => Promise<boolean>;
+  onCreate: (input: BracketCreationInput, action: BracketCreationAction) => Promise<boolean>;
   onCreatePoolWorkspace?: () => void;
   initialPoolId?: string;
   initialConfig?: Partial<{

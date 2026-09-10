@@ -33,6 +33,7 @@ import type {
   TournamentDrafts,
 } from "./workspace-internal-types";
 import { getErrorMessage } from "./workspace-internal-types";
+import { isParallelResultMode } from "@/lib/brackets/engine/result-modes";
 
 const emptyCandidateForm = {
   name: "",
@@ -229,6 +230,7 @@ export function BracketManagementWorkspace() {
     handleSetManualMatchWinner,
     handleStartTournament,
     handleSyncTournamentWithPool,
+    handleVoteCurrentRound,
     updateTournamentInline,
   } = useTournamentActions({
     router,
@@ -251,6 +253,11 @@ export function BracketManagementWorkspace() {
     setSuccessMessage,
     loadWorkspace,
   });
+
+  function handleOpenParallelVoting(tournamentId: string) {
+    setErrorMessage("Parallel bracket voting opens each participant's ballot. Use the public voting page from the shared link.");
+    setSelectedLiveTournamentId(tournamentId);
+  }
   useBracketRouteActions({
     beginAction,
     createDraftBracket,
@@ -353,7 +360,7 @@ export function BracketManagementWorkspace() {
     seedingMode,
     seedCandidateIds,
     audienceMode,
-  }: BracketCreationInput) {
+  }: BracketCreationInput, action: "start_voting" | "save_draft") {
     if (isBracketWizardCreating) {
       return null;
     }
@@ -402,6 +409,13 @@ export function BracketManagementWorkspace() {
         setIsBracketWizardOpen(false);
       }
 
+      if (action === "start_voting" && bracket?.id) {
+        await handleStartTournament(bracket.id);
+        if (audienceMode !== "private" || isParallelResultMode(resultMode)) {
+          setTournamentStageView("active");
+        }
+      }
+
       return bracket;
     } catch (error) {
       setErrorMessage(getErrorMessage(error, "Failed to create bracket."));
@@ -445,6 +459,8 @@ export function BracketManagementWorkspace() {
         updateTournamentInline={updateTournamentInline}
         handleCloseCurrentRound={handleCloseCurrentRound}
         handleOpenNextRound={handleOpenNextRound}
+        handleVoteCurrentRound={handleVoteCurrentRound}
+        handleOpenParallelVoting={handleOpenParallelVoting}
         handleRerunTournament={handleRerunTournament}
         handleSetManualMatchWinner={handleSetManualMatchWinner}
         tournamentMatches={tournamentMatches}

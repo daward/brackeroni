@@ -51,7 +51,9 @@ export function VoteScreenPanels({
   );
 
   const focusedTournament = active.find((tournament) => tournament.id === focusedTournamentId) ?? null;
-  const openActiveTournaments = active.filter((tournament) => openMatchesForTournament(tournament).length > 0);
+  const openActiveTournaments = active.filter((tournament) => {
+    return tournament.id === focusedTournamentId || openMatchesForTournament(tournament).length > 0;
+  });
   const openMatchCount = openActiveTournaments.reduce((count, tournament) => {
     return count + openMatchesForTournament(tournament).length;
   }, 0);

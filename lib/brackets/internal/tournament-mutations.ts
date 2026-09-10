@@ -135,10 +135,13 @@ export async function createTournamentRerun({ tournamentId, creatorUserId }) {
     tournamentId,
     creatorUserId
   });
-  const rerunVisibility = "private";
-  const rerunVotingAccess = "signed_in_only";
+  const rerunSharingMode = sourceTournament.sharingMode || "private";
+  const rerunVisibility = sourceTournament.visibility || "private";
+  const rerunVotingAccess = isPublicTournamentVisibility(rerunVisibility)
+    ? "anyone"
+    : sourceTournament.votingAccess || "signed_in_only";
   const rerunRoundClosureMode = getRoundClosureModeForAudience({
-    sharingMode: sourceTournament.sharingMode,
+    sharingMode: rerunSharingMode,
     visibility: rerunVisibility
   });
 
@@ -169,7 +172,7 @@ export async function createTournamentRerun({ tournamentId, creatorUserId }) {
         ${nextTitle},
         ${sourceTournament.description ?? null},
         ${sourceTournament.sourcePoolId},
-        ${sourceTournament.sharingMode},
+        ${rerunSharingMode},
         ${rerunVisibility},
         ${rerunVotingAccess},
         ${sourceTournament.playStyle},

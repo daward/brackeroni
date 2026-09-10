@@ -50,6 +50,7 @@ export async function listBracketMatches({
   creatorUserId,
   userId = null,
   anonymousVoterToken = null,
+  scope = "all_visible",
 }) {
   const sql = getDb();
   const candidateSupport = await getCandidateSchemaSupport(sql);
@@ -63,6 +64,7 @@ export async function listBracketMatches({
     creatorUserId,
     mode: "read",
   });
+  const shouldListManagementCurrentRound = scope === "management_current";
 
   if (tournament.status === "active") {
     await sql.begin(async (tx) => {
@@ -135,6 +137,28 @@ export async function listBracketMatches({
         t.creator_user_id = ${userId}
         or r.status = 'active'
         or r.revealed_at is not null
+      )
+      and (
+        ${!shouldListManagementCurrentRound}
+        or r.id = coalesce(
+          (
+            select active_round.id
+            from tournament_round active_round
+            where active_round.tournament_id = ${tournamentId}
+              and active_round.status = 'active'
+            order by active_round.sequence_number desc
+            limit 1
+          ),
+          (
+            select unrevealed_round.id
+            from tournament_round unrevealed_round
+            where unrevealed_round.tournament_id = ${tournamentId}
+              and unrevealed_round.status = 'closed'
+              and unrevealed_round.revealed_at is null
+            order by unrevealed_round.sequence_number desc
+            limit 1
+          )
+        )
       )
     order by
       r.sequence_number asc,

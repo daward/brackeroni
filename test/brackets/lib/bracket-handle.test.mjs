@@ -254,6 +254,19 @@ describe("bracket handle", () => {
     assert.equal(calls.at(-1).sql.startsWith("update tournament_round"), true);
   });
 
+  it("treats reopening an already opened public next round as idempotent", async () => {
+    responses = [
+      [activeTournament({ visibility: "public_listed" })],
+      [],
+      [{ id: "round-2" }],
+    ];
+
+    const result = await bracketHandle.openNextRound();
+
+    assert.deepEqual(result, { advanced: true, completed: false, alreadyOpen: true });
+    assert.equal(calls.some((call) => call.sql.includes("for update")), true);
+  });
+
   it("assigns final rank when a full-ranking round closes", async () => {
     responses = [
       [activeTournament({ resultMode: "full_ranking" })],
@@ -419,20 +432,43 @@ describe("bracket handle", () => {
     assert.equal(calls.some((call) => call.sql.startsWith("insert into match")), true);
   });
 
-  it("creates a private rerun with the same entries", async () => {
+  it("creates a rerun with the same entries and audience settings", async () => {
     responses = [
-      tournamentRows({ title: "Dinner" }),
+      [{
+        hasParentParallelTournamentId: true,
+        hasTournamentIntentPreset: true,
+        hasParallelTournamentIntentPreset: true,
+        hasParallelTournamentParticipantTable: true,
+      }],
+      tournamentRows({
+        title: "Dinner",
+        sharingMode: "private",
+        visibility: "public_listed",
+        votingAccess: "anyone",
+      }),
       entryRows(),
       [{ id: "rerun-1" }],
       [],
       [],
-      tournamentRows({ id: "rerun-1", title: "Dinner Rerun" }),
+      tournamentRows({
+        id: "rerun-1",
+        title: "Dinner Rerun",
+        sharingMode: "private",
+        visibility: "public_listed",
+        votingAccess: "anyone",
+      }),
       entryRows(),
     ];
 
     const rerun = await bracketHandle.createRerun();
 
     assert.equal(rerun.title, "Dinner Rerun");
+    assert.equal(rerun.visibility, "public_listed");
+    assert.equal(rerun.votingAccess, "anyone");
+    assert.equal(
+      calls.some((call) => call.sql.startsWith("insert into tournament") && call.values.includes("public_listed")),
+      true,
+    );
     assert.equal(calls.filter((call) => call.sql.startsWith("insert into tournament_entry")).length, 2);
   });
 

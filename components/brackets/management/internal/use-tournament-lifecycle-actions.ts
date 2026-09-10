@@ -9,6 +9,7 @@ import {
   setTournamentMatchWinner,
   syncTournamentWithPool,
 } from "@/lib/client-api/create-workspace";
+import { submitMatchVote } from "@/lib/client-api/voting";
 import type {
   ActionMarker,
   LoadWorkspace,
@@ -166,7 +167,13 @@ export function useTournamentLifecycleActions({
         replaceTournamentInWorkspace(tournamentId, data.item);
       }
       await refreshTournamentMatches(tournamentId);
-      setSuccessMessage(data.item?.status === "complete" ? "Bracket complete. Review progress and reveal rounds when ready." : "Round closed and bracket advanced.");
+      if (data.item?.status === "complete") {
+        setSuccessMessage("Bracket complete. Review progress and reveal rounds when ready.");
+      } else if (data.item?.hasUnrevealedClosedRounds) {
+        setSuccessMessage("Voting closed. Open the next round when you are ready to reveal these results.");
+      } else {
+        setSuccessMessage("Round closed and bracket advanced.");
+      }
       await loadWorkspace({ force: true });
     } catch (error) {
       setErrorMessage(getErrorMessage(error, "Failed to close the current round."));
@@ -195,6 +202,36 @@ export function useTournamentLifecycleActions({
       await loadWorkspace({ force: true });
     } catch (error) {
       setErrorMessage(getErrorMessage(error, "Failed to open the next round."));
+    } finally {
+      endAction(actionKey);
+    }
+  }
+
+  async function handleVoteCurrentRound(tournamentId: string, matchId: string, selectedEntryId: string) {
+    const actionKey = `vote-match:${matchId}`;
+    if (isActionPending(actionKey)) {
+      return;
+    }
+
+    beginAction(actionKey);
+    setErrorMessage("");
+    setSuccessMessage("");
+
+    try {
+      await submitMatchVote(matchId, selectedEntryId);
+      await refreshTournamentMatches(tournamentId);
+      await loadWorkspace({ force: true });
+      setSuccessMessage("Vote recorded. Stay here to track and close the round.");
+    } catch (error) {
+      const voteError = error as { code?: string; message?: string };
+      if (voteError.code === "MATCH_NOT_OPEN") {
+        await refreshTournamentMatches(tournamentId);
+        await loadWorkspace({ force: true });
+        setErrorMessage("That round closed before the vote was submitted.");
+        return;
+      }
+
+      setErrorMessage(getErrorMessage(error, "Failed to record vote."));
     } finally {
       endAction(actionKey);
     }
@@ -229,5 +266,6 @@ export function useTournamentLifecycleActions({
     handleRerunTournament,
     handleSetManualMatchWinner,
     handleSyncTournamentWithPool,
+    handleVoteCurrentRound,
   };
 }

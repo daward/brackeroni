@@ -38,11 +38,11 @@ export async function getTournamentById({ tournamentId, creatorUserId }) {
       coalesce(open_votes."openVoteCount", 0)::integer as "openVoteCount",
       exists (
         select 1
-        from tournament_round hidden_round
-        where hidden_round.tournament_id = t.id
-          and hidden_round.status = 'closed'
-          and hidden_round.revealed_at is null
-      ) as "hasHiddenClosedRounds",
+        from tournament_round unrevealed_round
+        where unrevealed_round.tournament_id = t.id
+          and unrevealed_round.status = 'closed'
+          and unrevealed_round.revealed_at is null
+      ) as "hasUnrevealedClosedRounds",
       coalesce(ranked_winner.id, winner.id) as "winnerEntryId",
       coalesce(ranked_winner.name, winner.name) as "winnerName",
       coalesce(ranked_winner.seed, winner.seed) as "winnerSeed"
@@ -149,6 +149,7 @@ export async function getTournamentById({ tournamentId, creatorUserId }) {
     activeRoundNumber: tournament.activeRoundNumber,
     activeRoundOpenMatchCount: tournament.activeRoundOpenMatchCount,
     openVoteCount: tournament.openVoteCount,
+    hasUnrevealedClosedRounds: tournament.hasUnrevealedClosedRounds,
     winnerEntryId: tournament.winnerEntryId,
     winnerName: tournament.winnerName,
     winnerSeed: tournament.winnerSeed,
@@ -214,11 +215,11 @@ export async function getAccessibleTournamentById({
       coalesce(open_votes."openVoteCount", 0)::integer as "openVoteCount",
       exists (
         select 1
-        from tournament_round hidden_round
-        where hidden_round.tournament_id = t.id
-          and hidden_round.status = 'closed'
-          and hidden_round.revealed_at is null
-      ) as "hasHiddenClosedRounds",
+        from tournament_round unrevealed_round
+        where unrevealed_round.tournament_id = t.id
+          and unrevealed_round.status = 'closed'
+          and unrevealed_round.revealed_at is null
+      ) as "hasUnrevealedClosedRounds",
       coalesce(ranked_winner.id, winner.id) as "winnerEntryId",
       coalesce(ranked_winner.name, winner.name) as "winnerName",
       coalesce(ranked_winner.seed, winner.seed) as "winnerSeed"
@@ -296,7 +297,7 @@ export async function getAccessibleTournamentById({
 
   const canInspectAllProgress = Boolean(userId && tournament.creatorUserId === userId);
   const shouldHideUnrevealedResults =
-    !canInspectAllProgress && Boolean(tournament.hasHiddenClosedRounds);
+    !canInspectAllProgress && Boolean(tournament.hasUnrevealedClosedRounds);
 
   const entries = await sql`
     select
@@ -345,6 +346,7 @@ export async function getAccessibleTournamentById({
     activeRoundNumber: tournament.activeRoundNumber,
     activeRoundOpenMatchCount: tournament.activeRoundOpenMatchCount,
     openVoteCount: tournament.openVoteCount,
+    hasUnrevealedClosedRounds: tournament.hasUnrevealedClosedRounds,
     winnerEntryId: shouldHideUnrevealedResults ? null : tournament.winnerEntryId,
     winnerName: shouldHideUnrevealedResults ? null : tournament.winnerName,
     winnerSeed: shouldHideUnrevealedResults ? null : tournament.winnerSeed,

@@ -60,6 +60,8 @@ type TournamentWorkspaceSectionProps = {
   ) => Promise<void> | void;
   handleCloseCurrentRound: (tournamentId: string) => void;
   handleOpenNextRound: (tournamentId: string) => void;
+  handleVoteCurrentRound: (tournamentId: string, matchId: string, selectedEntryId: string) => void;
+  handleOpenParallelVoting: (tournamentId: string) => void;
   handleRerunTournament: (tournamentId: string) => void;
   handleSetManualMatchWinner: (tournamentId: string, matchId: string, winnerEntryId: string | null) => void;
 };
@@ -113,6 +115,8 @@ export function TournamentWorkspaceSection({
   updateTournamentInline,
   handleCloseCurrentRound,
   handleOpenNextRound,
+  handleVoteCurrentRound,
+  handleOpenParallelVoting,
   handleRerunTournament,
   handleSetManualMatchWinner,
 }: TournamentWorkspaceSectionProps) {
@@ -150,9 +154,6 @@ export function TournamentWorkspaceSection({
     const creatorIsDone = activeRoundVoteGoal > 0 && creatorVotesCast >= activeRoundVoteGoal;
     const hasOpenVotes = (tournament.openVoteCount ?? 0) > 0;
     const viewerParallelBracketComplete = isParallelParent && tournament.viewerParticipantStatus === "complete";
-    const primaryParallelActionHref = viewerParallelBracketComplete
-      ? `/results/${tournament.id}`
-      : `/vote?parallelBracket=${tournament.id}&returnTo=create`;
     const primaryParallelActionLabel = viewerParallelBracketComplete ? "Results" : "Vote";
 
     return (
@@ -160,7 +161,6 @@ export function TournamentWorkspaceSection({
         {isParallelParent ? (
           <ActiveParallelTournamentSection
             tournament={tournament}
-            primaryActionHref={primaryParallelActionHref}
             primaryActionLabel={primaryParallelActionLabel}
             activeShareLink={activeShareLink}
             invitees={invitees}
@@ -168,6 +168,7 @@ export function TournamentWorkspaceSection({
             describeTournamentAudienceMode={describeTournamentAudienceMode}
             formatBracketRuleLabel={formatBracketRuleLabel}
             isActionPending={isActionPending}
+            onVote={handleOpenParallelVoting}
             onCopyShareLink={handleCopyShareLink}
             onCloseBracket={(tournamentId) => updateTournamentInline(tournamentId, { status: "complete" }, { silent: false })}
             onArchiveTournament={handleArchiveTournament}
@@ -188,6 +189,7 @@ export function TournamentWorkspaceSection({
             isActionPending={isActionPending}
             onCloseCurrentRound={handleCloseCurrentRound}
             onOpenNextRound={handleOpenNextRound}
+            onVoteCurrentRound={handleVoteCurrentRound}
             onCopyShareLink={handleCopyShareLink}
             onSetManualMatchWinner={handleSetManualMatchWinner}
             onRerunTournament={handleRerunTournament}

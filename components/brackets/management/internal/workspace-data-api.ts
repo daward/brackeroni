@@ -59,7 +59,10 @@ type PoolDetailOptions = PrefixedPaginationOptions<"candidate">;
 export const getPoolForWorkspace = getPool as unknown as (poolId: string, options?: PoolDetailOptions) => Promise<{ item: PoolDetail }>;
 const listRawTournamentsForWorkspace = listTournaments as unknown as (options?: WorkspaceListOptions) => Promise<ListResponse<WorkspaceTournament>>;
 const listRawParallelTournamentsForWorkspace = listParallelTournaments as unknown as (options?: WorkspaceListOptions) => Promise<ListResponse<WorkspaceTournament>>;
-const listRawTournamentMatchesForWorkspace = listTournamentMatches as unknown as (tournamentId: string) => Promise<ListResponse<WorkspaceMatch>>;
+const listRawTournamentMatchesForWorkspace = listTournamentMatches as unknown as (
+  tournamentId: string,
+  options?: { scope?: "management-current" },
+) => Promise<ListResponse<WorkspaceMatch>>;
 export const listTournamentInvitesForWorkspace = listTournamentInvites as unknown as (tournamentId: string) => Promise<ListResponse<WorkspaceInviteLike>>;
 export const getParallelTournamentForWorkspace = getParallelTournament as unknown as (tournamentId: string) => Promise<ParallelTournamentResponse>;
 export const listTournamentShareLinksForWorkspace = listTournamentShareLinks as unknown as (tournamentId: string) => Promise<ListResponse<WorkspaceShareLink>>;
@@ -72,7 +75,7 @@ export function normalizeWorkspaceMatch(match: WorkspaceMatch): WorkspaceMatch {
 }
 
 export async function listTournamentMatchesForWorkspace(tournamentId: string): Promise<ListResponse<WorkspaceMatch>> {
-  const data = await listRawTournamentMatchesForWorkspace(tournamentId);
+  const data = await listRawTournamentMatchesForWorkspace(tournamentId, { scope: "management-current" });
 
   return {
     ...data,

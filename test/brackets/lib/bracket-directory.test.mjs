@@ -67,7 +67,7 @@ describe("bracket directory", () => {
   it("gets an accessible public bracket by id", async () => {
     responses = [
       [{ hasParentParallelTournamentId: true, hasParallelTournamentParticipantTable: true }],
-      [bracketRow({ visibility: "public_listed", hasHiddenClosedRounds: true })],
+      [bracketRow({ visibility: "public_listed", hasUnrevealedClosedRounds: true })],
       [{ id: "entry-1", seed: 1, candidateId: "candidate-1", candidateName: "Pizza", finalRank: null }],
     ];
 
@@ -106,6 +106,7 @@ describe("bracket directory", () => {
   it("creates a public bracket with public voting access", async () => {
     responses = [
       [{ id: "bracket-2" }],
+      [{ hasParentParallelTournamentId: true, hasTournamentIntentPreset: true }],
       [bracketRow({ id: "bracket-2", visibility: "public_listed", votingAccess: "anyone" })],
       [],
     ];
@@ -151,6 +152,24 @@ describe("bracket directory", () => {
 
     assert.equal(brackets[0].id, "bracket-1");
     assert.equal(calls.at(-1).values.includes(6), true);
+  });
+
+  it("lists public unlisted brackets the anonymous viewer voted in", async () => {
+    responses = [
+      [{ hasParentParallelTournamentId: true, hasTournamentIntentPreset: true }],
+      [bracketRow({ visibility: "public_unlisted", status: "active" })],
+    ];
+
+    const brackets = await directory.listVotedBrackets({
+      anonymousVoterToken: "anon-1",
+      statuses: ["active", "complete"],
+      limit: 12,
+    });
+
+    assert.equal(brackets[0].id, "bracket-1");
+    assert.equal(brackets[0].visibility, "public_unlisted");
+    assert.equal(calls.at(-1).sql.includes("viewer_vote.anonymous_voter_token"), true);
+    assert.equal(calls.at(-1).sql.includes("t.visibility in ('public_listed', 'public_unlisted')"), true);
   });
 
   it("gets featured public matchups", async () => {

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { getPool } from "@/lib/client-api/create-workspace";
 import type { BracketAdvancementMode, BracketPlayStyle, BracketResultMode, BracketTieBreakMode } from "@/lib/brackets/types";
 import type { PoolCandidate, PoolSelectionOption } from "@/lib/pools/types";
-import type { AudienceMode, BracketCreationInput, BracketCreationWizardProps, SeedingMode } from "../types";
+import type { AudienceMode, BracketCreationAction, BracketCreationInput, BracketCreationWizardProps, SeedingMode } from "../types";
 import { useWizardPools } from "./use-wizard-pools";
 import { WIZARD_STEP_COUNT } from "./wizard-steps";
 
@@ -142,7 +142,7 @@ export function useBracketCreationWizardState({ pools, initialPoolId = "", initi
     }
   }
 
-  async function handleCreate() {
+  async function handleCreate(action: BracketCreationAction) {
     const input = buildCreationInput();
     if (!input) {
       changeStep(0);
@@ -150,7 +150,7 @@ export function useBracketCreationWizardState({ pools, initialPoolId = "", initi
     }
 
     setError("");
-    const created = await onCreate(input);
+    const created = await onCreate(input, action);
     if (!created) setError("We couldn't create that bracket. Please try again.");
   }
 

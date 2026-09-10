@@ -12,7 +12,6 @@ import type { ActiveParallelTournamentSectionProps } from "../types";
 
 export function ActiveParallelTournamentSection({
   tournament,
-  primaryActionHref,
   primaryActionLabel,
   activeShareLink,
   invitees,
@@ -20,6 +19,7 @@ export function ActiveParallelTournamentSection({
   describeTournamentAudienceMode,
   formatBracketRuleLabel,
   isActionPending,
+  onVote,
   onCopyShareLink,
   onCloseBracket,
   onArchiveTournament,
@@ -36,8 +36,8 @@ export function ActiveParallelTournamentSection({
       }
     : {
         key: `parallel-vote:${tournament.id}`,
-        href: primaryActionHref,
         label: primaryActionLabel,
+        onClick: () => onVote(tournament.id),
         className: "cta-link ui-button ui-button-primary",
       };
   const parallelCloseAction = {

@@ -74,7 +74,10 @@ function createBracketHandle(options) {
       return scenario.bracket;
     }),
     listInvites: vi.fn(async () => scenario.invites),
-    listMatches: vi.fn(async () => ({ bracket: scenario.bracket, matches: scenario.matches })),
+    listMatches: vi.fn(async (options) => {
+      scenario.calls.push(["listMatches", options]);
+      return { bracket: scenario.bracket, matches: scenario.matches };
+    }),
     listRounds: vi.fn(async () => scenario.rounds),
     listShareLinks: vi.fn(async () => scenario.shareLinks),
     ensureShareLink: vi.fn(async () => scenario.shareLinks[0]),
@@ -233,6 +236,16 @@ describe("bracket route contracts", () => {
     expectValidResponse("get", "/api/brackets/{bracketId}/links", 200, await responseJson(linkResponse));
     expectValidResponse("get", "/api/brackets/{bracketId}/matches", 200, await responseJson(matchResponse));
     expectValidResponse("post", "/api/brackets/{bracketId}/rerun-drafts", 201, await responseJson(rerunResponse));
+  });
+
+  it("passes the management current-round scope to bracket match listing", async () => {
+    const matchesRoute = await import("../../app/api/brackets/[bracketId]/matches/route.js");
+
+    await matchesRoute.GET(routeRequest(`/api/brackets/${bracketId}/matches?scope=management-current`), {
+      params: Promise.resolve({ bracketId })
+    });
+
+    assert.deepEqual(scenario.calls.at(-1), ["listMatches", { scope: "management_current" }]);
   });
 
   it("serves bracket entries, invites, and rounds through child routes", async () => {

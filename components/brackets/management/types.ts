@@ -169,7 +169,6 @@ export type CollapsedDraftTournamentSectionProps = {
 
 export type ActiveParallelTournamentSectionProps = {
   tournament: Bracket;
-  primaryActionHref: string;
   primaryActionLabel: string;
   activeShareLink: BracketShareLink;
   invitees: BracketInvite[];
@@ -177,6 +176,7 @@ export type ActiveParallelTournamentSectionProps = {
   describeTournamentAudienceMode: BracketAudienceDescriber;
   formatBracketRuleLabel: BracketLabelFormatter;
   isActionPending: PendingTournamentAction;
+  onVote: (tournamentId: string) => void;
   onCopyShareLink: (tournamentId: string) => void;
   onCloseBracket: (tournamentId: string) => void;
   onArchiveTournament: (tournamentId: string, title: string) => void;
@@ -197,6 +197,7 @@ export type ActiveStandardTournamentSectionProps = {
   isActionPending: PendingTournamentAction;
   onCloseCurrentRound: (tournamentId: string) => void;
   onOpenNextRound: (tournamentId: string) => void;
+  onVoteCurrentRound: (tournamentId: string, matchId: string, selectedEntryId: string) => void;
   onCopyShareLink: (tournamentId: string) => void;
   onSetManualMatchWinner: (tournamentId: string, matchId: string, winnerEntryId: string | null) => void;
   onRerunTournament: (tournamentId: string) => void;

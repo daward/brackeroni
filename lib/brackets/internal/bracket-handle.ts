@@ -33,6 +33,7 @@ type BracketViewerIdentity = {
   creatorUserId?: string;
   userId?: string | null;
   anonymousVoterToken?: string | null;
+  scope?: "all_visible" | "management_current";
 };
 
 const listMatches = listBracketMatches as unknown as (options: BracketViewerIdentity) => Promise<{
@@ -67,8 +68,8 @@ export function bracket({ bracketId, creatorUserId, userId = null, anonymousVote
         entries,
         seedingStructure,
       }).then((result) => normalizeFlatBracketWinner(result) as Awaited<ReturnType<BracketHandle["updateEntries"]>>),
-    listMatches: async () => {
-      const result = await listMatches(viewerIdentity);
+    listMatches: async ({ scope = "all_visible" } = {}) => {
+      const result = await listMatches({ ...viewerIdentity, scope });
       return {
         bracket: normalizeFlatBracketWinner(result.tournament) as Bracket,
         matches: normalizeFlatBracketMatches(result.matches),

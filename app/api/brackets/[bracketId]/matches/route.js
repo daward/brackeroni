@@ -7,11 +7,14 @@ export const GET = withRouteErrorHandling(async function GET(request, { params }
   const user = await getOptionalCurrentUser(request);
   const { bracketId } = await params;
   const anonymousVoterToken = getAnonymousVoterTokenFromRequest(request);
+  const scope = new URL(request.url).searchParams.get("scope") === "management-current"
+    ? "management_current"
+    : "all_visible";
   const result = await bracket({
     bracketId,
     userId: user?.id ?? null,
     anonymousVoterToken
-  }).listMatches();
+  }).listMatches({ scope });
 
   const response = json({
     items: result.matches,

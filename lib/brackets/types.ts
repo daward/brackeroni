@@ -76,10 +76,16 @@ export type BracketMatchSide = BracketCandidate & {
 export type BracketMatch = {
   id: string;
   status: string;
+  roundNumber?: number | null;
+  roundStatus?: string | null;
+  roundRevealedAt?: string | Date | null;
   left: BracketMatchSide | null;
   right: BracketMatchSide | null;
   winnerEntryId?: string | null;
+  userVoteEntryId?: string | null;
 };
+
+export type BracketMatchListScope = "all_visible" | "management_current";
 
 export type BracketTimestamps = {
   completedAt?: string | Date | null;
@@ -151,7 +157,7 @@ export type ParallelBracketProgress = {
 
 /** Visibility hints that affect what management and public surfaces reveal. */
 export type BracketVisibilityState = {
-  hasHiddenClosedRounds?: boolean;
+  hasUnrevealedClosedRounds?: boolean;
 };
 
 /** The common flat record shape rendered by bracket workspace surfaces. */
@@ -198,7 +204,7 @@ export type BracketHandle = BracketOwnerHandle & {
   get(): Promise<Bracket>;
   createRerun(): Promise<Bracket>;
   updateEntries(options: { entries: SeedingPayloadEntry[]; seedingStructure?: SeedingStructure }): Promise<Bracket>;
-  listMatches(): Promise<{ bracket: Bracket; matches: Array<Record<string, unknown>> }>;
+  listMatches(options?: { scope?: BracketMatchListScope }): Promise<{ bracket: Bracket; matches: Array<Record<string, unknown>> }>;
   listRounds(): Promise<BracketRound[]>;
   listVoterScores(options: { bracket: Bracket; includeVoteHistory?: boolean }): Promise<Record<string, unknown>>;
   closeCurrentRound(): Promise<unknown>;
@@ -267,6 +273,12 @@ export type BracketAccessibleListOptions = PaginationOptions & {
   statuses?: BracketStatus[] | null;
 };
 
+export type BracketVotedListOptions = PaginationOptions & {
+  userId?: string | null;
+  anonymousVoterToken?: string | null;
+  statuses?: BracketStatus[] | null;
+};
+
 export type BracketPublicListOptions = PaginationOptions & {
   statuses?: BracketStatus[];
 };
@@ -329,6 +341,7 @@ export type BracketDirectory = {
   getFeaturedPublicMatchupsForHomepage(options?: BracketFeaturedOptions): Promise<Array<Record<string, unknown>>>;
   getBracketByShareToken(options: BracketShareTokenOptions): Promise<Record<string, unknown>>;
   listAccessibleBrackets(options: BracketAccessibleListOptions): Promise<Bracket[]>;
+  listVotedBrackets(options: BracketVotedListOptions): Promise<Bracket[]>;
   listPublicBrackets(options?: BracketPublicListOptions): Promise<Bracket[]>;
 };
 

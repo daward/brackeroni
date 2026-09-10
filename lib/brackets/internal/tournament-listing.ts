@@ -48,6 +48,13 @@ export async function listTournaments({ creatorUserId, status = null, limit = 24
       active_round."activeRoundNumber",
       coalesce(active_round."openMatchCount", 0)::integer as "activeRoundOpenMatchCount",
       coalesce(open_votes."openVoteCount", 0)::integer as "openVoteCount",
+      exists (
+        select 1
+        from tournament_round unrevealed_round
+        where unrevealed_round.tournament_id = t.id
+          and unrevealed_round.status = 'closed'
+          and unrevealed_round.revealed_at is null
+      ) as "hasUnrevealedClosedRounds",
       coalesce(ranked_winner.id, winner.id) as "winnerEntryId",
       coalesce(ranked_winner.name, winner.name) as "winnerName",
       coalesce(ranked_winner.seed, winner.seed) as "winnerSeed",
@@ -324,6 +331,141 @@ export async function listPublicTournaments({ statuses = ["active", "complete"],
         }
         and t.visibility = 'public_listed'
         and t.status in ${sql(statuses)}
+    group by
+      t.id,
+      p.name,
+      active_round."activeRoundNumber",
+      active_round."openMatchCount",
+      ranked_winner.id,
+      ranked_winner.name,
+      ranked_winner.seed,
+      ranked_winner.image_url,
+      winner.id,
+      winner.name,
+      winner.seed,
+      winner.image_url
+    order by
+      case t.status
+        when 'active' then 0
+        else 1
+      end,
+      coalesce(t.last_vote_at, t.updated_at) desc,
+      t.created_at desc
+    limit ${limit}
+    offset ${offset}
+  `;
+}
+
+export async function listVotedTournaments({
+  userId = null,
+  anonymousVoterToken = null,
+  statuses = ["active", "complete"],
+  limit = 12,
+  offset = 0
+}) {
+  const sql = getDb();
+  const { hasParentParallelTournamentId, hasTournamentIntentPreset } = await getParallelTournamentSchemaSupport(sql);
+  const typedUserId = userId ?? null;
+  const typedAnonymousVoterToken = anonymousVoterToken ?? null;
+
+  if (!typedUserId && !typedAnonymousVoterToken) {
+    return [];
+  }
+
+  return sql`
+    select
+      t.id,
+      t.title,
+      t.description,
+      t.source_pool_id as "sourcePoolId",
+      p.name as "sourcePoolName",
+      t.sharing_mode as "sharingMode",
+      t.visibility,
+      t.voting_access as "votingAccess",
+      t.play_style as "playStyle",
+      t.result_mode as "resultMode",
+      t.tie_break_mode as "tieBreakMode",
+      t.advancement_mode as "advancementMode",
+      ${hasTournamentIntentPreset ? sql`t.intent_preset` : sql`null`} as "intentPreset",
+      t.status,
+      t.round_closure_mode as "roundClosureMode",
+      t.seeding_structure as "seedingStructure",
+      t.parent_parallel_tournament_id as "parentParallelTournamentId",
+      t.last_vote_at as "lastVoteAt",
+      t.started_at as "startedAt",
+      t.completed_at as "completedAt",
+      t.archived_at as "archivedAt",
+      t.created_at as "createdAt",
+      t.updated_at as "updatedAt",
+      count(e.id)::integer as "entryCount",
+      coalesce(active_round."activeRoundNumber", 0)::integer as "activeRoundNumber",
+      coalesce(active_round."openMatchCount", 0)::integer as "activeRoundOpenMatchCount",
+      coalesce(ranked_winner.id, winner.id) as "winnerEntryId",
+      coalesce(ranked_winner.name, winner.name) as "winnerName",
+      coalesce(ranked_winner.seed, winner.seed) as "winnerSeed",
+      coalesce(ranked_winner.image_url, winner.image_url) as "winnerImageUrl"
+    from tournament t
+    left join candidate_pool p on p.id = t.source_pool_id
+    left join tournament_entry e on e.tournament_id = t.id
+    left join lateral (
+      select
+        r.sequence_number::integer as "activeRoundNumber",
+        count(*) filter (where m.status = 'open')::integer as "openMatchCount"
+      from tournament_round r
+      join match m on m.round_id = r.id
+      where r.tournament_id = t.id
+        and r.status = 'active'
+      group by r.id, r.sequence_number
+      order by r.sequence_number desc
+      limit 1
+    ) active_round on true
+    left join lateral (
+      select
+        ranked_entry.id,
+        ranked_entry.seed,
+        ranked_candidate.name,
+        ranked_candidate.image_url
+      from tournament_entry ranked_entry
+      join candidate ranked_candidate on ranked_candidate.id = ranked_entry.candidate_id
+      where ranked_entry.tournament_id = t.id
+        and ranked_entry.final_rank = 1
+      limit 1
+    ) ranked_winner on true
+    left join lateral (
+      select
+        winner_entry.id,
+        winner_entry.seed,
+        winner_candidate.name,
+        winner_candidate.image_url
+      from tournament_round r
+      join match m on m.round_id = r.id
+      join tournament_entry winner_entry on winner_entry.id = m.winner_entry_id
+      join candidate winner_candidate on winner_candidate.id = winner_entry.candidate_id
+      where r.tournament_id = t.id
+      order by r.sequence_number desc, m.created_at desc
+      limit 1
+    ) winner on true
+    where t.archived_at is null
+      ${
+        hasParentParallelTournamentId
+          ? sql`and t.parent_parallel_tournament_id is null`
+          : sql``
+      }
+      and t.visibility in ('public_listed', 'public_unlisted')
+      and t.status in ${sql(statuses)}
+      and exists (
+        select 1
+        from match voted_match
+        join vote viewer_vote on viewer_vote.match_id = voted_match.id
+        where voted_match.tournament_id = t.id
+          and (
+            (${typedUserId}::uuid is not null and viewer_vote.user_id = ${typedUserId}::uuid)
+            or (
+              ${typedAnonymousVoterToken}::text is not null
+              and viewer_vote.anonymous_voter_token = ${typedAnonymousVoterToken}::text
+            )
+          )
+      )
     group by
       t.id,
       p.name,

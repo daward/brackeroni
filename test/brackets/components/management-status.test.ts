@@ -19,7 +19,7 @@ describe("creator bracket live-status policy", () => {
         {
           advancementMode: "manual_winner",
           visibility: "private",
-          hasHiddenClosedRounds: true,
+          hasUnrevealedClosedRounds: true,
         },
         matches,
       ),
@@ -41,14 +41,20 @@ describe("creator bracket live-status policy", () => {
       {
         advancementMode: "vote_winner",
         visibility: "public_unlisted",
-        hasHiddenClosedRounds: true,
+        hasUnrevealedClosedRounds: true,
       },
-      [],
+      [
+        makeMatch("revealed", "closed", { roundNumber: 1, roundStatus: "closed", roundRevealedAt: "2026-01-01", leftVotes: 1 }),
+        makeMatch("unrevealed-1", "closed", { roundNumber: 2, roundStatus: "closed", leftVotes: 2, rightVotes: 1, winnerEntryId: "left-1" }),
+        makeMatch("unrevealed-2", "closed", { roundNumber: 2, roundStatus: "closed", winnerEntryId: "left-1" }),
+      ],
     );
 
     expect(status.awaitingNextRound).toBe(true);
     expect(status.canCloseManualVoting).toBe(true);
-    expect(status.currentRoundMatches).toEqual([]);
+    expect(status.currentRoundMatches.map((match) => match.id)).toEqual(["unrevealed-1", "unrevealed-2"]);
+    expect(status.roundVoteTotal).toBe(3);
+    expect(status.activeVotedMatchCount).toBe(1);
   });
 
   function makeMatch(
@@ -59,6 +65,9 @@ describe("creator bracket live-status policy", () => {
       rightId?: string;
       leftVotes?: number;
       rightVotes?: number;
+      roundNumber?: number;
+      roundStatus?: string;
+      roundRevealedAt?: string;
       winnerEntryId?: string;
     } = {},
   ): BracketMatch {
@@ -68,6 +77,9 @@ describe("creator bracket live-status policy", () => {
     return {
       id,
       status,
+      roundNumber: options.roundNumber,
+      roundStatus: options.roundStatus,
+      roundRevealedAt: options.roundRevealedAt,
       left: {
         id: leftId,
         name: "Left",

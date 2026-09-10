@@ -22,7 +22,7 @@ const pool: PoolSelectionOption = {
 describe("bracket configuration wizard", () => {
   it("submits an existing pool with the selected wizard settings", async () => {
     const user = userEvent.setup();
-    const onCreate = vi.fn<(_: BracketCreationInput) => Promise<boolean>>().mockResolvedValue(true);
+    const onCreate = vi.fn<(_: BracketCreationInput, action: "start_voting" | "save_draft") => Promise<boolean>>().mockResolvedValue(true);
 
     render(<BracketCreationWizard pools={[pool]} creating={false} onCancel={vi.fn()} onCreate={onCreate} />);
 
@@ -32,25 +32,44 @@ describe("bracket configuration wizard", () => {
     await user.click(screen.getByRole("button", { name: "Continue" }));
     await user.click(screen.getByRole("button", { name: "Continue" }));
     await user.type(screen.getByPlaceholderText("Dinner Pool Bracket"), "Dinner Finals");
-    await user.click(screen.getByRole("button", { name: "Create bracket" }));
+    await user.click(screen.getByRole("button", { name: "Start voting" }));
 
-    expect(onCreate).toHaveBeenCalledWith({
-      title: "Dinner Finals",
-      source: { type: "existing", pool },
-      playStyle: "fixed_bracket",
-      resultMode: "winner_only",
-      advancementMode: "vote_winner",
-      tieBreakMode: "higher_seed_wins",
-      seedingMode: "pool_order",
-      seedCandidateIds: null,
-      audienceMode: "private",
-      intentPreset: null,
-    });
+    expect(onCreate).toHaveBeenCalledWith(
+      {
+        title: "Dinner Finals",
+        source: { type: "existing", pool },
+        playStyle: "fixed_bracket",
+        resultMode: "winner_only",
+        advancementMode: "vote_winner",
+        tieBreakMode: "higher_seed_wins",
+        seedingMode: "pool_order",
+        seedCandidateIds: null,
+        audienceMode: "private",
+        intentPreset: null,
+      },
+      "start_voting",
+    );
+  });
+
+  it("can save the final review as a draft", async () => {
+    const user = userEvent.setup();
+    const onCreate = vi.fn<(_: BracketCreationInput, action: "start_voting" | "save_draft") => Promise<boolean>>().mockResolvedValue(true);
+
+    render(<BracketCreationWizard pools={[pool]} creating={false} onCancel={vi.fn()} onCreate={onCreate} />);
+
+    await user.click(screen.getByRole("button", { name: /Dinner Pool/ }));
+    await user.click(screen.getByRole("button", { name: "Continue" }));
+    await user.click(screen.getByRole("button", { name: "Continue" }));
+    await user.click(screen.getByRole("button", { name: "Continue" }));
+    await user.click(screen.getByRole("button", { name: "Continue" }));
+    await user.click(screen.getByRole("button", { name: "Save as draft" }));
+
+    expect(onCreate).toHaveBeenCalledWith(expect.objectContaining({ source: { type: "existing", pool } }), "save_draft");
   });
 
   it("keeps preset intent with the preselected settings", async () => {
     const user = userEvent.setup();
-    const onCreate = vi.fn<(_: BracketCreationInput) => Promise<boolean>>().mockResolvedValue(true);
+    const onCreate = vi.fn<(_: BracketCreationInput, action: "start_voting" | "save_draft") => Promise<boolean>>().mockResolvedValue(true);
 
     render(
       <BracketCreationWizard
@@ -93,7 +112,7 @@ describe("bracket configuration wizard", () => {
     await user.click(screen.getByRole("button", { name: "Continue" }));
     expect(screen.getByText("Results guidance from test.")).not.toBeNull();
     await user.click(screen.getByRole("button", { name: "Continue" }));
-    await user.click(screen.getByRole("button", { name: "Create bracket" }));
+    await user.click(screen.getByRole("button", { name: "Start voting" }));
 
     expect(onCreate).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -101,12 +120,13 @@ describe("bracket configuration wizard", () => {
         resultMode: "parallel_full_ranking",
         intentPreset: "travel_group_decision",
       }),
+      "start_voting",
     );
   });
 
   it("blocks existing pools that do not have enough candidates", async () => {
     const user = userEvent.setup();
-    const onCreate = vi.fn<(_: BracketCreationInput) => Promise<boolean>>().mockResolvedValue(true);
+    const onCreate = vi.fn<(_: BracketCreationInput, action: "start_voting" | "save_draft") => Promise<boolean>>().mockResolvedValue(true);
 
     render(<BracketCreationWizard pools={[{ ...pool, candidateCount: 1 }]} creating={false} onCancel={vi.fn()} onCreate={onCreate} />);
 
@@ -210,7 +230,7 @@ describe("bracket configuration wizard", () => {
 
   it("submits custom seed ids for an existing pool", async () => {
     const user = userEvent.setup();
-    const onCreate = vi.fn<(_: BracketCreationInput) => Promise<boolean>>().mockResolvedValue(true);
+    const onCreate = vi.fn<(_: BracketCreationInput, action: "start_voting" | "save_draft") => Promise<boolean>>().mockResolvedValue(true);
     getPool.mockResolvedValueOnce({
       item: {
         candidates: [
@@ -230,13 +250,14 @@ describe("bracket configuration wizard", () => {
     expect(await screen.findByText("Alpha")).not.toBeNull();
     await user.click(screen.getByRole("button", { name: "Continue" }));
     await user.click(screen.getByRole("button", { name: "Continue" }));
-    await user.click(screen.getByRole("button", { name: "Create bracket" }));
+    await user.click(screen.getByRole("button", { name: "Start voting" }));
 
     expect(onCreate).toHaveBeenCalledWith(
       expect.objectContaining({
         seedingMode: "custom",
         seedCandidateIds: ["candidate-1", "candidate-2", "candidate-3"],
       }),
+      "start_voting",
     );
   });
 });

@@ -32,6 +32,7 @@ import {
   updateTournament,
   updateTournamentEntries
 } from "../../lib/client-api/create-workspace.js";
+import { listTournamentMatches as listVotingTournamentMatches } from "../../lib/client-api/voting.js";
 
 function installFetchSpy() {
   const calls = [];
@@ -185,6 +186,17 @@ test("workspace client maps tournament requests and lifecycle helpers", async ()
     path: "/api/matches/match-1",
     method: "PATCH",
     body: { winnerEntryId: "entry-1" }
+  });
+});
+
+test("voting client maps scoped match requests", async () => {
+  await expectRequest(() => listVotingTournamentMatches("tournament-1"), {
+    path: "/api/brackets/tournament-1/matches",
+    cache: "no-store"
+  });
+  await expectRequest(() => listVotingTournamentMatches("tournament-1", { scope: "management-current" }), {
+    path: "/api/brackets/tournament-1/matches?scope=management-current",
+    cache: "no-store"
   });
 });
 

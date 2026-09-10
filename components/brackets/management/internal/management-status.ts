@@ -17,7 +17,7 @@ export type ActiveStandardBracketStatus = {
 export function getActiveStandardBracketStatus(
   tournament: Pick<
     Bracket,
-    "advancementMode" | "visibility" | "hasHiddenClosedRounds"
+    "advancementMode" | "visibility" | "hasUnrevealedClosedRounds"
   >,
   matches: BracketMatch[],
 ): ActiveStandardBracketStatus {
@@ -25,9 +25,10 @@ export function getActiveStandardBracketStatus(
   const isPublicBracket =
     tournament.visibility === "public_listed" ||
     tournament.visibility === "public_unlisted";
-  const currentRoundMatches = matches.filter(
-    (match) => match.status === "open",
+  const awaitingNextRound = Boolean(
+    isPublicBracket && tournament.hasUnrevealedClosedRounds,
   );
+  const currentRoundMatches = getCurrentRoundMatches(matches, awaitingNextRound);
   const completedManualResults = currentRoundMatches.filter(
     (match) => match.winnerEntryId,
   ).length;
@@ -46,9 +47,7 @@ export function getActiveStandardBracketStatus(
     usesManualAdvancement,
     isPublicBracket,
     isPrivateBracket: tournament.visibility === "private",
-    awaitingNextRound: Boolean(
-      isPublicBracket && tournament.hasHiddenClosedRounds,
-    ),
+    awaitingNextRound,
     currentRoundMatches,
     completedManualResults,
     unresolvedManualCount,
@@ -56,4 +55,25 @@ export function getActiveStandardBracketStatus(
     activeVotedMatchCount,
     canCloseManualVoting: unresolvedManualCount === 0,
   };
+}
+
+function getCurrentRoundMatches(
+  matches: BracketMatch[],
+  awaitingNextRound: boolean,
+) {
+  const candidates = awaitingNextRound
+    ? matches.filter(
+        (match) =>
+          match.roundStatus === "closed" &&
+          !match.roundRevealedAt,
+      )
+    : matches.filter((match) => match.status === "open");
+
+  const latestRoundNumber = Math.max(
+    ...candidates.map((match) => match.roundNumber ?? 0),
+  );
+
+  return latestRoundNumber > 0
+    ? candidates.filter((match) => match.roundNumber === latestRoundNumber)
+    : candidates;
 }

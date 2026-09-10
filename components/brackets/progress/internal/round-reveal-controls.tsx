@@ -21,7 +21,7 @@ export function RoundRevealControls({ tournament, round, canReveal, onReveal, is
   const router = useRouter();
   const isRevealable = canReveal && round.status === "closed" && !round.revealedAt;
   const isPublicBracket = ["public_listed", "public_unlisted"].includes(tournament.visibility ?? "");
-  const actionLabel = isFinalRound ? "Reveal Final Results" : "Open Next Round";
+  const actionLabel = isFinalRound ? "Reveal Final Results" : "Reveal & Open Next Round";
   const pendingLabel = isPublicBracket ? "Opening" : "Revealing";
   const buttonLabel = getRevealButtonLabel({ isPending, isPublicBracket, actionLabel });
   const publicCopy = getPublicRevealCopy(isFinalRound);

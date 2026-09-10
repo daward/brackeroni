@@ -11,6 +11,7 @@ import type {
   BracketListOptions,
   BracketPublicListOptions,
   BracketShareTokenOptions,
+  BracketVotedListOptions,
 } from "@/lib/brackets/types";
 
 import * as tournamentAccess from "@/lib/brackets/internal/tournament-access";
@@ -26,6 +27,7 @@ type GetShareTokenTarget = (options: BracketShareTokenOptions) => Promise<Record
 type GetStatusCounts = (options: BracketCollectionOptions) => Promise<Partial<Record<Bracket["status"], number>>>;
 type ListAccessibleTournaments = (options: BracketAccessibleListOptions) => Promise<Bracket[]>;
 type ListPublicTournaments = (options: BracketPublicListOptions) => Promise<Bracket[]>;
+type ListVotedTournaments = (options: BracketVotedListOptions) => Promise<Bracket[]>;
 type ListTournaments = (options: BracketCollectionOptions & BracketListOptions) => Promise<BracketList>;
 
 const createTournament = tournamentMutations.createTournament as unknown as CreateTournament;
@@ -37,6 +39,7 @@ const getTournamentByShareToken = tournamentSharing.getTournamentByShareToken as
 const getTournamentStatusCounts = tournamentListing.getTournamentStatusCounts as unknown as GetStatusCounts;
 const listAccessibleTournaments = tournamentListing.listAccessibleTournaments as unknown as ListAccessibleTournaments;
 const listPublicTournaments = tournamentListing.listPublicTournaments as unknown as ListPublicTournaments;
+const listVotedTournaments = tournamentListing.listVotedTournaments as unknown as ListVotedTournaments;
 const listTournaments = tournamentListing.listTournaments as unknown as ListTournaments;
 
 export function brackets({ creatorUserId }: BracketCollectionOptions): BracketCollection {
@@ -78,6 +81,7 @@ export function bracketDirectory(): BracketDirectory {
         userId: options.userId ?? null,
       }),
     listAccessibleBrackets: async (options) => normalizeFlatBracketWinners(await listAccessibleTournaments(options)),
+    listVotedBrackets: async (options) => normalizeFlatBracketWinners(await listVotedTournaments(options)),
     listPublicBrackets: async (options = {}) => normalizeFlatBracketWinners(await listPublicTournaments(options)),
   };
 }

@@ -1,10 +1,12 @@
 "use client";
 
+import { useState } from "react";
 import { CloseVotingButton } from "./close-voting-button";
 import { StatusActionRow } from "./status-action-row";
 import { LiveAccordion } from "./live-accordion";
 import { LiveSummaryCard } from "./live-summary-card";
 import { ManualResultQueue } from "./status-manual-results";
+import { StatusInlineVoting } from "./status-inline-voting";
 import { DetailsPanel } from "./details-panel";
 import { ParticipationTrackerPanel } from "./status-participation";
 import { TournamentActionGroup } from "./tournament-action-group";
@@ -27,11 +29,13 @@ export function ActiveStandardTournamentSection({
   isActionPending,
   onCloseCurrentRound,
   onOpenNextRound,
+  onVoteCurrentRound,
   onCopyShareLink,
   onSetManualMatchWinner,
   onRerunTournament,
   onArchiveTournament,
 }: ActiveStandardTournamentSectionProps) {
+  const [inlineVotingOpen, setInlineVotingOpen] = useState(false);
   const {
     activeVotedMatchCount,
     awaitingNextRound,
@@ -44,11 +48,16 @@ export function ActiveStandardTournamentSection({
     unresolvedManualCount,
     usesManualAdvancement,
   } = getActiveStandardBracketStatus(tournament, activeRoundMatches);
+  const currentRoundVoteGoal = currentRoundMatches.length || activeRoundVoteGoal;
+  const currentCreatorVotesCast = awaitingNextRound
+    ? currentRoundMatches.filter((match) => Boolean(match.userVoteEntryId)).length
+    : creatorVotesCast;
+  const currentCreatorIsDone = currentRoundVoteGoal > 0 && currentCreatorVotesCast >= currentRoundVoteGoal;
   const standardSummaryRows = usesManualAdvancement
     ? [
         {
           title: "Winners Entered",
-          meta: `${completedManualResults} of ${activeRoundVoteGoal} entered`,
+          meta: `${completedManualResults} of ${currentRoundVoteGoal} entered`,
         },
         {
           title: "Round Status",
@@ -62,15 +71,15 @@ export function ActiveStandardTournamentSection({
         },
         {
           title: "Matchup Activity",
-          meta: activeRoundVoteGoal > 0 ? `${activeVotedMatchCount} of ${activeRoundVoteGoal} matchups have votes` : "No open matchups in this round",
+          meta: currentRoundVoteGoal > 0 ? `${activeVotedMatchCount} of ${currentRoundVoteGoal} matchups have votes` : "No open matchups in this round",
         },
       ];
   const standardVoteIsActionable = hasOpenVotes;
   const standardVoteAction = hasOpenVotes
     ? {
         key: `vote:${tournament.id}`,
-        href: `/vote?bracket=${tournament.id}&returnTo=create`,
         label: "Vote",
+        onClick: () => setInlineVotingOpen(true),
         className: "cta-link ui-button ui-button-primary",
       }
     : {
@@ -83,7 +92,7 @@ export function ActiveStandardTournamentSection({
   const standardResultsAction = {
     key: `results:${tournament.id}`,
     label: "Results",
-    ...(tournament.status === "complete"
+    ...(tournament.status === "complete" || awaitingNextRound
       ? {
           href: `/results/${tournament.id}`,
           className: "ui-button ui-button-accent",
@@ -113,12 +122,12 @@ export function ActiveStandardTournamentSection({
     key: `open-next-round:${tournament.id}`,
     render: () => (
       <CloseVotingButton
-        label="Open Next Round"
+        label="Reveal & Open Next Round"
         className="ui-button ui-button-primary w-full"
         disabled={isActionPending(`open-next-round:${tournament.id}`)}
-        title="Open the next round?"
-        body="This makes the closed round visible and opens voting for the advancing winners."
-        confirmLabel="Open Next Round"
+        title="Reveal results and open the next round?"
+        body="This makes the closed round's results visible to voters and opens voting for the advancing winners."
+        confirmLabel="Reveal & Open Next Round"
         onConfirm={() => onOpenNextRound(tournament.id)}
       />
     ),
@@ -139,7 +148,7 @@ export function ActiveStandardTournamentSection({
         className: "ui-button ui-button-muted",
       };
   const standardActions = awaitingNextRound
-    ? [standardVoteAction, openNextRoundAction, standardShareAction]
+    ? [standardVoteAction, standardResultsAction, openNextRoundAction, standardShareAction]
     : [standardVoteAction, standardResultsAction, standardCloseAction, standardShareAction];
 
   return (
@@ -158,6 +167,16 @@ export function ActiveStandardTournamentSection({
         <LiveAccordion title="Results To Enter" defaultOpen={false}>
           <ManualResultQueue tournament={tournament} matches={currentRoundMatches} isActionPending={isActionPending} onSetManualMatchWinner={onSetManualMatchWinner} />
         </LiveAccordion>
+      ) : null}
+
+      {!usesManualAdvancement && inlineVotingOpen ? (
+        <StatusInlineVoting
+          tournament={tournament}
+          matches={activeRoundMatches}
+          isActionPending={isActionPending}
+          onClose={() => setInlineVotingOpen(false)}
+          onVote={onVoteCurrentRound}
+        />
       ) : null}
 
       <LiveAccordion title="Bracket Actions" defaultOpen={false}>
@@ -186,9 +205,9 @@ export function ActiveStandardTournamentSection({
       <ParticipationTrackerPanel
         tournament={tournament}
         invitees={invitees}
-        creatorVotesCast={usesManualAdvancement ? undefined : creatorVotesCast}
-        activeRoundVoteGoal={usesManualAdvancement ? undefined : activeRoundVoteGoal}
-        creatorIsDone={usesManualAdvancement ? undefined : creatorIsDone}
+        creatorVotesCast={usesManualAdvancement ? undefined : currentCreatorVotesCast}
+        activeRoundVoteGoal={usesManualAdvancement ? undefined : currentRoundVoteGoal}
+        creatorIsDone={usesManualAdvancement ? undefined : currentCreatorIsDone}
         summaryRows={standardSummaryRows}
       />
 

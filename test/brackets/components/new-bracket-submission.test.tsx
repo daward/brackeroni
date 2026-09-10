@@ -57,7 +57,7 @@ describe("new bracket submission", () => {
     const { result } = renderHook(() => useNewBracketSubmission(null));
 
     await act(async () => {
-      await result.current.createBracket(privateInput);
+      await result.current.createBracket(privateInput, "start_voting");
     });
 
     expect(mocks.createTournament).toHaveBeenCalledWith(
@@ -72,15 +72,26 @@ describe("new bracket submission", () => {
     expect(mocks.routerPush).toHaveBeenCalledWith("/vote?bracket=tournament-1&returnTo=create");
   });
 
-  it("leaves shared brackets in drafts", async () => {
+  it("saves brackets as drafts", async () => {
     const { result } = renderHook(() => useNewBracketSubmission(null));
 
     await act(async () => {
-      await result.current.createBracket({ ...privateInput, audienceMode: "friends" });
+      await result.current.createBracket({ ...privateInput, audienceMode: "friends" }, "save_draft");
     });
 
     expect(mocks.startTournament).not.toHaveBeenCalled();
     expect(mocks.routerPush).toHaveBeenCalledWith("/brackets?stage=draft");
+  });
+
+  it("starts public synchronized brackets and returns to active management", async () => {
+    const { result } = renderHook(() => useNewBracketSubmission(null));
+
+    await act(async () => {
+      await result.current.createBracket({ ...privateInput, audienceMode: "public" }, "start_voting");
+    });
+
+    expect(mocks.startTournament).toHaveBeenCalledWith("tournament-1");
+    expect(mocks.routerPush).toHaveBeenCalledWith("/brackets?stage=active");
   });
 
   it("passes intent presets to parallel bracket creation", async () => {
@@ -88,12 +99,15 @@ describe("new bracket submission", () => {
     const { result } = renderHook(() => useNewBracketSubmission(null));
 
     await act(async () => {
-      await result.current.createBracket({
-        ...privateInput,
-        audienceMode: "friends",
-        resultMode: "parallel_full_ranking",
-        intentPreset: "travel_group_decision",
-      });
+      await result.current.createBracket(
+        {
+          ...privateInput,
+          audienceMode: "friends",
+          resultMode: "parallel_full_ranking",
+          intentPreset: "travel_group_decision",
+        },
+        "save_draft",
+      );
     });
 
     expect(mocks.createParallelTournament).toHaveBeenCalledWith(

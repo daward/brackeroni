@@ -63,6 +63,14 @@ export const listAccessibleTournamentsForVote = directory.listAccessibleBrackets
   offset: number;
 }) => Promise<VoteTournament[]>;
 
+export const listVotedTournamentsForVote = directory.listVotedBrackets as unknown as (args: {
+  userId: string | null;
+  anonymousVoterToken: string | null;
+  statuses: VoteStatusFilter;
+  limit: number;
+  offset: number;
+}) => Promise<VoteTournament[]>;
+
 export const listPublicTournamentsForVote = directory.listPublicBrackets as unknown as (args: {
   statuses: VoteStatusFilter;
   limit: number;

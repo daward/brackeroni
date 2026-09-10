@@ -11,6 +11,7 @@ import {
   listMatchesForTournamentForVote,
   listPublicParallelBracketsForVote,
   listPublicTournamentsForVote,
+  listVotedTournamentsForVote,
   normalizeParallelBracketForVoteIndex,
   openParallelBracketParticipantForVote,
 } from "./vote-page-data";
@@ -53,10 +54,19 @@ export default async function BracketVotingPage({ searchParams }: { searchParams
     redirect(`/vote?bracket=${openedParallelBracket.bracketId}${returnToParam}`);
   }
 
-  const [accessibleTournaments, publicTournaments, accessibleParallelBrackets, publicParallelBrackets] = await Promise.all([
+  const [accessibleTournaments, votedTournaments, publicTournaments, accessibleParallelBrackets, publicParallelBrackets] = await Promise.all([
     user
       ? listAccessibleTournamentsForVote({
           userId: user.id,
+          statuses: ["active", "complete"],
+          limit: 12,
+          offset: voteOffset,
+        })
+      : Promise.resolve([]),
+    user || anonymousVoterToken
+      ? listVotedTournamentsForVote({
+          userId: user?.id ?? null,
+          anonymousVoterToken,
           statuses: ["active", "complete"],
           limit: 12,
           offset: voteOffset,
@@ -77,6 +87,7 @@ export default async function BracketVotingPage({ searchParams }: { searchParams
   const requestedTournamentId = firstParam(params.bracket);
   const tournaments: VoteTournament[] = [
     ...accessibleTournaments.map((item) => ({ ...item, kind: "standard" as const }) as VoteTournament),
+    ...votedTournaments.map((item) => ({ ...item, kind: "standard" as const }) as VoteTournament),
     ...publicTournaments.map((item) => ({ ...item, kind: "standard" as const }) as VoteTournament),
     ...accessibleParallelBrackets.map(normalizeParallelBracketForVoteIndex),
     ...publicParallelBrackets.map(normalizeParallelBracketForVoteIndex),
@@ -144,13 +155,16 @@ export default async function BracketVotingPage({ searchParams }: { searchParams
         }).then((result) => result.matches)
       : [];
   const requestedTournamentHasRemainingVotes = requestedTournamentMatches.some((match: VoteMatch) => match.status === "open" && !match.userVoteEntryId);
+  const returnTo = firstParam(params.returnTo);
 
-  if (requestedTournament && requestedTournament.status === "active" && requestedTournamentId && !requestedTournamentHasRemainingVotes) {
-    if (firstParam(params.returnTo) === "create") {
-      redirect("/brackets?stage=active");
-    }
-
-    redirect(`/results/${requestedTournament.parentParallelTournamentId || requestedTournament.id}`);
+  if (
+    requestedTournament &&
+    requestedTournament.status === "active" &&
+    requestedTournamentId &&
+    !requestedTournamentHasRemainingVotes &&
+    returnTo === "create"
+  ) {
+    redirect("/brackets?stage=active");
   }
 
   const requestedActiveTournament =
@@ -190,12 +204,12 @@ export default async function BracketVotingPage({ searchParams }: { searchParams
         activeTournaments={mergedActiveTournaments}
         completedTournaments={completedTournaments}
         completedHasNextPage={
-          [accessibleTournaments, publicTournaments, accessibleParallelBrackets, publicParallelBrackets].some(
+          [accessibleTournaments, votedTournaments, publicTournaments, accessibleParallelBrackets, publicParallelBrackets].some(
             (items) => items.length >= 12,
           )
         }
         initialFocusedTournamentId={requestedTournamentId}
-        initialReturnTo={firstParam(params.returnTo)}
+        initialReturnTo={returnTo}
         signInRequiredTournament={signInRequiredTournament}
       />
     </div>

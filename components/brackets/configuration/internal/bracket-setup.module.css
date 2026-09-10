@@ -148,6 +148,14 @@
   padding: 1rem 1.25rem;
 }
 
+.actionGroup {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-left: auto;
+}
+
 @media (max-width: 640px) {
   .header {
     padding-top: 0.25rem;
@@ -164,6 +172,12 @@
 
   .content {
     padding-block: 1.5rem;
+  }
+
+  .actions,
+  .modalActions,
+  .actionGroup {
+    flex-wrap: wrap;
   }
 }
 
