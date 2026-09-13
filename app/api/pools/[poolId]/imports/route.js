@@ -4,6 +4,7 @@ import { json, readJson, withRouteErrorHandling } from "@/lib/api/http";
 import { poolImportSchema } from "@/lib/validation/pool";
 import { buildGenericPageImportPrompt } from "@/lib/bookmarklets/prompt";
 import { extractCandidatesWithGeminiForPools } from "@/lib/gemini/extract-pools-v2";
+import { buildImportImageSearchContext, fillMissingImportImages } from "@/lib/pools/internal/import-image-enrichment";
 import { resolveCandidateSourceUrl } from "@/lib/source-url";
 
 export const POST = withRouteErrorHandling(async function POST(request, { params }) {
@@ -32,13 +33,14 @@ export const POST = withRouteErrorHandling(async function POST(request, { params
         })
     };
     const extracted = await extractCandidatesWithGeminiForPools(extractionSource);
-    candidates = extracted.candidates.map((candidate) => ({
+    candidates = await fillMissingImportImages(extracted.candidates.map((candidate) => ({
       name: candidate.label,
       description: candidate.description || null,
       imageUrl: candidate.imageUrl || null,
+      imageSearchContext: buildImportImageSearchContext(extractionSource, candidate),
       sourceUrl: resolveCandidateSourceUrl(candidate.sourceUrl, payload.source.pageUrl || null),
       tags: candidate.tags || []
-    }));
+    })));
   } else {
     candidates = payload.source.items.map((candidate) => ({
       name: candidate.name,

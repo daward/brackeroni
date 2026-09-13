@@ -62,7 +62,7 @@ export default async function HomePage() {
 
   const normalizedPublicMatchups = featuredPublicMatchups.map((item) => ({
     ...item,
-    voteHref: `/vote?bracket=${item.tournamentId}`
+    voteHref: `/vote?bracket=${item.tournamentId}&match=${item.matchId}&vote=1`
   }));
   const normalizedParallelMatchups = featuredParallelMatchups.map((item) => ({
     tournamentId: item.parallelTournamentId,
@@ -78,7 +78,7 @@ export default async function HomePage() {
     rightName: item.rightName,
     rightImageUrl: item.rightImageUrl,
     hasUserVote: false,
-    voteHref: `/vote?parallelBracket=${item.parallelTournamentId}`
+    voteHref: `/vote?parallelBracket=${item.parallelTournamentId}&vote=1`
   }));
 
   const combinedFeaturedMatchups = [

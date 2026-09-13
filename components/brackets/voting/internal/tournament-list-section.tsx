@@ -1,5 +1,5 @@
 import type { VoteTournament } from "./voting-internal-types";
-import { openMatchesForTournament } from "./vote-match-state";
+import { isVoteTournamentWaiting, openMatchesForTournament } from "./vote-match-state";
 
 type TournamentListSectionProps = {
   tournaments: VoteTournament[];
@@ -28,8 +28,11 @@ export function TournamentListSection({
       {tournaments.map((tournament) => {
         const openMatches = openMatchesForTournament(tournament);
         const viewerCompletedParallel = tournament.kind === "parallel_parent" && tournament.viewerParticipantStatus === "complete";
-        const canOpen = viewerCompletedParallel || openMatches.length > 0;
-        const matchCountLabel = `${openMatches.length} open ${openMatches.length === 1 ? "match" : "matches"}`;
+        const viewerWaiting = isVoteTournamentWaiting(tournament);
+        const canOpen = viewerCompletedParallel || viewerWaiting || openMatches.length > 0;
+        const matchCountLabel = viewerWaiting
+          ? "You finished the current round"
+          : `${openMatches.length} open ${openMatches.length === 1 ? "match" : "matches"}`;
         const sourcePoolLabel = tournament.sourcePoolName ? ` · ${tournament.sourcePoolName}` : "";
 
         return (
@@ -48,7 +51,7 @@ export function TournamentListSection({
               {sourcePoolLabel}
             </p>
             <span className="object-list-card-action display-face">
-              {viewerCompletedParallel ? "View results" : canOpen ? "Vote now" : "Waiting for the next round"}
+              {viewerCompletedParallel ? "View results" : viewerWaiting ? "Waiting for reveal" : canOpen ? "Vote now" : "Waiting for the next round"}
             </span>
           </button>
         );

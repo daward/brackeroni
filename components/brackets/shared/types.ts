@@ -11,6 +11,7 @@ export type CompletedBracketCardProps = {
   href?: string;
   onClick?: (event: MouseEvent<HTMLElement>) => void;
   type?: "button" | "submit" | "reset";
+  badgeLabel?: string | null;
   winnerLabel?: string | null;
   railClassName?: string;
   className?: string;

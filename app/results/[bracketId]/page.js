@@ -138,15 +138,6 @@ export default async function TournamentResultsRoute({ params, searchParams }) {
       />
     );
   } catch (standardError) {
-    if (standardError?.message === "NOT_FOUND") {
-      console.warn("[results] Tournament unavailable", {
-        bracketId,
-        requestedView,
-        hasAuthenticatedUser: Boolean(user?.id),
-        hasAnonymousVoterToken: Boolean(anonymousVoterToken),
-      });
-    }
-
     if (standardError?.message !== "NOT_FOUND") {
       throw standardError;
     }
@@ -171,9 +162,9 @@ export default async function TournamentResultsRoute({ params, searchParams }) {
           canInspectAllParticipants={parallelResults.canInspectAllParticipants}
         />
       );
-    } catch {
-      if (standardError?.message === "PARALLEL_TOURNAMENTS_REQUIRES_MIGRATION") {
-        throw standardError;
+    } catch (parallelError) {
+      if (parallelError?.message !== "NOT_FOUND") {
+        throw parallelError;
       }
 
       notFound();

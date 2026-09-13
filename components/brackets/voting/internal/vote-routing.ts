@@ -9,20 +9,32 @@ export function buildResultsUrl(tournamentOrId: VoteTournament | string) {
     return `/results/${tournamentOrId}`;
   }
 
-  return `/results/${tournamentOrId.parentParallelTournamentId || tournamentOrId.id}`;
+  return `/results/${tournamentOrId.viewerTournamentId || tournamentOrId.id}`;
 }
 
 export function buildVoteUrl({
   tournamentId = null,
+  matchId = null,
+  openVote = false,
   returnTo = null,
 }: {
   tournamentId?: string | null;
+  matchId?: string | null;
+  openVote?: boolean;
   returnTo?: string | null;
 }) {
   const params = new URLSearchParams();
 
   if (tournamentId) {
     params.set("bracket", tournamentId);
+  }
+
+  if (matchId) {
+    params.set("match", matchId);
+  }
+
+  if (openVote) {
+    params.set("vote", "1");
   }
 
   if (returnTo) {

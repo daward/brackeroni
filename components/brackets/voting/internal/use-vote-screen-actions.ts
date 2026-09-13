@@ -2,7 +2,7 @@
 
 import type { Dispatch, SetStateAction } from "react";
 import { getTournamentWithMatches, submitMatchVote } from "@/lib/client-api/voting";
-import { openMatchesForTournament } from "./vote-match-state";
+import { formatVoteHeader, openMatchesForTournament } from "./vote-match-state";
 import { buildResultsUrl, buildVoteUrl } from "./vote-routing";
 import { writeStoredFocusedTournamentId } from "./vote-storage";
 import type { VoteTournament } from "./voting-internal-types";
@@ -25,6 +25,7 @@ type UseVoteScreenActionsProps = {
   setMessage: Dispatch<SetStateAction<string>>;
   setPendingVoteMatchId: Dispatch<SetStateAction<string | null>>;
   setTransitionMessage: Dispatch<SetStateAction<string>>;
+  setVotingTournamentId: Dispatch<SetStateAction<string | null>>;
 };
 
 export function useVoteScreenActions({
@@ -39,6 +40,7 @@ export function useVoteScreenActions({
   setMessage,
   setPendingVoteMatchId,
   setTransitionMessage,
+  setVotingTournamentId,
 }: UseVoteScreenActionsProps) {
   async function refreshTournamentState(tournamentId: string) {
     let refreshData;
@@ -55,6 +57,7 @@ export function useVoteScreenActions({
       setActive((current) => current.filter((tournament) => tournament.id !== tournamentId));
       setCompleted((current) => [refreshedTournamentData, ...current]);
       setFocusedTournamentId(null);
+      setVotingTournamentId(null);
       writeStoredFocusedTournamentId(null);
       router.replace(buildResultsUrl(refreshedTournamentData));
       return;
@@ -70,6 +73,13 @@ export function useVoteScreenActions({
     setFocusedTournamentId((currentFocusedTournamentId) => {
       if (currentFocusedTournamentId !== tournamentId) {
         return currentFocusedTournamentId;
+      }
+
+      return remainingOpenMatches.length > 0 ? tournamentId : null;
+    });
+    setVotingTournamentId((currentVotingTournamentId) => {
+      if (currentVotingTournamentId !== tournamentId) {
+        return currentVotingTournamentId;
       }
 
       return remainingOpenMatches.length > 0 ? tournamentId : null;
@@ -125,6 +135,7 @@ export function useVoteScreenActions({
         ...current.filter((tournament) => tournament.id !== tournamentId),
       ]);
       setFocusedTournamentId(null);
+      setVotingTournamentId(null);
       writeStoredFocusedTournamentId(null);
       setPendingVoteMatchId(null);
       router.replace(buildResultsUrl(tournamentId));
@@ -135,6 +146,7 @@ export function useVoteScreenActions({
       focusedTournament?.id === tournamentId
         ? {
             ...focusedTournament,
+            viewerHasVotes: true,
             matches: (focusedTournament.matches || []).map((match) => {
               if (match.id !== matchId) {
                 return match;
@@ -150,12 +162,14 @@ export function useVoteScreenActions({
           }
         : null;
     const remainingOpenMatches = optimisticTournament ? openMatchesForTournament(optimisticTournament).length : 0;
+    const votedMatch = focusedTournament?.matches?.find((match) => match.id === matchId) ?? null;
+    const votedRoundLabel = votedMatch && focusedTournament ? formatVoteHeader(votedMatch, focusedTournament) : "this round";
 
     if (optimisticTournament) {
       setActive((current) => current.map((tournament) => (tournament.id === tournamentId ? optimisticTournament : tournament)));
     }
 
-    if (focusedTournament?.sharingMode === "private" && remainingOpenMatches === 0) {
+    if (focusedTournament?.visibility === "private" && remainingOpenMatches === 0) {
       await refreshTournamentState(tournamentId);
       setMessage("Vote recorded. Next round ready.");
       setPendingVoteMatchId(null);
@@ -163,11 +177,12 @@ export function useVoteScreenActions({
     }
 
     setFocusedTournamentId(tournamentId);
-    setMessage(
-      remainingOpenMatches > 0
-        ? "Vote recorded. Next matchup ready."
-        : "Vote recorded. No open matches remain in this round. Checking for the next round.",
-    );
+    setVotingTournamentId(remainingOpenMatches > 0 ? tournamentId : null);
+    setMessage(getVoteRecordedMessage({
+      remainingOpenMatches,
+      title: focusedTournament?.title,
+      votedRoundLabel,
+    }));
     setPendingVoteMatchId(null);
   }
 
@@ -184,6 +199,7 @@ export function useVoteScreenActions({
     }
 
     setFocusedTournamentId(tournament.id);
+    setVotingTournamentId(tournament.id);
     router.replace(buildVoteUrl({ tournamentId: tournament.id, returnTo: initialReturnTo }));
   }
 
@@ -197,4 +213,20 @@ export function useVoteScreenActions({
     refreshTournamentState,
     vote,
   };
+}
+
+export function getVoteRecordedMessage({
+  remainingOpenMatches,
+  title,
+  votedRoundLabel,
+}: {
+  remainingOpenMatches: number;
+  title?: string | null;
+  votedRoundLabel: string;
+}) {
+  if (remainingOpenMatches > 0) {
+    return "Vote recorded. Next matchup ready.";
+  }
+
+  return `Vote recorded for ${title || "this bracket"}. You finished ${votedRoundLabel}. Waiting for the bracket manager to reveal the results and open the next round.`;
 }

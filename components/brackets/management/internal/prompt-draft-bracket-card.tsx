@@ -1,6 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useId, useRef, useState, type FormEvent } from "react";
+import { Sparkles } from "lucide-react";
+import { CreateCard, SideDrawer, SideDrawerBody } from "@/components/shared";
 import { createBracketFromIntent } from "@/lib/client-api/create-workspace";
 import { ApiRequestError } from "@/lib/client-api/http";
 import styles from "./management.module.css";
@@ -20,15 +22,28 @@ export function PromptDraftBracketCard({
   onError,
   onSuccess,
 }: PromptDraftBracketCardProps) {
+  const [isOpen, setIsOpen] = useState(false);
   const [prompt, setPrompt] = useState("");
   const [creating, setCreating] = useState(false);
+  const [validationMessage, setValidationMessage] = useState("");
+  const promptRef = useRef<HTMLInputElement>(null);
+  const drawerId = useId();
+  const validationId = useId();
 
-  async function handleCreate(event?: { preventDefault(): void }) {
-    event?.preventDefault();
+  useEffect(() => {
+    if (!isOpen) return;
+
+    setValidationMessage("");
+    promptRef.current?.focus();
+  }, [isOpen]);
+
+  async function handleCreate(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
     const trimmedPrompt = prompt.trim();
 
     if (!trimmedPrompt) {
-      onError("Enter a bracket prompt first.");
+      setValidationMessage("Enter a bracket prompt first.");
+      promptRef.current?.focus();
       return;
     }
 
@@ -36,6 +51,7 @@ export function PromptDraftBracketCard({
     try {
       await createBracketFromIntent(trimmedPrompt);
       setPrompt("");
+      setIsOpen(false);
       onSuccess("Draft bracket created.");
       await onCreated();
     } catch (error) {
@@ -46,38 +62,65 @@ export function PromptDraftBracketCard({
   }
 
   return (
-    <form
-      className={styles.promptDraftCard}
-      aria-labelledby="prompt-draft-bracket-title"
-      onSubmit={handleCreate}
-    >
-      <div className={styles.promptDraftHeader}>
-        <h3 id="prompt-draft-bracket-title" className={`display-face ${styles.promptDraftTitle}`}>
-          Generate a Bracket
-        </h3>
-        <p className="object-list-card-copy">Name what you want ranked. Brackeroni will make an editable draft.</p>
-      </div>
-      <div className={styles.promptDraftField}>
-        <label className="sr-only" htmlFor="prompt-draft-bracket-input">
-          Bracket prompt
-        </label>
-        <input
-          id="prompt-draft-bracket-input"
-          type="text"
-          value={prompt}
-          onChange={(event) => setPrompt(event.target.value)}
-          placeholder={EXAMPLE_PROMPT}
-          className={styles.promptDraftInput}
-        />
-        <button
-          type="submit"
-          disabled={disabled || creating}
-          className={`display-face ${styles.promptDraftButton}`}
+    <>
+      <CreateCard
+        type="button"
+        onClick={() => setIsOpen(true)}
+        disabled={disabled}
+        aria-expanded={isOpen}
+        aria-controls={drawerId}
+        aria-label="Generate with AI"
+        tone="secondary"
+        icon={<Sparkles aria-hidden="true" size={28} />}
+        title="Generate with AI"
+        description="Create a bracket from a prompt."
+      />
+      {isOpen ? (
+        <SideDrawer
+          title="Generate Bracket"
+          description="Make an editable draft bracket from a short prompt."
+          onClose={() => setIsOpen(false)}
         >
-          {creating ? "Creating" : "Generate ->"}
-        </button>
-      </div>
-    </form>
+          <SideDrawerBody>
+            <form id={drawerId} className={styles.promptDraftDrawerForm} onSubmit={handleCreate}>
+              <div className={styles.promptDraftField}>
+                <label className={`ui-section-kicker ${styles.promptDraftLabel}`} htmlFor="prompt-draft-bracket-input">
+                  Prompt
+                </label>
+                <input
+                  ref={promptRef}
+                  id="prompt-draft-bracket-input"
+                  type="text"
+                  value={prompt}
+                  onChange={(event) => {
+                    if (validationMessage && event.target.value.trim()) setValidationMessage("");
+                    setPrompt(event.target.value);
+                  }}
+                  placeholder={EXAMPLE_PROMPT}
+                  aria-invalid={Boolean(validationMessage)}
+                  aria-describedby={validationMessage ? validationId : undefined}
+                  className="ui-field ui-field-panel"
+                />
+                <p className="object-list-card-copy">Name what you want ranked. Brackeroni will make an editable draft.</p>
+              </div>
+              {validationMessage ? (
+                <p id={validationId} role="alert" className={styles.promptDraftValidationMessage}>
+                  {validationMessage}
+                </p>
+              ) : null}
+              <div className={styles.promptDraftDrawerActions}>
+                <button type="submit" disabled={disabled || creating} className="ui-button ui-button-primary">
+                  {creating ? "Creating" : "Generate Bracket"}
+                </button>
+                <button type="button" onClick={() => setIsOpen(false)} className="ui-button ui-button-muted">
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </SideDrawerBody>
+        </SideDrawer>
+      ) : null}
+    </>
   );
 }
 

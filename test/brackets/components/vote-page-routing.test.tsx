@@ -9,6 +9,10 @@ let scenario: {
   user: { id: string } | null;
   anonymousVoterToken: string | null;
   bracket: ReturnType<typeof activeBracket>;
+  parallelBracket: ReturnType<typeof activeBracket> & {
+    viewerBracketId?: string | null;
+    viewerParticipantStatus?: string | null;
+  };
   publicBrackets: ReturnType<typeof activeBracket>[];
   votedBrackets: ReturnType<typeof activeBracket>[];
   calls: Array<[string, unknown?]>;
@@ -39,6 +43,11 @@ describe("vote page routing", () => {
       user: { id: "user-1" },
       anonymousVoterToken: null,
       bracket: activeBracket(),
+      parallelBracket: activeBracket({
+        id: "parallel-1",
+        visibility: "public_unlisted",
+        votingAccess: "anyone",
+      }),
       publicBrackets: [],
       votedBrackets: [],
       calls: [],
@@ -68,8 +77,16 @@ describe("vote page routing", () => {
         }),
       })),
       parallelBracketDirectory: vi.fn(() => ({
+        getAccessibleBracketById: vi.fn(async (options) => {
+          scenario.calls.push(["getAccessibleParallelBracketById", options]);
+          return scenario.parallelBracket;
+        }),
         listAccessibleBrackets: vi.fn(async () => []),
         listPublicBrackets: vi.fn(async () => []),
+        openParticipantBracket: vi.fn(async (options) => {
+          scenario.calls.push(["openParticipantBracket", options]);
+          return { bracketId: "participant-1" };
+        }),
       })),
     }));
   });
@@ -115,11 +132,29 @@ describe("vote page routing", () => {
       {
         userId: null,
         anonymousVoterToken: "anon-1",
-        statuses: ["active", "complete"],
+        statuses: ["active"],
         limit: 12,
         offset: 0,
       },
     ]);
     expect(panels.props.activeTournaments.map((tournament: { id: string }) => tournament.id)).toContain(bracketId);
+  });
+
+  it("sends completed anonymous synchronized voters to their own ballot results", async () => {
+    scenario.user = null;
+    scenario.anonymousVoterToken = "anon-1";
+    scenario.parallelBracket = activeBracket({
+      id: "parallel-1",
+      visibility: "public_unlisted",
+      votingAccess: "anyone",
+      viewerBracketId: "participant-1",
+      viewerParticipantStatus: "complete",
+    });
+    const { default: BracketVotingPage } = await import("../../../components/brackets/voting/internal/vote-page");
+
+    await expect(
+      BracketVotingPage({ searchParams: Promise.resolve({ parallelBracket: "parallel-1" }) }),
+    ).rejects.toThrow("redirect:/results/participant-1");
+    expect(scenario.redirect).toHaveBeenCalledWith("/results/participant-1");
   });
 });

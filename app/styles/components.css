@@ -149,6 +149,16 @@
   transition: color 150ms ease;
 }
 
+.completed-bracket-card-badge {
+  margin-bottom: 0.42rem;
+  color: var(--accent-3);
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.18em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
 .completed-bracket-card:hover .completed-bracket-card-title,
 .completed-bracket-card:focus-visible .completed-bracket-card-title {
   color: var(--accent-3);

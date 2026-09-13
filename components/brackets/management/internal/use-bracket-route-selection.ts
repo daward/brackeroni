@@ -22,7 +22,7 @@ export function useBracketRouteSelection({
     const requestedStage = searchParams?.get("stage");
     const requestedTournamentId = searchParams?.get("tournament");
 
-    if (requestedStage === "draft" || requestedStage === "active" || requestedStage === "complete") {
+    if (requestedStage === "draft" || requestedStage === "active") {
       setTournamentStageViewState(requestedStage);
     }
 
@@ -40,8 +40,6 @@ export function useBracketRouteSelection({
       setExpandedDraftTournamentId(requestedTournament.id);
     } else if (requestedTournament.status === "active") {
       setTournamentStageViewState("active");
-    } else if (requestedTournament.status === "complete") {
-      setTournamentStageViewState("complete");
     }
 
     const timer = setTimeout(() => {

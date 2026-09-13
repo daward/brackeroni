@@ -32,13 +32,14 @@ export type VoteTournament = Bracket &
   description?: string | null;
   parentParallelTournamentId?: string | null;
   viewerParticipantId?: string | null;
+  viewerTournamentId?: string | null;
 } & Record<string, unknown>;
 
 export type VoteScreenPanelsProps = {
   activeTournaments: VoteTournament[];
-  completedTournaments: VoteTournament[];
-  completedHasNextPage?: boolean;
   initialFocusedTournamentId?: string | null;
+  initialFocusedMatchId?: string | null;
+  initialOpenVote?: boolean;
   initialReturnTo?: string | null;
   signInRequiredTournament?: VoteTournament | null;
 };

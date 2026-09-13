@@ -17,6 +17,23 @@ export function openMatchesForTournament(tournament: VoteTournament): VoteMatch[
   return (tournament.matches || []).filter((match) => match.status === "open" && !match.userVoteEntryId);
 }
 
+export function hasViewerVotedInTournament(tournament: VoteTournament): boolean {
+  return Boolean(tournament.viewerHasVotes) || (tournament.matches || []).some((match) => Boolean(match.userVoteEntryId));
+}
+
+export function isVoteTournamentWaiting(tournament: VoteTournament): boolean {
+  return (
+    tournament.status === "active" &&
+    tournament.kind !== "parallel_parent" &&
+    openMatchesForTournament(tournament).length === 0 &&
+    hasViewerVotedInTournament(tournament)
+  );
+}
+
+export function shouldShowInVoteNow(tournament: VoteTournament, focusedTournamentId: string | null): boolean {
+  return tournament.id === focusedTournamentId || openMatchesForTournament(tournament).length > 0 || isVoteTournamentWaiting(tournament);
+}
+
 function getTournamentRoundCount(tournament: VoteTournament) {
   const entryCount = tournament.entryCount ?? tournament.entries?.length ?? 0;
 

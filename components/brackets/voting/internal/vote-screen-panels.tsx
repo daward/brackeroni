@@ -2,9 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
-import { useCompletedVoteTournaments } from "./use-completed-vote-tournaments";
 import type { VoteScreenPanelsProps, VoteTournament } from "./voting-internal-types";
-import { getCurrentRoundProgress, openMatchesForTournament } from "./vote-match-state";
+import { getCurrentRoundProgress, isVoteTournamentWaiting, openMatchesForTournament, shouldShowInVoteNow } from "./vote-match-state";
 import { VoteMatchModal } from "./vote-match-modal";
 import { buildVoteUrl } from "./vote-routing";
 import { VoteSignInCallout } from "./vote-sign-in-callout";
@@ -17,9 +16,9 @@ import { useVoteScreenActions } from "./use-vote-screen-actions";
 
 export function VoteScreenPanels({
   activeTournaments,
-  completedTournaments,
-  completedHasNextPage = false,
+  initialFocusedMatchId = null,
   initialFocusedTournamentId = null,
+  initialOpenVote = false,
   initialReturnTo = null,
   signInRequiredTournament = null,
 }: VoteScreenPanelsProps) {
@@ -28,17 +27,14 @@ export function VoteScreenPanels({
   const [focusedTournamentId, setFocusedTournamentId] = useState<string | null>(() => {
     return initialFocusedTournamentId || readStoredFocusedTournamentId() || null;
   });
+  const [votingTournamentId, setVotingTournamentId] = useState<string | null>(() => {
+    return initialOpenVote || initialReturnTo === "create" ? initialFocusedTournamentId : null;
+  });
   const [pendingVoteMatchId, setPendingVoteMatchId] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [transitionMessage, setTransitionMessage] = useState("");
   const [mobileOpenSection, setMobileOpenSection] = useState<VoteMobileOpenSection>("open");
-  const { completed, completedHasNext, completedLoading, loadMoreCompleted, setCompleted } =
-    useCompletedVoteTournaments({
-      initialCompletedTournaments: completedTournaments,
-      initialHasNextPage: completedHasNextPage,
-      setError,
-    });
   const replaceIfChanged = useCallback(
     (href: string) => {
       if (typeof window !== "undefined" && `${window.location.pathname}${window.location.search}` === href) {
@@ -51,31 +47,33 @@ export function VoteScreenPanels({
   );
 
   const focusedTournament = active.find((tournament) => tournament.id === focusedTournamentId) ?? null;
-  const openActiveTournaments = active.filter((tournament) => {
-    return tournament.id === focusedTournamentId || openMatchesForTournament(tournament).length > 0;
-  });
-  const openMatchCount = openActiveTournaments.reduce((count, tournament) => {
+  const votingTournament = active.find((tournament) => tournament.id === votingTournamentId) ?? null;
+  const listedActiveTournaments = active.filter((tournament) => shouldShowInVoteNow(tournament, focusedTournamentId));
+  const openMatchCount = listedActiveTournaments.reduce((count, tournament) => {
     return count + openMatchesForTournament(tournament).length;
   }, 0);
   const focusedMatches = focusedTournament ? openMatchesForTournament(focusedTournament) : [];
   const focusedMatch = focusedMatches[0] ?? null;
-  const currentRoundProgress = getCurrentRoundProgress(focusedTournament, focusedMatch);
+  const votingMatches = votingTournament ? openMatchesForTournament(votingTournament) : [];
+  const votingMatch = votingMatches.find((match) => match.id === initialFocusedMatchId) ?? votingMatches[0] ?? null;
+  const currentRoundProgress = getCurrentRoundProgress(votingTournament, votingMatch);
 
-  const { handleSelectTournament, openResultsModal, refreshTournamentState, vote } = useVoteScreenActions({
+  const { handleSelectTournament, refreshTournamentState, vote } = useVoteScreenActions({
     focusedTournament,
     initialReturnTo,
     pendingVoteMatchId,
     router,
     setActive,
-    setCompleted,
+    setCompleted: () => {},
     setError,
     setFocusedTournamentId,
     setMessage,
     setPendingVoteMatchId,
     setTransitionMessage,
+    setVotingTournamentId,
   });
 
-  const { isFocusedTournamentWaiting, postRoundPollCount } = useVoteFocusRouting({
+  const { postRoundPollCount } = useVoteFocusRouting({
     active,
     focusedMatch,
     focusedTournament,
@@ -97,27 +95,23 @@ export function VoteScreenPanels({
       </div>
 
       <VoteTournamentRails
-        completed={completed}
-        completedHasNext={completedHasNext}
-        completedLoading={completedLoading}
         mobileOpenSection={mobileOpenSection}
-        onLoadMoreCompleted={loadMoreCompleted}
-        onOpenResults={openResultsModal}
         onSelectTournament={handleSelectTournament}
         openMatchCount={openMatchCount}
-        openTournaments={openActiveTournaments}
+        openTournaments={listedActiveTournaments}
         setMobileOpenSection={setMobileOpenSection}
       />
 
-      {focusedTournament && focusedMatch ? (
+      {votingTournament && votingMatch ? (
         <VoteMatchModal
-          tournament={focusedTournament}
-          match={focusedMatch}
-          focusedMatches={focusedMatches}
+          tournament={votingTournament}
+          match={votingMatch}
+          focusedMatches={votingMatches}
           currentRoundProgress={currentRoundProgress}
           pendingVoteMatchId={pendingVoteMatchId}
           transitionMessage={transitionMessage}
           onClose={() => {
+            setVotingTournamentId(null);
             setFocusedTournamentId(null);
             writeStoredFocusedTournamentId(null);
             router.replace(buildVoteUrl({ returnTo: initialReturnTo }));
@@ -126,9 +120,9 @@ export function VoteScreenPanels({
         />
       ) : null}
 
-      {focusedTournament && isFocusedTournamentWaiting ? (
+      {votingTournament && isVoteTournamentWaiting(votingTournament) ? (
         <VoteWaitingModal
-          tournament={focusedTournament}
+          tournament={votingTournament}
           transitionMessage={transitionMessage}
           postRoundPollCount={postRoundPollCount}
         />

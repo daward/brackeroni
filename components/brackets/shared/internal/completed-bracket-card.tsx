@@ -6,7 +6,17 @@ function formatWinnerLabel(tournament: CompletedBracketCardProps["tournament"]) 
   return `${tournament.winner.name} (Seed ${tournament.winner.seed})`;
 }
 
-export function CompletedBracketCard({ tournament, as = "button", href, onClick, type, winnerLabel, railClassName = "", className = "" }: CompletedBracketCardProps) {
+export function CompletedBracketCard({
+  tournament,
+  as = "button",
+  href,
+  onClick,
+  type,
+  badgeLabel = null,
+  winnerLabel,
+  railClassName = "",
+  className = "",
+}: CompletedBracketCardProps) {
   const resolvedWinnerLabel = winnerLabel ?? formatWinnerLabel(tournament);
 
   return (
@@ -19,6 +29,7 @@ export function CompletedBracketCard({ tournament, as = "button", href, onClick,
       className={`completed-bracket-card group ${className}`.trim()}
       railClassName={`completed-bracket-card-rail ${railClassName}`.trim()}
     >
+      {badgeLabel ? <p className="completed-bracket-card-badge display-face">{badgeLabel}</p> : null}
       <h3 className="completed-bracket-card-title display-face">{tournament.title}</h3>
       {resolvedWinnerLabel ? (
         <p className="completed-bracket-card-winner display-face">

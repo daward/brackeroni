@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { formatVoteHeader } from "@/components/brackets/voting/internal/vote-match-state";
+import { formatVoteHeader, isVoteTournamentWaiting, shouldShowInVoteNow } from "@/components/brackets/voting/internal/vote-match-state";
+import { getVoteRecordedMessage } from "@/components/brackets/voting/internal/use-vote-screen-actions";
+import type { VoteTournament } from "@/components/brackets/voting/internal/voting-internal-types";
 
 describe("vote match state", () => {
   it("shows ranking progress out of the total ranking targets", () => {
@@ -31,5 +33,33 @@ describe("vote match state", () => {
         },
       ),
     ).toBe("Ranking 3 of 10 / Round 2 of 3");
+  });
+
+  it("keeps voted active brackets visible while waiting for a reveal", () => {
+    const tournament: VoteTournament = {
+      id: "tournament-1",
+      title: "Public bracket",
+      status: "active",
+      visibility: "public_unlisted",
+      createdAt: "2026-01-01",
+      winner: null,
+      viewerHasVotes: true,
+      matches: [],
+    };
+
+    expect(isVoteTournamentWaiting(tournament)).toBe(true);
+    expect(shouldShowInVoteNow(tournament, null)).toBe(true);
+  });
+
+  it("describes public post-round waiting instead of claiming the next round is ready", () => {
+    const message = getVoteRecordedMessage({
+      remainingOpenMatches: 0,
+      title: "Public bracket",
+      votedRoundLabel: "Round 1 of 3",
+    });
+
+    expect(message).toBe(
+      "Vote recorded for Public bracket. You finished Round 1 of 3. Waiting for the bracket manager to reveal the results and open the next round.",
+    );
   });
 });

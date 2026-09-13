@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { WorkspaceSectionTabs } from "@/components/navigation/workspace-section-tabs";
 import {
   CandidateManagerPanel,
   type CandidateActions,
@@ -81,7 +80,6 @@ export function PoolDetailWorkspace({ initialPool }: PoolDetailWorkspaceProps) {
   return (
     <div className={styles.workspace}>
       <ToastMessages errorMessage={detail.errorMessage} successMessage={detail.successMessage} />
-      <WorkspaceSectionTabs activeView="pools" />
       <PoolDetailHeader pool={pool} draft={detail.poolDraft} readOnly={readOnly} onDraftChange={detail.setPoolDraft} onDraftCommit={detail.savePool}>
         {pool.candidateCount >= 2 ? (
           <Link href={`/brackets/configuration?poolId=${pool.id}&step=audience`} className="ui-button ui-button-primary">

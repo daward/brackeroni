@@ -8,12 +8,22 @@ import { AuthControls } from "@/components/auth/auth-controls";
 const baseLinks = [
   { href: "/", label: "Home" },
   { href: "/vote", label: "Vote" },
-  { href: "/brackets", label: "Create" }
+  { href: "/brackets", label: "My Brackets" },
+  { href: "/pools", label: "My Pools" },
+  { href: "/results", label: "Results" }
 ];
 
 function isActiveNavigationLink(pathname, href) {
   if (href === "/brackets") {
-    return pathname.startsWith("/brackets") || pathname.startsWith("/pools");
+    return pathname.startsWith("/brackets");
+  }
+
+  if (href === "/pools") {
+    return pathname.startsWith("/pools");
+  }
+
+  if (href === "/results") {
+    return pathname.startsWith("/results");
   }
 
   return pathname === href;

@@ -2,7 +2,6 @@
 
 import { useCallback, useRef, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { WorkspaceSectionTabs } from "@/components/navigation/workspace-section-tabs";
 import { ToastMessages } from "@/components/shared";
 import { createPool } from "@/lib/client-api/create-workspace";
 import { normalizePoolNavigationTarget } from "@/components/pools/shared";
@@ -91,7 +90,19 @@ export function PoolManagementWorkspace({}: PoolManagementWorkspaceProps) {
   return (
     <div className="space-y-6">
       <ToastMessages errorMessage={errorMessage} successMessage={successMessage} />
-      <WorkspaceSectionTabs activeView="pools" />
+      <section className="border-b border-[var(--line-strong)] pb-4">
+        <div className="mt-2 grid gap-2 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
+          <div>
+            <h1 className="display-face text-xl font-black uppercase tracking-[0.08em] text-[var(--muted)] sm:text-2xl">Candidate Pools</h1>
+            <p className="mt-2 max-w-3xl font-serif text-base leading-7 text-[var(--muted)]">
+              Pools are reusable sets of contenders. Import or edit them here, then turn any pool into a bracket when it is ready.
+            </p>
+          </div>
+          <p className="display-face text-xs font-bold uppercase tracking-[0.18em] text-[var(--muted)]">
+            {pools.length} loaded
+          </p>
+        </div>
+      </section>
       <OwnedPoolList
         pools={pools}
         poolPage={poolPage}

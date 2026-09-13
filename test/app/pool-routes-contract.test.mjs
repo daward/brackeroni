@@ -165,6 +165,15 @@ async function usePoolModules() {
       };
     })
   }));
+  vi.doMock("@/lib/images/suggestions", () => ({
+    isStrongSuggestedImageMatch: vi.fn((candidateName, suggestion) => {
+      return suggestion?.title === candidateName || suggestion?.title?.includes(candidateName);
+    }),
+    searchImageSuggestions: vi.fn(async (query) => {
+      scenario.calls.push(["searchImageSuggestions", query]);
+      return scenario.imageSuggestions[query] || [];
+    })
+  }));
   vi.doMock("@/lib/pools", () => ({
     listPools: vi.fn(async (options) => {
       scenario.calls.push(["listPools", options]);
@@ -189,6 +198,7 @@ describe("pool route contracts", () => {
       poolDetail: poolDetail(),
       poolSummary: poolDetail({ candidates: undefined, candidatePagination: undefined }),
       candidateDetail: candidateDetail(),
+      imageSuggestions: {},
       calls: []
     };
     await usePoolModules();
@@ -408,6 +418,14 @@ describe("pool route contracts", () => {
   it("imports explicit and extracted candidates through the documented import route", async () => {
     const { POST } = await import("../../app/api/pools/[poolId]/imports/route.js");
     scenario.poolDetail = poolDetail({ importSourceUrl: "https://example.test/source" });
+    scenario.imageSuggestions["Blade Runner"] = [
+      {
+        title: "Blade Runner poster",
+        imageUrl: "https://images.example.test/blade-runner-import.jpg",
+        thumbnailUrl: "https://images.example.test/blade-runner-import-thumb.jpg",
+        source: "Wikipedia"
+      }
+    ];
     const itemBody = { source: { type: "items", items: [{ name: "Arrival", sourceUrl: "https://example.test/arrival" }] } };
     const extractBody = { source: { type: "extract", prompt: "Find films", pageUrl: "https://example.test/list", text: "Blade Runner" } };
 
@@ -422,6 +440,11 @@ describe("pool route contracts", () => {
 
     expectValidResponse("post", "/api/pools/{poolId}/imports", 200, await responseJson(response));
     assert.equal(scenario.calls.filter(([name]) => name === "importCandidates").length, 2);
+    assert.deepEqual(scenario.calls.filter(([name]) => name === "searchImageSuggestions"), [["searchImageSuggestions", "Blade Runner"]]);
+    assert.equal(
+      scenario.calls.findLast(([name]) => name === "importCandidates")[1].candidates[0].imageUrl,
+      "https://images.example.test/blade-runner-import.jpg"
+    );
   });
 
   it("generates candidates directly into a pool", async () => {

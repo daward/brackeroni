@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
+import { Plus } from "lucide-react";
 import { CreateCard, InfiniteScrollControl } from "@/components/shared";
 import { canCopyBracketLink, describeTournamentAudienceMode, formatBracketRuleLabel } from "./presentation";
 import type { BracketDraft } from "@/lib/brackets/types";
@@ -12,8 +13,8 @@ import { ActiveParallelTournamentSection, ActiveStandardTournamentSection } from
 import { LiveBracketPicker } from "./live-bracket-picker";
 import { LiveBracketRail } from "./live-bracket-rail";
 import { PromptDraftBracketCard } from "./prompt-draft-bracket-card";
-import { WorkspaceCompletedCard } from "./workspace-completed-card";
 import { WorkspaceDraftCard } from "./workspace-draft-card";
+import styles from "./management.module.css";
 import type {
   BracketStageView,
   PendingActionChecker,
@@ -121,11 +122,9 @@ export function TournamentWorkspaceSection({
   handleSetManualMatchWinner,
 }: TournamentWorkspaceSectionProps) {
   const [draftCardMenuId, setDraftCardMenuId] = useState<string | null>(null);
-  const [completedCardMenuId, setCompletedCardMenuId] = useState<string | null>(null);
   const canLoadMore = Boolean(tournamentPagination?.hasNextPage);
   const draftTournaments = tournaments.filter((tournament) => tournament.status === "draft");
   const activeTournaments = tournaments.filter((tournament) => tournament.status === "active");
-  const completedTournaments = tournaments.filter((tournament) => tournament.status === "complete");
   const isStageLoading = loadedTournamentStage !== tournamentStageView;
 
   useEffect(() => {
@@ -240,84 +239,52 @@ export function TournamentWorkspaceSection({
 
   function renderDraftWorkspace() {
     return (
-      <div className="workspace-card-grid">
-        <CreateCard
-          type="button"
-          onClick={onOpenBracketWizard}
-          disabled={isActionPending("create-tournament")}
-          icon="+"
-          title="Add a bracket"
-          description="Set up a new bracket."
-        />
-        <PromptDraftBracketCard
-          disabled={isActionPending("create-tournament")}
-          onCreated={onPromptDraftCreated}
-          onError={setErrorMessage}
-          onSuccess={setSuccessMessage}
-        />
-        {draftTournaments.map((tournament) => {
-          const pool = getPoolForTournament(tournament, pools, poolDetails);
-          const candidateCount = getPoolCandidateCount(tournament, pool);
-          const canStart = Boolean(tournament.sourcePoolId) && candidateCount > 0;
-          const menuIsOpen = draftCardMenuId === tournament.id;
-
-          return (
-            <WorkspaceDraftCard
-              key={tournament.id}
-              tournament={tournament}
-              pool={pool}
-              candidateCount={candidateCount}
-              canStart={canStart}
-              menuIsOpen={menuIsOpen}
-              isActionPending={isActionPending}
-              onToggleMenu={() => setDraftCardMenuId((current) => (current === tournament.id ? null : tournament.id))}
-              onStartTournament={(tournamentId) => {
-                setDraftCardMenuId(null);
-                handleStartTournament(tournamentId);
-              }}
-              onArchiveTournament={(tournamentId, title) => {
-                setDraftCardMenuId(null);
-                handleArchiveTournament(tournamentId, title);
-              }}
-            />
-          );
-        })}
-      </div>
-    );
-  }
-
-  function renderCompletedWorkspace() {
-    if (completedTournaments.length === 0) {
-      return (
-        <div className="workspace-empty-state">
-          <p className="workspace-empty-copy">No completed brackets.</p>
+      <div className={styles.draftWorkspace}>
+        <div className={styles.bracketCreationStrip}>
+          <CreateCard
+            type="button"
+            onClick={onOpenBracketWizard}
+            disabled={isActionPending("create-tournament")}
+            icon={<Plus aria-hidden="true" size={28} />}
+            title="Add a bracket"
+            description="Set up a new bracket."
+          />
+          <PromptDraftBracketCard
+            disabled={isActionPending("create-tournament")}
+            onCreated={onPromptDraftCreated}
+            onError={setErrorMessage}
+            onSuccess={setSuccessMessage}
+          />
         </div>
-      );
-    }
+        <div className="workspace-card-grid">
+          {draftTournaments.map((tournament) => {
+            const pool = getPoolForTournament(tournament, pools, poolDetails);
+            const candidateCount = getPoolCandidateCount(tournament, pool);
+            const canStart = Boolean(tournament.sourcePoolId) && candidateCount > 0;
+            const menuIsOpen = draftCardMenuId === tournament.id;
 
-    return (
-      <div className="workspace-card-grid">
-        {completedTournaments.map((tournament) => {
-          const menuIsOpen = completedCardMenuId === tournament.id;
-
-          return (
-            <WorkspaceCompletedCard
-              key={tournament.id}
-              tournament={tournament}
-              menuIsOpen={menuIsOpen}
-              isActionPending={isActionPending}
-              onToggleMenu={() => setCompletedCardMenuId((current) => (current === tournament.id ? null : tournament.id))}
-              onRerunTournament={(tournamentId) => {
-                setCompletedCardMenuId(null);
-                handleRerunTournament(tournamentId);
-              }}
-              onArchiveTournament={(tournamentId, title) => {
-                setCompletedCardMenuId(null);
-                handleArchiveTournament(tournamentId, title);
-              }}
-            />
-          );
-        })}
+            return (
+              <WorkspaceDraftCard
+                key={tournament.id}
+                tournament={tournament}
+                pool={pool}
+                candidateCount={candidateCount}
+                canStart={canStart}
+                menuIsOpen={menuIsOpen}
+                isActionPending={isActionPending}
+                onToggleMenu={() => setDraftCardMenuId((current) => (current === tournament.id ? null : tournament.id))}
+                onStartTournament={(tournamentId) => {
+                  setDraftCardMenuId(null);
+                  handleStartTournament(tournamentId);
+                }}
+                onArchiveTournament={(tournamentId, title) => {
+                  setDraftCardMenuId(null);
+                  handleArchiveTournament(tournamentId, title);
+                }}
+              />
+            );
+          })}
+        </div>
       </div>
     );
   }
@@ -327,11 +294,7 @@ export function TournamentWorkspaceSection({
       return renderLiveWorkspace();
     }
 
-    if (tournamentStageView === "draft") {
-      return renderDraftWorkspace();
-    }
-
-    return renderCompletedWorkspace();
+    return renderDraftWorkspace();
   }
 
   return (
@@ -347,11 +310,6 @@ export function TournamentWorkspaceSection({
             key: "active" as const,
             label: "Live",
             count: tournamentStatusCounts?.active ?? activeTournaments.length,
-          },
-          {
-            key: "complete" as const,
-            label: "Completed",
-            count: tournamentStatusCounts?.complete ?? completedTournaments.length,
           },
         ].map((view) => {
           const isActiveView = tournamentStageView === view.key;

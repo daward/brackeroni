@@ -6,7 +6,6 @@ import { BracketCreationWizard, SeedingModal, useSeedingActions } from "@/compon
 import { getTournamentAudienceMode, getTournamentAudiencePatch } from "./presentation";
 import { TournamentPublishWarning } from "@/components/brackets/shared";
 import { usePoolCandidateActions } from "@/components/pools/shared";
-import { WorkspaceSectionTabs } from "@/components/navigation/workspace-section-tabs";
 import { ToastMessages } from "@/components/shared";
 import { createPool } from "@/lib/client-api/create-workspace";
 import type { BracketCreationInput } from "@/components/brackets/configuration";
@@ -58,7 +57,7 @@ export function BracketManagementWorkspace() {
   const [tournamentInlineDrafts, setTournamentInlineDrafts] = useState<TournamentDrafts>({});
   const [tournamentStageView, setTournamentStageViewState] = useState<BracketStageView>(() => {
     const requestedStage = searchParams?.get("stage");
-    return requestedStage === "draft" || requestedStage === "active" || requestedStage === "complete" ? requestedStage : "draft";
+    return requestedStage === "draft" || requestedStage === "active" ? requestedStage : "draft";
   });
   const [selectedLiveTournamentId, setSelectedLiveTournamentId] = useState<string | null>(null);
   const [expandedDraftTournamentId, setExpandedDraftTournamentId] = useState<string | "all" | null>("all");
@@ -428,8 +427,6 @@ export function BracketManagementWorkspace() {
   return (
     <div className="space-y-6">
       <ToastMessages errorMessage={errorMessage} successMessage={successMessage} />
-
-      <WorkspaceSectionTabs activeView="tournaments" />
 
       <TournamentWorkspaceSection
         tournaments={tournaments}
