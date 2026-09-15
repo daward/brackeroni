@@ -228,5 +228,5 @@ export function getVoteRecordedMessage({
     return "Vote recorded. Next matchup ready.";
   }
 
-  return `Vote recorded for ${title || "this bracket"}. You finished ${votedRoundLabel}. Waiting for the bracket manager to reveal the results and open the next round.`;
+  return `Vote recorded: ${title || "this bracket"}.\nFinished ${votedRoundLabel}. Waiting for the next round to open.`;
 }

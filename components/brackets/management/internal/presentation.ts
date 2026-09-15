@@ -1,5 +1,5 @@
 import { formatResultModeLabel } from "@/lib/brackets/engine/result-modes";
-import type { BracketAudienceMode, BracketStatus, BracketVisibility, Bracket, ParallelBracketSource } from "@/lib/brackets/types";
+import type { BracketAudienceMode, BracketStatus, BracketVisibility, Bracket, BracketTimestamps, ParallelBracketSource } from "@/lib/brackets/types";
 
 type BracketAudienceSource = Pick<Bracket, "sharingMode" | "visibility">;
 
@@ -59,8 +59,8 @@ export function canCopyBracketLink(tournament?: BracketAudienceSource | null) {
 export function buildDirectBracketSharePath(tournament?: Pick<Bracket, "id" | "status" | "kind"> | null) {
   if (!tournament) return "/";
   if (tournament.status === "complete") return `/results/${tournament.id}`;
-  if (tournament.kind === "parallel_parent") return `/vote?parallelBracket=${tournament.id}`;
-  return `/vote?bracket=${tournament.id}`;
+  if (tournament.kind === "parallel_parent") return `/vote?parallelBracket=${tournament.id}&vote=1`;
+  return `/vote?bracket=${tournament.id}&vote=1`;
 }
 
 export function normalizeParallelBracketItem(item: ParallelBracketSource): Bracket {
@@ -77,12 +77,19 @@ export function normalizeParallelBracketItem(item: ParallelBracketSource): Brack
   } as Bracket;
 }
 
-export function sortBrackets<T extends Pick<Bracket, "status" | "createdAt">>(items: T[]) {
+export function sortBrackets<T extends Pick<Bracket, "status" | "createdAt"> & Partial<BracketTimestamps & { lastVoteAt?: string | Date | null }>>(items: T[]) {
   return [...items].sort((left, right) => {
     const statusRank: Record<BracketStatus, number> = { active: 0, draft: 1, complete: 2 };
     const leftRank = statusRank[left.status] ?? 99;
     const rightRank = statusRank[right.status] ?? 99;
     if (leftRank !== rightRank) return leftRank - rightRank;
-    return new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime();
+    return getBracketSortTime(right) - getBracketSortTime(left);
   });
+}
+
+function getBracketSortTime(bracket: Pick<Bracket, "status" | "createdAt"> & Partial<BracketTimestamps & { lastVoteAt?: string | Date | null }>) {
+  const activeDate = bracket.status === "active" ? bracket.startedAt || bracket.updatedAt || bracket.lastVoteAt : null;
+  const draftDate = bracket.status === "draft" ? bracket.updatedAt : null;
+  const completeDate = bracket.status === "complete" ? bracket.completedAt || bracket.updatedAt : null;
+  return new Date(activeDate || draftDate || completeDate || bracket.createdAt).getTime();
 }

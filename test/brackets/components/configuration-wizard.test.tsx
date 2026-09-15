@@ -19,19 +19,41 @@ const pool: PoolSelectionOption = {
   candidateCount: 4,
 };
 
+async function nameBracket(user: ReturnType<typeof userEvent.setup>, title = "Dinner Finals") {
+  await user.type(screen.getByPlaceholderText("Best sandwich in the world?"), title);
+  await user.click(screen.getByRole("button", { name: "Continue" }));
+}
+
+async function nameBracketAndSelectPool(user: ReturnType<typeof userEvent.setup>, title = "Dinner Finals") {
+  await nameBracket(user, title);
+  await user.click(screen.getByRole("button", { name: /Dinner Pool/ }));
+}
+
 describe("bracket configuration wizard", () => {
+  it("requires a bracket name before choosing contenders", async () => {
+    const user = userEvent.setup();
+    const onStepChange = vi.fn();
+
+    render(<BracketCreationWizard pools={[pool]} creating={false} onCancel={vi.fn()} onCreate={vi.fn()} onStepChange={onStepChange} />);
+
+    await user.click(screen.getByRole("button", { name: "Continue" }));
+
+    expect(screen.getByText("Ask the bracket question before continuing.")).not.toBeNull();
+    expect(screen.queryByRole("button", { name: /Dinner Pool/ })).toBeNull();
+    expect(onStepChange).not.toHaveBeenCalled();
+  });
+
   it("submits an existing pool with the selected wizard settings", async () => {
     const user = userEvent.setup();
     const onCreate = vi.fn<(_: BracketCreationInput, action: "start_voting" | "save_draft") => Promise<boolean>>().mockResolvedValue(true);
 
     render(<BracketCreationWizard pools={[pool]} creating={false} onCancel={vi.fn()} onCreate={onCreate} />);
 
-    await user.click(screen.getByRole("button", { name: /Dinner Pool/ }));
+    await nameBracketAndSelectPool(user);
     await user.click(screen.getByRole("button", { name: "Continue" }));
     await user.click(screen.getByRole("button", { name: "Continue" }));
     await user.click(screen.getByRole("button", { name: "Continue" }));
     await user.click(screen.getByRole("button", { name: "Continue" }));
-    await user.type(screen.getByPlaceholderText("Dinner Pool Bracket"), "Dinner Finals");
     await user.click(screen.getByRole("button", { name: "Start voting" }));
 
     expect(onCreate).toHaveBeenCalledWith(
@@ -57,7 +79,7 @@ describe("bracket configuration wizard", () => {
 
     render(<BracketCreationWizard pools={[pool]} creating={false} onCancel={vi.fn()} onCreate={onCreate} />);
 
-    await user.click(screen.getByRole("button", { name: /Dinner Pool/ }));
+    await nameBracketAndSelectPool(user);
     await user.click(screen.getByRole("button", { name: "Continue" }));
     await user.click(screen.getByRole("button", { name: "Continue" }));
     await user.click(screen.getByRole("button", { name: "Continue" }));
@@ -103,7 +125,7 @@ describe("bracket configuration wizard", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: /Dinner Pool/ }));
+    await nameBracketAndSelectPool(user, "Preset title from test");
     expect(screen.getByText("Audience guidance from test.")).not.toBeNull();
     expect(screen.getByText("Recommended")).not.toBeNull();
 
@@ -130,6 +152,7 @@ describe("bracket configuration wizard", () => {
 
     render(<BracketCreationWizard pools={[{ ...pool, candidateCount: 1 }]} creating={false} onCancel={vi.fn()} onCreate={onCreate} />);
 
+    await nameBracket(user);
     await user.click(screen.getByRole("button", { name: /Dinner Pool/ }));
 
     expect(screen.getByText("Add at least two candidates to this pool before creating a bracket.")).not.toBeNull();
@@ -142,13 +165,14 @@ describe("bracket configuration wizard", () => {
 
     render(<BracketCreationWizard pools={[pool]} creating={false} onCancel={vi.fn()} onCreate={vi.fn()} onStepChange={onStepChange} />);
 
-    await user.click(screen.getByRole("button", { name: /Dinner Pool/ }));
+    await nameBracketAndSelectPool(user);
     await user.click(screen.getByRole("button", { name: "Continue" }));
     await user.click(screen.getByRole("button", { name: "Back" }));
 
     expect(onStepChange).toHaveBeenNthCalledWith(1, 1);
     expect(onStepChange).toHaveBeenNthCalledWith(2, 2);
-    expect(onStepChange).toHaveBeenNthCalledWith(3, 1);
+    expect(onStepChange).toHaveBeenNthCalledWith(3, 3);
+    expect(onStepChange).toHaveBeenNthCalledWith(4, 2);
   });
 
   it("shows voting effort estimates on the results step", async () => {
@@ -156,7 +180,7 @@ describe("bracket configuration wizard", () => {
 
     render(<BracketCreationWizard pools={[pool]} creating={false} onCancel={vi.fn()} onCreate={vi.fn()} />);
 
-    await user.click(screen.getByRole("button", { name: /Dinner Pool/ }));
+    await nameBracketAndSelectPool(user);
     await user.click(screen.getByRole("button", { name: "Continue" }));
     await user.click(screen.getByRole("button", { name: "Continue" }));
     await user.click(screen.getByRole("button", { name: "Continue" }));
@@ -174,6 +198,7 @@ describe("bracket configuration wizard", () => {
 
     render(<BracketCreationWizard pools={[pool]} creating={false} onCancel={vi.fn()} onCreate={vi.fn()} />);
 
+    await nameBracket(user);
     await user.click(screen.getByRole("button", { name: /Dinner Pool/ }));
     await user.click(screen.getByRole("button", { name: /Share with a group/ }));
     await user.click(screen.getByRole("button", { name: "Continue" }));
@@ -193,7 +218,7 @@ describe("bracket configuration wizard", () => {
 
     render(<BracketCreationWizard pools={[pool]} creating={false} onCancel={vi.fn()} onCreate={vi.fn()} onStepChange={onStepChange} />);
 
-    await user.click(screen.getByRole("button", { name: /Dinner Pool/ }));
+    await nameBracketAndSelectPool(user);
     await user.click(screen.getByRole("button", { name: "Continue" }));
     await user.click(screen.getByRole("button", { name: "Continue" }));
     await user.click(screen.getByRole("button", { name: "Continue" }));
@@ -207,11 +232,11 @@ describe("bracket configuration wizard", () => {
     expect(screen.getByText("4 contenders")).not.toBeNull();
     expect(screen.queryByText("Only you can see and run it.")).toBeNull();
     expect(screen.queryByText("The bracket ends with one champion.")).toBeNull();
-    expect(screen.getAllByText("Edit")).toHaveLength(5);
+    expect(screen.getAllByText("Edit")).toHaveLength(6);
 
     await user.click(winnersReviewCard);
 
-    expect(onStepChange).toHaveBeenLastCalledWith(2);
+    expect(onStepChange).toHaveBeenLastCalledWith(3);
     expect(screen.getByText("How will each matchup be decided?")).not.toBeNull();
   });
 
@@ -221,11 +246,13 @@ describe("bracket configuration wizard", () => {
 
     render(<BracketCreationWizard pools={[pool]} creating={false} onCancel={vi.fn()} onCreate={vi.fn()} onStepChange={onStepChange} />);
 
+    await nameBracket(user);
     await user.click(screen.getByRole("button", { name: /\+Add a pool/ }));
     await user.click(screen.getByRole("button", { name: "Continue" }));
 
     expect(screen.getByText("Give the new pool a name.")).not.toBeNull();
-    expect(onStepChange).not.toHaveBeenCalled();
+    expect(onStepChange).toHaveBeenCalledTimes(1);
+    expect(onStepChange).toHaveBeenLastCalledWith(1);
   });
 
   it("submits custom seed ids for an existing pool", async () => {
@@ -243,7 +270,7 @@ describe("bracket configuration wizard", () => {
 
     render(<BracketCreationWizard pools={[pool]} creating={false} onCancel={vi.fn()} onCreate={onCreate} />);
 
-    await user.click(screen.getByRole("button", { name: /Dinner Pool/ }));
+    await nameBracketAndSelectPool(user);
     await user.click(screen.getByRole("button", { name: "Continue" }));
     await user.click(screen.getByRole("button", { name: "Continue" }));
     await user.click(screen.getByRole("button", { name: /Customize seeds/ }));

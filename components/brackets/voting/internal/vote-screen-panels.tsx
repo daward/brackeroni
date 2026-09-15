@@ -3,7 +3,12 @@
 import { useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
 import type { VoteScreenPanelsProps, VoteTournament } from "./voting-internal-types";
-import { getCurrentRoundProgress, isVoteTournamentWaiting, openMatchesForTournament, shouldShowInVoteNow } from "./vote-match-state";
+import {
+  getCurrentRoundProgress,
+  openMatchesForTournament,
+  shouldAutoRefreshWaitingTournament,
+  shouldShowInVoteNow,
+} from "./vote-match-state";
 import { VoteMatchModal } from "./vote-match-modal";
 import { buildVoteUrl } from "./vote-routing";
 import { VoteSignInCallout } from "./vote-sign-in-callout";
@@ -120,7 +125,7 @@ export function VoteScreenPanels({
         />
       ) : null}
 
-      {votingTournament && isVoteTournamentWaiting(votingTournament) ? (
+      {votingTournament && shouldAutoRefreshWaitingTournament(votingTournament) ? (
         <VoteWaitingModal
           tournament={votingTournament}
           transitionMessage={transitionMessage}

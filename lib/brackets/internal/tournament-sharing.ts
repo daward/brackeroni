@@ -185,16 +185,11 @@ export async function getTournamentByShareToken({ token, userId }) {
     let joined = Boolean(invite) || isCreator;
     let accessState = "waiting";
 
-    if (
-      !isCreator &&
-      record.active &&
-      (record.status === "draft" || record.status === "active")
-    ) {
+    if (!isCreator && record.active && record.status === "draft") {
       if (!invite) {
-        const inviteStatusForState = record.status === "active" ? "locked" : "pending";
         const [createdInvite] = await tx`
           insert into tournament_invite (tournament_id, user_id, status)
-          values (${record.tournamentId}, ${userId}, ${inviteStatusForState})
+          values (${record.tournamentId}, ${userId}, 'pending')
           on conflict (tournament_id, user_id) do update
             set joined_at = tournament_invite.joined_at
           returning id, status
@@ -203,7 +198,7 @@ export async function getTournamentByShareToken({ token, userId }) {
       }
 
       joined = true;
-      accessState = record.status === "active" ? "active" : "waiting";
+      accessState = "waiting";
     } else if (!isCreator && !invite) {
       accessState = record.active ? "not_invited" : "link_inactive";
     } else if (record.status === "active") {
@@ -232,4 +227,3 @@ export async function getTournamentByShareToken({ token, userId }) {
     };
   });
 }
-

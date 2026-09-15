@@ -104,4 +104,44 @@ describe("vote screen panels", () => {
     expect(screen.getAllByRole("button", { name: /Public bracket/ }).length).toBeGreaterThan(0);
     expect(screen.queryByText("Waiting for the next round to open")).toBeNull();
   });
+
+  it("does not open the waiting modal for public brackets even when vote links auto-open", () => {
+    render(
+      <VoteScreenPanels
+        activeTournaments={[
+          {
+            ...publicBracket(),
+            viewerHasVotes: true,
+            matches: [],
+          },
+        ]}
+        initialFocusedTournamentId="bracket-1"
+        initialOpenVote
+      />,
+    );
+
+    expect(screen.getAllByRole("button", { name: /Public bracket/ }).length).toBeGreaterThan(0);
+    expect(screen.queryByText("Waiting for the next round to open")).toBeNull();
+  });
+
+  it("keeps the waiting modal for friends brackets", () => {
+    render(
+      <VoteScreenPanels
+        activeTournaments={[
+          {
+            ...publicBracket(),
+            title: "Friends bracket",
+            visibility: "private",
+            sharingMode: "with_friends",
+            viewerHasVotes: true,
+            matches: [],
+          },
+        ]}
+        initialFocusedTournamentId="bracket-1"
+        initialOpenVote
+      />,
+    );
+
+    expect(screen.getByText("Waiting for the next round to open")).not.toBeNull();
+  });
 });

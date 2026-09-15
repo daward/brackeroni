@@ -74,7 +74,7 @@ export function NewBracketSetupPage({ draftId: routeDraftId = null }: NewBracket
       onStepChange={(step) => {
         const nextParams = new URLSearchParams(searchParams?.toString());
         const stepSlug = getWizardStepSlug(step);
-        if (stepSlug === "contenders") {
+        if (stepSlug === "name") {
           nextParams.delete("step");
         } else {
           nextParams.set("step", stepSlug);

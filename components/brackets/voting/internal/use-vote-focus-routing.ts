@@ -1,7 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { isVoteTournamentWaiting, openMatchesForTournament } from "./vote-match-state";
+import {
+  isVoteTournamentWaiting,
+  openMatchesForTournament,
+  shouldAutoRefreshWaitingTournament,
+} from "./vote-match-state";
 import { buildCreateReturnUrl, buildVoteUrl } from "./vote-routing";
 import { readStoredFocusedTournamentId, writeStoredFocusedTournamentId } from "./vote-storage";
 import type { VoteMatch, VoteTournament } from "./voting-internal-types";
@@ -35,7 +39,7 @@ export function useVoteFocusRouting({
   const waitingTournamentIds = useMemo(
     () =>
       active
-        .filter(isVoteTournamentWaiting)
+        .filter(shouldAutoRefreshWaitingTournament)
         .map((tournament) => tournament.id)
         .sort(),
     [active],

@@ -114,6 +114,23 @@ describe("vote page routing", () => {
     expect(scenario.redirect).not.toHaveBeenCalled();
   });
 
+  it("opens anonymous public shared vote links without an existing voter cookie", async () => {
+    scenario.user = null;
+    scenario.anonymousVoterToken = null;
+    scenario.bracket = activeBracket({
+      visibility: "public_unlisted",
+      votingAccess: "anyone",
+    });
+    const { default: BracketVotingPage } = await import("../../../components/brackets/voting/internal/vote-page");
+
+    const page = await BracketVotingPage({ searchParams: Promise.resolve({ bracket: bracketId, vote: "1" }) });
+    const panels = page.props.children;
+
+    expect(scenario.redirect).not.toHaveBeenCalled();
+    expect(panels.props.initialFocusedTournamentId).toBe(bracketId);
+    expect(panels.props.initialOpenVote).toBe(true);
+  });
+
   it("includes anonymous voted public unlisted brackets in the vote list", async () => {
     scenario.user = null;
     scenario.anonymousVoterToken = "anon-1";

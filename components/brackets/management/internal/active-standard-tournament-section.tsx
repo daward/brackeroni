@@ -12,6 +12,8 @@ import { ParticipationTrackerPanel } from "./status-participation";
 import { TournamentActionGroup } from "./tournament-action-group";
 import styles from "./management.module.css";
 import { getActiveStandardBracketStatus } from "./management-status";
+import { calculateSwissRoundCount, nextPowerOfTwo } from "@/lib/brackets/engine/rounds";
+import { usesOpenEndedRankingMode, usesSwissResultMode } from "@/lib/brackets/engine/result-modes";
 import type { ActiveStandardTournamentSectionProps } from "../types";
 
 export function ActiveStandardTournamentSection({
@@ -23,6 +25,7 @@ export function ActiveStandardTournamentSection({
   creatorIsDone,
   activeShareLink,
   invitees,
+  participationUpdatedAt,
   canCopyBracketLink,
   describeTournamentAudienceMode,
   formatBracketRuleLabel,
@@ -31,6 +34,7 @@ export function ActiveStandardTournamentSection({
   onOpenNextRound,
   onVoteCurrentRound,
   onCopyShareLink,
+  onRefreshParticipation,
   onSetManualMatchWinner,
   onRerunTournament,
   onArchiveTournament,
@@ -53,6 +57,7 @@ export function ActiveStandardTournamentSection({
     ? currentRoundMatches.filter((match) => Boolean(match.userVoteEntryId)).length
     : creatorVotesCast;
   const currentCreatorIsDone = currentRoundVoteGoal > 0 && currentCreatorVotesCast >= currentRoundVoteGoal;
+  const closeActionLabel = isFinalClosingRound(tournament) ? "Close Voting" : "Close Round";
   const standardSummaryRows = usesManualAdvancement
     ? [
         {
@@ -66,12 +71,14 @@ export function ActiveStandardTournamentSection({
       ]
     : [
         {
-          title: "Round Votes",
-          meta: roundVoteTotal > 0 ? `${roundVoteTotal} votes cast so far` : "No votes cast yet this round",
+          title: "Votes Cast",
+          meta: String(roundVoteTotal),
         },
         {
           title: "Matchup Activity",
-          meta: currentRoundVoteGoal > 0 ? `${activeVotedMatchCount} of ${currentRoundVoteGoal} matchups have votes` : "No open matchups in this round",
+          meta: currentRoundVoteGoal > 0
+            ? `${activeVotedMatchCount} out of ${currentRoundVoteGoal} with votes`
+            : "No open matchups",
         },
       ];
   const standardVoteIsActionable = hasOpenVotes;
@@ -107,13 +114,13 @@ export function ActiveStandardTournamentSection({
     key: `close-round:${tournament.id}`,
     render: () => (
       <CloseVotingButton
-        label="Close Voting"
-        className={getCloseVotingClassName({ isPrivateBracket, standardVoteIsActionable })}
-        disabled={isPrivateBracket || (usesManualAdvancement ? !canCloseManualVoting : isActionPending(`close-round:${tournament.id}`))}
-        disabledReason={usesManualAdvancement && !canCloseManualVoting ? "Pick winners for every open matchup before closing voting." : ""}
-        title="Close voting for this round?"
-        body={getCloseVotingBody({ usesManualAdvancement, isPublicBracket })}
-        confirmLabel="Close Voting"
+        label={closeActionLabel}
+        className={getCloseVotingClassName({ standardVoteIsActionable })}
+        disabled={usesManualAdvancement ? !canCloseManualVoting : isActionPending(`close-round:${tournament.id}`)}
+        disabledReason={usesManualAdvancement && !canCloseManualVoting ? "Pick winners for every open matchup before closing this round." : ""}
+        title={`${closeActionLabel}?`}
+        body={getCloseVotingBody({ usesManualAdvancement, isPublicBracket, isFinalRound: closeActionLabel === "Close Voting" })}
+        confirmLabel={closeActionLabel}
         onConfirm={() => onCloseCurrentRound(tournament.id)}
       />
     ),
@@ -122,7 +129,7 @@ export function ActiveStandardTournamentSection({
     key: `open-next-round:${tournament.id}`,
     render: () => (
       <CloseVotingButton
-        label="Reveal & Open Next Round"
+        label="Open Next Round"
         className="ui-button ui-button-primary w-full"
         disabled={isActionPending(`open-next-round:${tournament.id}`)}
         title="Reveal results and open the next round?"
@@ -209,6 +216,9 @@ export function ActiveStandardTournamentSection({
         activeRoundVoteGoal={usesManualAdvancement ? undefined : currentRoundVoteGoal}
         creatorIsDone={usesManualAdvancement ? undefined : currentCreatorIsDone}
         summaryRows={standardSummaryRows}
+        updatedAt={participationUpdatedAt}
+        isRefreshing={isActionPending(`refresh-participation:${tournament.id}`)}
+        onRefresh={onRefreshParticipation ? () => onRefreshParticipation(tournament.id) : undefined}
       />
 
       <DetailsPanel
@@ -224,22 +234,52 @@ export function ActiveStandardTournamentSection({
   );
 }
 
-function getCloseVotingClassName({ isPrivateBracket, standardVoteIsActionable }: { isPrivateBracket: boolean; standardVoteIsActionable: boolean }) {
-  if (isPrivateBracket) return "ui-button ui-button-muted w-full";
+function getCloseVotingClassName({ standardVoteIsActionable }: { standardVoteIsActionable: boolean }) {
   if (standardVoteIsActionable) return "ui-button ui-button-accent w-full";
   return "ui-button ui-button-primary w-full";
 }
 
-function getCloseVotingBody({ usesManualAdvancement, isPublicBracket }: { usesManualAdvancement: boolean; isPublicBracket: boolean }) {
+function getCloseVotingBody({
+  usesManualAdvancement,
+  isPublicBracket,
+  isFinalRound,
+}: {
+  usesManualAdvancement: boolean;
+  isPublicBracket: boolean;
+  isFinalRound: boolean;
+}) {
   if (usesManualAdvancement) {
     return "This will close voting for the current bracket state and keep the winners you entered as the advancing entries.";
   }
 
   if (isPublicBracket) {
+    if (isFinalRound) {
+      return "This freezes the final vote totals. You can reveal the final results when you are ready.";
+    }
+
     return "This freezes the vote totals. You will open the next round when you are ready to reveal these results.";
   }
 
+  if (isFinalRound) {
+    return "This will close voting and complete the bracket.";
+  }
+
   return "This will close voting for the current round and open the next round with the advancing winners.";
+}
+
+function isFinalClosingRound(tournament: ActiveStandardTournamentSectionProps["tournament"]) {
+  const activeRoundNumber = tournament.activeRoundNumber ?? 0;
+  const entryCount = tournament.entryCount ?? 0;
+
+  if (activeRoundNumber <= 0 || entryCount <= 1 || usesOpenEndedRankingMode(tournament.resultMode)) {
+    return false;
+  }
+
+  if (usesSwissResultMode(tournament.resultMode)) {
+    return activeRoundNumber >= calculateSwissRoundCount(entryCount);
+  }
+
+  return activeRoundNumber >= Math.ceil(Math.log2(nextPowerOfTwo(entryCount)));
 }
 
 function getShareActionLabel(sharingMode: string | null | undefined, hasShareLink: boolean) {

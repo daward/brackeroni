@@ -7,13 +7,14 @@ import type { PoolCandidate, PoolSelectionOption } from "@/lib/pools/types";
 import type { AudienceMode, BracketCreationAction, SeedingMode } from "../types";
 import { AccessStep } from "./access-step";
 import { MatchupsStep } from "./matchups-step";
+import { NameStep } from "./name-step";
 import { ResultsStep } from "./results-step";
 import { ReviewStep } from "./review-step";
 import { SeedingStep } from "./seeding-step";
 import { SourceSelectionStep } from "./source-selection-step";
 import setupStyles from "./bracket-setup.module.css";
 
-const STEPS = ["Contenders", "Audience", "Winners", "Seeding", "Results", "Review"];
+const STEPS = ["Name", "Contenders", "Audience", "Winners", "Seeding", "Results", "Review"];
 
 type WizardLayoutProps = {
   fullPage: boolean;
@@ -65,17 +66,21 @@ type WizardLayoutProps = {
 
 export function WizardLayout(props: WizardLayoutProps) {
   const content = getStepContent(props);
-  const canContinue = props.step < STEPS.length - 1 && !(props.step === 0 && props.sourceMode === "existing");
+  const canContinue = props.step < STEPS.length - 1 && !(props.step === 1 && props.sourceMode === "existing");
   const shellClassName = props.fullPage ? setupStyles.shell : setupStyles.modalShell;
+  const showHeader = !props.fullPage;
+  const pageClassName = props.fullPage ? setupStyles.page : setupStyles.modalBackdrop;
   return (
-    <div className={props.fullPage ? setupStyles.page : setupStyles.modalBackdrop}>
+    <div className={pageClassName}>
       <section className={`${setupStyles.wizardShell} ${shellClassName}`}>
-        <header className={props.fullPage ? setupStyles.header : setupStyles.modalHeader}>
-          <h1 className={`display-face ${setupStyles.title}`}>New bracket</h1>
-          <button type="button" onClick={props.onCancel} className={`display-face ${setupStyles.cancelButton}`}>
-            {props.fullPage ? "Back to Brackets" : "Close"}
-          </button>
-        </header>
+        {showHeader ? (
+          <header className={props.fullPage ? setupStyles.header : setupStyles.modalHeader}>
+            <h1 className={`display-face ${setupStyles.title}`}>New bracket</h1>
+            <button type="button" onClick={props.onCancel} className={`display-face ${setupStyles.cancelButton}`}>
+              {props.fullPage ? "Back to Brackets" : "Close"}
+            </button>
+          </header>
+        ) : null}
         <div className={props.fullPage ? setupStyles.steps : setupStyles.modalSteps}>
           {STEPS.map((label, index) => (
             <button
@@ -136,6 +141,8 @@ function getBackLabel(step: number, fullPage: boolean) {
 function getStepContent(props: WizardLayoutProps) {
   switch (props.step) {
     case 0:
+      return <NameStep title={props.title} onTitleChange={props.onTitleChange} />;
+    case 1:
       return (
         <SourceSelectionStep
           sourceMode={props.sourceMode}
@@ -153,7 +160,7 @@ function getStepContent(props: WizardLayoutProps) {
           onCandidatesChange={props.onCandidatesChange}
         />
       );
-    case 1:
+    case 2:
       return (
         <AccessStep
           audienceMode={props.audienceMode}
@@ -162,7 +169,7 @@ function getStepContent(props: WizardLayoutProps) {
           onAudienceModeChange={props.onAudienceModeChange}
         />
       );
-    case 2:
+    case 3:
       return (
         <MatchupsStep
           advancementMode={props.advancementMode}
@@ -171,7 +178,7 @@ function getStepContent(props: WizardLayoutProps) {
           onTieBreakModeChange={props.onTieBreakModeChange}
         />
       );
-    case 3:
+    case 4:
       return (
         <SeedingStep
           playStyle={props.playStyle}
@@ -186,7 +193,7 @@ function getStepContent(props: WizardLayoutProps) {
           onDrop={props.onSeedDrop}
         />
       );
-    case 4:
+    case 5:
       return (
         <ResultsStep
           playStyle={props.playStyle}
@@ -211,7 +218,6 @@ function getStepContent(props: WizardLayoutProps) {
           advancementMode={props.advancementMode}
           tieBreakMode={props.tieBreakMode}
           audienceMode={props.audienceMode}
-          onTitleChange={props.onTitleChange}
           onStepChange={props.onStepChange}
         />
       );

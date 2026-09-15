@@ -115,6 +115,15 @@ export function useBracketCreationWizardState({ pools, initialPoolId = "", initi
     return true;
   }
 
+  function canProceedFromName() {
+    if (!title.trim()) {
+      setError("Ask the bracket question before continuing.");
+      return false;
+    }
+
+    return true;
+  }
+
   function selectPool(pool: PoolSelectionOption) {
     if ((pool.candidateCount ?? 0) < 2) {
       setError("Add at least two candidates to this pool before creating a bracket.");
@@ -122,12 +131,13 @@ export function useBracketCreationWizardState({ pools, initialPoolId = "", initi
     }
     setSourcePoolId(pool.id);
     setError("");
-    changeStep(1);
+    changeStep(2);
   }
 
   function goNext() {
-    if (step === 0 && !canProceedFromSource()) return;
-    if (step === 3 && seedingMode === "custom" && customSeedEntries.length < 2) {
+    if (step === 0 && !canProceedFromName()) return;
+    if (step === 1 && !canProceedFromSource()) return;
+    if (step === 4 && seedingMode === "custom" && customSeedEntries.length < 2) {
       setError("Wait for the contenders to load before continuing.");
       return;
     }
@@ -143,9 +153,14 @@ export function useBracketCreationWizardState({ pools, initialPoolId = "", initi
   }
 
   async function handleCreate(action: BracketCreationAction) {
+    if (!canProceedFromName()) {
+      changeStep(0);
+      return;
+    }
+
     const input = buildCreationInput();
     if (!input) {
-      changeStep(0);
+      changeStep(1);
       return;
     }
 

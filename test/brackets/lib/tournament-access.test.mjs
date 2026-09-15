@@ -53,3 +53,24 @@ test("parallel child access still checks its participant record", async () => {
   assert.match(calls[0], /information_schema\.tables/);
   assert.match(calls[1], /parallel_tournament_participant/);
 });
+
+test("friends access only accepts invites joined before the bracket started", async () => {
+  const { calls, sql } = createSql([]);
+
+  await assert.rejects(
+    () => assertTournamentAccess({
+      sql,
+      tournamentId: "friends-bracket",
+      sharingMode: "with_friends",
+      visibility: "private",
+      votingAccess: "signed_in_only",
+      creatorUserId: "creator",
+      userId: "late-user",
+      isParallelParticipantTournament: false,
+      mode: "vote",
+    }),
+    /FORBIDDEN/,
+  );
+
+  assert.match(calls.at(-1), /invite\.joined_at <= t\.started_at/);
+});

@@ -66,6 +66,7 @@ export function BracketManagementWorkspace() {
   const [editingTournamentTitleId, setEditingTournamentTitleId] = useState<string | null>(null);
   const [expandedBracketRules, setExpandedBracketRules] = useState<Record<string, boolean>>({});
   const [recentlySavedBrackets, setRecentlySavedBrackets] = useState<Record<string, boolean>>({});
+  const [participationUpdatedAt, setParticipationUpdatedAt] = useState<Record<string, string>>({});
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [pendingActions, setPendingActions] = useState<ActionState>({});
@@ -257,6 +258,35 @@ export function BracketManagementWorkspace() {
     setErrorMessage("Parallel bracket voting opens each participant's ballot. Use the public voting page from the shared link.");
     setSelectedLiveTournamentId(tournamentId);
   }
+
+  async function handleRefreshParticipation(tournamentId: string) {
+    const actionKey = `refresh-participation:${tournamentId}`;
+    if (isActionPending(actionKey)) {
+      return;
+    }
+
+    beginAction(actionKey);
+    setErrorMessage("");
+    setSuccessMessage("");
+
+    try {
+      const tournament = tournaments.find((item) => item.id === tournamentId);
+      if (tournament?.kind !== "parallel_parent") {
+        await refreshTournamentMatches(tournamentId);
+      }
+
+      await loadWorkspace({ force: true });
+      setParticipationUpdatedAt((current) => ({
+        ...current,
+        [tournamentId]: new Date().toISOString(),
+      }));
+    } catch (error) {
+      setErrorMessage(getErrorMessage(error, "Failed to refresh participation stats."));
+    } finally {
+      endAction(actionKey);
+    }
+  }
+
   useBracketRouteActions({
     beginAction,
     createDraftBracket,
@@ -443,6 +473,7 @@ export function BracketManagementWorkspace() {
         recentlySavedBrackets={recentlySavedBrackets}
         tournamentInvites={tournamentInvites}
         tournamentShareLinks={tournamentShareLinks}
+        participationUpdatedAt={participationUpdatedAt}
         pools={pools as PoolSelectionOption[]}
         poolDetails={poolDetails}
         isActionPending={isActionPending}
@@ -458,6 +489,7 @@ export function BracketManagementWorkspace() {
         handleOpenNextRound={handleOpenNextRound}
         handleVoteCurrentRound={handleVoteCurrentRound}
         handleOpenParallelVoting={handleOpenParallelVoting}
+        handleRefreshParticipation={handleRefreshParticipation}
         handleRerunTournament={handleRerunTournament}
         handleSetManualMatchWinner={handleSetManualMatchWinner}
         tournamentMatches={tournamentMatches}

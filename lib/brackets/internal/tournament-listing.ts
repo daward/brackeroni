@@ -138,6 +138,11 @@ export async function listTournaments({ creatorUserId, status = null, limit = 24
         when 'draft' then 1
         else 2
       end,
+      case t.status
+        when 'active' then coalesce(t.started_at, t.updated_at, t.created_at)
+        when 'draft' then coalesce(t.updated_at, t.created_at)
+        else coalesce(t.completed_at, t.updated_at, t.created_at)
+      end desc,
       t.created_at desc
     limit ${limit + 1}
     offset ${offset}
@@ -186,6 +191,10 @@ export async function listAccessibleTournaments({ userId, statuses = null, limit
     left join tournament_invite invite
       on invite.tournament_id = t.id
      and invite.user_id = ${userId}
+     and (
+       t.started_at is null
+       or invite.joined_at <= t.started_at
+     )
     left join lateral (
       select
         ranked_entry.id,

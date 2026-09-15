@@ -51,7 +51,7 @@ describe("bracket share link target", () => {
     assert.equal(target.bracketType, "standard");
     assert.equal(target.joined, true);
     assert.equal(target.inviteStatus, "pending");
-    assert.equal(target.votePath, "/vote?bracket=bracket-1");
+    assert.equal(target.votePath, "/vote?bracket=bracket-1&vote=1");
   });
 
   it("does not join inactive standard share links", async () => {
@@ -66,12 +66,24 @@ describe("bracket share link target", () => {
     assert.equal(target.accessState, "link_inactive");
   });
 
+  it("does not join active standard brackets after voting starts", async () => {
+    responses = [shareRecord({ status: "active" }), []];
+
+    const target = await shareLink({
+      token: "share-token",
+      userId: "user-1",
+    }).getTarget();
+
+    assert.equal(target.joined, false);
+    assert.equal(target.accessState, "not_invited");
+    assert.equal(calls.some((call) => call.sql.startsWith("insert into tournament_invite")), false);
+  });
+
   it("falls back to an active parallel share link", async () => {
     responses = [
       [],
       [{ hasParallelBracketShareLinks: true }],
       [parallelShareRecord()],
-      [],
       [{ id: "participant-1", status: "active" }],
     ];
 
@@ -82,7 +94,26 @@ describe("bracket share link target", () => {
 
     assert.equal(target.bracketType, "parallel_parent");
     assert.equal(target.joined, true);
-    assert.equal(target.votePath, "/vote?parallelBracket=parallel-1");
+    assert.equal(target.votePath, "/vote?parallelBracket=parallel-1&vote=1");
+  });
+
+  it("does not join active parallel brackets after voting starts", async () => {
+    responses = [
+      [],
+      [{ hasParallelBracketShareLinks: true }],
+      [parallelShareRecord()],
+      [],
+    ];
+
+    const target = await shareLink({
+      token: "parallel-token",
+      userId: "user-1",
+    }).getTarget();
+
+    assert.equal(target.bracketType, "parallel_parent");
+    assert.equal(target.joined, false);
+    assert.equal(target.accessState, "not_invited");
+    assert.equal(calls.some((call) => call.sql.startsWith("insert into parallel_tournament_participant")), false);
   });
 
   function parallelShareRecord() {

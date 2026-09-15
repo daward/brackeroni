@@ -59,7 +59,7 @@ describe("vote match state", () => {
     });
 
     expect(message).toBe(
-      "Vote recorded for Public bracket. You finished Round 1 of 3. Waiting for the bracket manager to reveal the results and open the next round.",
+      "Vote recorded: Public bracket.\nFinished Round 1 of 3. Waiting for the next round to open.",
     );
   });
 });

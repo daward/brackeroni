@@ -45,7 +45,7 @@ export type StatusActionRowProps = {
 };
 
 export type CloseVotingButtonProps = {
-  label?: string;
+  label?: ReactNode;
   className: string;
   disabled?: boolean;
   disabledReason?: string;
@@ -172,12 +172,14 @@ export type ActiveParallelTournamentSectionProps = {
   primaryActionLabel: string;
   activeShareLink: BracketShareLink;
   invitees: BracketInvite[];
+  participationUpdatedAt?: string | Date | null;
   canCopyBracketLink: (bracket: Bracket) => boolean;
   describeTournamentAudienceMode: BracketAudienceDescriber;
   formatBracketRuleLabel: BracketLabelFormatter;
   isActionPending: PendingTournamentAction;
   onVote: (tournamentId: string) => void;
   onCopyShareLink: (tournamentId: string) => void;
+  onRefreshParticipation?: (tournamentId: string) => void;
   onCloseBracket: (tournamentId: string) => void;
   onArchiveTournament: (tournamentId: string, title: string) => void;
 };
@@ -191,6 +193,7 @@ export type ActiveStandardTournamentSectionProps = {
   creatorIsDone: boolean;
   activeShareLink: BracketShareLink;
   invitees: BracketInvite[];
+  participationUpdatedAt?: string | Date | null;
   canCopyBracketLink: (bracket: Bracket) => boolean;
   describeTournamentAudienceMode: BracketAudienceDescriber;
   formatBracketRuleLabel: BracketLabelFormatter;
@@ -199,6 +202,7 @@ export type ActiveStandardTournamentSectionProps = {
   onOpenNextRound: (tournamentId: string) => void;
   onVoteCurrentRound: (tournamentId: string, matchId: string, selectedEntryId: string) => void;
   onCopyShareLink: (tournamentId: string) => void;
+  onRefreshParticipation?: (tournamentId: string) => void;
   onSetManualMatchWinner: (tournamentId: string, matchId: string, winnerEntryId: string | null) => void;
   onRerunTournament: (tournamentId: string) => void;
   onArchiveTournament: (tournamentId: string, title: string) => void;

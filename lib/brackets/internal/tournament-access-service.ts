@@ -90,9 +90,14 @@ export async function assertTournamentAccess({
 
     const invited = await sql`
       select 1
-      from tournament_invite
-      where tournament_id = ${tournamentId}
-        and user_id = ${userId}
+      from tournament_invite invite
+      join tournament t on t.id = invite.tournament_id
+      where invite.tournament_id = ${tournamentId}
+        and invite.user_id = ${userId}
+        and (
+          t.started_at is null
+          or invite.joined_at <= t.started_at
+        )
       limit 1
     `;
 

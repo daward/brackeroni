@@ -33,6 +33,11 @@
   width: 100%;
   flex-direction: column;
   overflow: hidden;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.wizardShell :global(.ui-copy) {
+  font-family: Arial, Helvetica, sans-serif;
 }
 
 .header {

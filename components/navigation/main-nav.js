@@ -82,7 +82,7 @@ export function MainNav({ user, googleConfigured, isDevShimActive, isAdmin = fal
                   <span
                     key={link.href}
                     aria-current="page"
-                    className="display-face border border-[var(--accent-2)] bg-[var(--accent-2)] px-4 py-3 text-sm font-bold uppercase tracking-[0.18em] text-black"
+                    className="main-nav-link-active display-face px-4 py-3 text-sm font-bold uppercase tracking-[0.18em]"
                   >
                     {link.label}
                   </span>
@@ -139,7 +139,7 @@ export function MainNav({ user, googleConfigured, isDevShimActive, isAdmin = fal
                   aria-current={isActive ? "page" : undefined}
                   className={
                     isActive
-                      ? "display-face border border-[var(--accent-2)] bg-[var(--accent-2)] px-4 py-3 text-sm font-bold uppercase tracking-[0.18em] text-black"
+                      ? "main-nav-link-active display-face px-4 py-3 text-sm font-bold uppercase tracking-[0.18em]"
                       : "main-nav-control main-nav-link display-face px-4 py-3 text-sm font-bold uppercase tracking-[0.18em]"
                   }
                 >

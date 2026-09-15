@@ -15,7 +15,7 @@ export function shareLink(options: BracketShareTokenOptions) {
         return {
           ...standard,
           bracketType: "standard",
-          votePath: `/vote?bracket=${standard.tournamentId}`,
+          votePath: `/vote?bracket=${standard.tournamentId}&vote=1`,
           resultsPath: `/results/${standard.tournamentId}`,
         };
       } catch (error) {
@@ -28,7 +28,7 @@ export function shareLink(options: BracketShareTokenOptions) {
       return {
         ...parallel,
         bracketType: "parallel_parent",
-        votePath: `/vote?parallelBracket=${parallel.parallelTournamentId}`,
+        votePath: `/vote?parallelBracket=${parallel.parallelTournamentId}&vote=1`,
         resultsPath: `/results/${parallel.parallelTournamentId}`,
       };
     },

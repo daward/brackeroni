@@ -148,6 +148,21 @@ optgroup {
   color: var(--ink);
 }
 
+.main-nav-link-active,
+.main-nav-link-active:hover,
+.main-nav-link-active:focus-visible {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--accent-2);
+  background: var(--accent-2) !important;
+  color: #111111 !important;
+  box-shadow: none;
+}
+
+#mobile-site-navigation .main-nav-link-active {
+  width: 100%;
+}
+
 .cta-link,
 .cta-link:hover,
 .cta-link:focus-visible {

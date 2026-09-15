@@ -306,6 +306,11 @@ export async function listParallelBrackets({ creatorUserId, status = null, limit
         when 'draft' then 1
         else 2
       end,
+      case pt.status
+        when 'active' then coalesce(pt.started_at, pt.updated_at, pt.created_at)
+        when 'draft' then coalesce(pt.updated_at, pt.created_at)
+        else coalesce(pt.completed_at, pt.updated_at, pt.created_at)
+      end desc,
       pt.created_at desc
     limit ${limit + 1}
     offset ${offset}
@@ -361,6 +366,10 @@ export async function listAccessibleParallelBrackets({
          ${typedAnonymousVoterToken}::text is not null
          and access_participant.anonymous_voter_token = ${typedAnonymousVoterToken}::text
        )
+     )
+     and (
+       pt.started_at is null
+       or access_participant.created_at <= pt.started_at
      )
     left join lateral (
       select count(*)::integer as "candidateCount"
@@ -505,6 +514,10 @@ export async function getAccessibleParallelBracketById({
          ${typedAnonymousVoterToken}::text is not null
          and access_participant.anonymous_voter_token = ${typedAnonymousVoterToken}::text
        )
+     )
+     and (
+       pt.started_at is null
+       or access_participant.created_at <= pt.started_at
      )
     left join lateral (
       select count(*)::integer as "candidateCount"
@@ -829,29 +842,24 @@ export async function getParallelBracketByShareToken({ token, userId }) {
     let joined = Boolean(participant) || isCreator;
     let accessState = "waiting";
 
-    if (
-      !isCreator &&
-      record.active &&
-      (record.status === "draft" || record.status === "active")
-    ) {
+    if (!isCreator && record.active && record.status === "draft") {
       if (!participant) {
-        const participantStatusForState = record.status === "active" ? "active" : "invited";
         const [createdParticipant] = await tx`
           insert into parallel_tournament_participant (
             parallel_tournament_id,
             user_id,
             status
           )
-          values (${record.parallelTournamentId}, ${userId}, ${participantStatusForState})
+          values (${record.parallelTournamentId}, ${userId}, 'invited')
           on conflict do nothing
           returning id, status
         `;
 
-        participantStatus = createdParticipant?.status || participantStatusForState;
+        participantStatus = createdParticipant?.status || "invited";
       }
 
       joined = true;
-      accessState = record.status === "active" ? "active" : "waiting";
+      accessState = "waiting";
     } else if (!isCreator && !participant) {
       accessState = record.active ? "not_invited" : "link_inactive";
     } else if (record.status === "active") {
@@ -1067,6 +1075,10 @@ export async function openParallelBracketParticipant({
            ${typedAnonymousVoterToken}::text is not null
            and access_participant.anonymous_voter_token = ${typedAnonymousVoterToken}::text
          )
+       )
+       and (
+         pt.started_at is null
+         or access_participant.created_at <= pt.started_at
        )
       where pt.id = ${parallelTournamentId}
         and pt.archived_at is null

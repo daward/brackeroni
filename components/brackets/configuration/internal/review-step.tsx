@@ -1,6 +1,6 @@
 "use client";
 
-import { Gauge, Globe2, ListOrdered, LockKeyhole, Trophy, Users } from "lucide-react";
+import { Gauge, Globe2, ListOrdered, LockKeyhole, PencilLine, Trophy, Users } from "lucide-react";
 import type { BracketAdvancementMode, BracketPlayStyle, BracketResultMode, BracketTieBreakMode } from "@/lib/brackets/types";
 import type { AudienceMode, SeedingMode } from "../types";
 import { WizardQuestion } from "./wizard-question";
@@ -18,7 +18,6 @@ type ReviewStepProps = {
   advancementMode: BracketAdvancementMode;
   tieBreakMode: BracketTieBreakMode;
   audienceMode: AudienceMode;
-  onTitleChange: (title: string) => void;
   onStepChange: (step: number) => void;
 };
 
@@ -55,29 +54,20 @@ export function ReviewStep({
   advancementMode,
   tieBreakMode,
   audienceMode,
-  onTitleChange,
   onStepChange,
 }: ReviewStepProps) {
   const access = getAccessDetails(audienceMode);
   return (
     <div className={styles.step}>
-      <label className={styles.titleField}>
-        <WizardQuestion>What should this bracket be called?</WizardQuestion>
-        <input
-          value={title}
-          onChange={(event) => onTitleChange(event.target.value)}
-          placeholder={`${selectedName || "Untitled"} Bracket`}
-          className={`ui-field display-face ${styles.titleInput}`}
-        />
-      </label>
       <div className={styles.reviewSection}>
         <WizardQuestion>Your chosen settings</WizardQuestion>
         <div className={styles.reviewGrid}>
-          <WizardReviewItem icon={Users} label="Contenders" value={selectedName || "New pool"} detail={`${selectedCount} contenders`} onSelect={() => onStepChange(0)} />
-          <WizardReviewItem icon={access.icon} label="Audience" value={access.label} onSelect={() => onStepChange(1)} />
-          <WizardReviewItem icon={Trophy} label="Winners" value={getWinnersSummary(advancementMode, tieBreakMode)} onSelect={() => onStepChange(2)} />
-          <WizardReviewItem icon={ListOrdered} label="Seeding" value={getSeedingSummary(playStyle, seedingMode)} onSelect={() => onStepChange(3)} />
-          <WizardReviewItem icon={Gauge} label="Results" value={WIZARD_RESULT_MODE_DETAILS[resultMode].title} onSelect={() => onStepChange(4)} />
+          <WizardReviewItem icon={PencilLine} label="Name" value={title} onSelect={() => onStepChange(0)} />
+          <WizardReviewItem icon={Users} label="Contenders" value={selectedName || "New pool"} detail={`${selectedCount} contenders`} onSelect={() => onStepChange(1)} />
+          <WizardReviewItem icon={access.icon} label="Audience" value={access.label} onSelect={() => onStepChange(2)} />
+          <WizardReviewItem icon={Trophy} label="Winners" value={getWinnersSummary(advancementMode, tieBreakMode)} onSelect={() => onStepChange(3)} />
+          <WizardReviewItem icon={ListOrdered} label="Seeding" value={getSeedingSummary(playStyle, seedingMode)} onSelect={() => onStepChange(4)} />
+          <WizardReviewItem icon={Gauge} label="Results" value={WIZARD_RESULT_MODE_DETAILS[resultMode].title} onSelect={() => onStepChange(5)} />
         </div>
       </div>
     </div>

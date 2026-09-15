@@ -30,6 +30,14 @@ export function isVoteTournamentWaiting(tournament: VoteTournament): boolean {
   );
 }
 
+export function shouldAutoRefreshWaitingTournament(tournament: VoteTournament): boolean {
+  return (
+    isVoteTournamentWaiting(tournament) &&
+    tournament.visibility !== "public_listed" &&
+    tournament.visibility !== "public_unlisted"
+  );
+}
+
 export function shouldShowInVoteNow(tournament: VoteTournament, focusedTournamentId: string | null): boolean {
   return tournament.id === focusedTournamentId || openMatchesForTournament(tournament).length > 0 || isVoteTournamentWaiting(tournament);
 }

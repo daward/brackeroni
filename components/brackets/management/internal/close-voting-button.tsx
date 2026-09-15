@@ -16,7 +16,8 @@ export function CloseVotingButton({
   onConfirm,
 }: CloseVotingButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const dialogTitle = disabled ? label : title;
+  const fallbackLabel = typeof label === "string" ? label : confirmLabel;
+  const dialogTitle = disabled ? fallbackLabel : title;
   const dialogBody = disabled ? disabledReason || "This action is not available right now." : body;
 
   return (
@@ -24,7 +25,7 @@ export function CloseVotingButton({
       <button
         type="button"
         aria-haspopup="dialog"
-        aria-label={disabled ? disabledReason || label : undefined}
+        aria-label={disabled ? disabledReason || fallbackLabel : undefined}
         onClick={() => setIsOpen(true)}
         className={`${className} ${styles.closeVotingButton}`}
       >

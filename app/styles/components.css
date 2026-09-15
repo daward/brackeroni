@@ -584,6 +584,7 @@
   .workspace-live-layout {
     display: grid;
     grid-template-columns: 20rem minmax(0, 1fr);
+    align-items: start;
   }
 
   .workspace-live-mobile-picker {
@@ -592,6 +593,12 @@
 
   .workspace-live-rail-desktop {
     display: block;
+    position: sticky;
+    top: 1rem;
+    max-height: calc(100vh - 2rem);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
   }
 
   .workspace-live-detail {

@@ -1,4 +1,4 @@
-export const WIZARD_STEP_SLUGS = ["contenders", "audience", "winners", "seeding", "results", "review"] as const;
+export const WIZARD_STEP_SLUGS = ["name", "contenders", "audience", "winners", "seeding", "results", "review"] as const;
 
 export const WIZARD_STEP_COUNT = WIZARD_STEP_SLUGS.length;
 

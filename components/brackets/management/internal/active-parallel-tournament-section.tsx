@@ -15,12 +15,14 @@ export function ActiveParallelTournamentSection({
   primaryActionLabel,
   activeShareLink,
   invitees,
+  participationUpdatedAt,
   canCopyBracketLink,
   describeTournamentAudienceMode,
   formatBracketRuleLabel,
   isActionPending,
   onVote,
   onCopyShareLink,
+  onRefreshParticipation,
   onCloseBracket,
   onArchiveTournament,
 }: ActiveParallelTournamentSectionProps) {
@@ -75,11 +77,22 @@ export function ActiveParallelTournamentSection({
         className: "ui-button ui-button-muted",
       };
   const parallelActions = [parallelVoteAction, parallelResultsAction, parallelCloseAction, parallelShareAction];
+  const participantCount = tournament.participantCount ?? 0;
+  const completedParticipantCount = tournament.completedParticipantCount ?? 0;
+  const waitingParticipantCount = Math.max(participantCount - completedParticipantCount, 0);
 
   const parallelSummaryRows = [
     {
-      title: "Participants",
-      meta: `${tournament.completedParticipantCount ?? 0} of ${tournament.participantCount ?? 0} finished`,
+      title: "Total Participants",
+      meta: String(participantCount),
+    },
+    {
+      title: "Finished Ballots",
+      meta: String(completedParticipantCount),
+    },
+    {
+      title: "Still Waiting",
+      meta: String(waitingParticipantCount),
     },
   ];
 
@@ -107,7 +120,14 @@ export function ActiveParallelTournamentSection({
         />
       </LiveAccordion>
 
-      <ParticipationTrackerPanel tournament={tournament} invitees={invitees} summaryRows={parallelSummaryRows} />
+      <ParticipationTrackerPanel
+        tournament={tournament}
+        invitees={invitees}
+        summaryRows={parallelSummaryRows}
+        updatedAt={participationUpdatedAt}
+        isRefreshing={isActionPending(`refresh-participation:${tournament.id}`)}
+        onRefresh={onRefreshParticipation ? () => onRefreshParticipation(tournament.id) : undefined}
+      />
 
       <DetailsPanel
         items={[

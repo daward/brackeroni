@@ -10,6 +10,9 @@ export type ParticipationTrackerPanelProps = {
   activeRoundVoteGoal?: number;
   creatorIsDone?: boolean;
   summaryRows?: SummaryRow[];
+  updatedAt?: string | Date | null;
+  isRefreshing?: boolean;
+  onRefresh?: () => void;
 };
 
 export type DetailsPanelProps = { items: Array<ReactNode | null | undefined | false> };

@@ -303,6 +303,10 @@ export async function listRoundsForTournament({ tournamentId, userId = null }) {
     left join tournament_invite invite
       on invite.tournament_id = t.id
      and invite.user_id = ${userId}
+     and (
+       t.started_at is null
+       or invite.joined_at <= t.started_at
+     )
     where t.id = ${tournamentId}
       and t.archived_at is null
       and (

@@ -44,6 +44,7 @@ type TournamentWorkspaceSectionProps = {
   tournamentInvites: TournamentInvitesState;
   tournamentMatches: TournamentMatchesState;
   tournamentShareLinks: TournamentShareLinksState;
+  participationUpdatedAt: Record<string, string>;
   pools: BracketPoolOption[];
   poolDetails: PoolDetailsState;
   isActionPending: PendingActionChecker;
@@ -63,6 +64,7 @@ type TournamentWorkspaceSectionProps = {
   handleOpenNextRound: (tournamentId: string) => void;
   handleVoteCurrentRound: (tournamentId: string, matchId: string, selectedEntryId: string) => void;
   handleOpenParallelVoting: (tournamentId: string) => void;
+  handleRefreshParticipation: (tournamentId: string) => void;
   handleRerunTournament: (tournamentId: string) => void;
   handleSetManualMatchWinner: (tournamentId: string, matchId: string, winnerEntryId: string | null) => void;
 };
@@ -103,6 +105,7 @@ export function TournamentWorkspaceSection({
   tournamentInvites,
   tournamentMatches,
   tournamentShareLinks,
+  participationUpdatedAt,
   pools,
   poolDetails,
   isActionPending,
@@ -118,6 +121,7 @@ export function TournamentWorkspaceSection({
   handleOpenNextRound,
   handleVoteCurrentRound,
   handleOpenParallelVoting,
+  handleRefreshParticipation,
   handleRerunTournament,
   handleSetManualMatchWinner,
 }: TournamentWorkspaceSectionProps) {
@@ -163,12 +167,14 @@ export function TournamentWorkspaceSection({
             primaryActionLabel={primaryParallelActionLabel}
             activeShareLink={activeShareLink}
             invitees={invitees}
+            participationUpdatedAt={participationUpdatedAt[tournament.id] ?? null}
             canCopyBracketLink={canCopyBracketLink}
             describeTournamentAudienceMode={describeTournamentAudienceMode}
             formatBracketRuleLabel={formatBracketRuleLabel}
             isActionPending={isActionPending}
             onVote={handleOpenParallelVoting}
             onCopyShareLink={handleCopyShareLink}
+            onRefreshParticipation={handleRefreshParticipation}
             onCloseBracket={(tournamentId) => updateTournamentInline(tournamentId, { status: "complete" }, { silent: false })}
             onArchiveTournament={handleArchiveTournament}
           />
@@ -182,6 +188,7 @@ export function TournamentWorkspaceSection({
             creatorIsDone={creatorIsDone}
             activeShareLink={activeShareLink}
             invitees={invitees}
+            participationUpdatedAt={participationUpdatedAt[tournament.id] ?? null}
             canCopyBracketLink={canCopyBracketLink}
             describeTournamentAudienceMode={describeTournamentAudienceMode}
             formatBracketRuleLabel={formatBracketRuleLabel}
@@ -190,6 +197,7 @@ export function TournamentWorkspaceSection({
             onOpenNextRound={handleOpenNextRound}
             onVoteCurrentRound={handleVoteCurrentRound}
             onCopyShareLink={handleCopyShareLink}
+            onRefreshParticipation={handleRefreshParticipation}
             onSetManualMatchWinner={handleSetManualMatchWinner}
             onRerunTournament={handleRerunTournament}
             onArchiveTournament={handleArchiveTournament}
