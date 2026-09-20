@@ -12,7 +12,7 @@ export { BracketOutcomeNav, BracketProgressPage } from "./progress";
 export { supportsRoundProgressView } from "./progress";
 export { ParallelResultsPage, ResultsLinkedViewSelect, TournamentResultsPage, TournamentScoringPage } from "./results";
 export { CompletedBracketCard, TournamentPublishWarning } from "./shared";
-export { default as BracketVotingPage } from "./voting";
+export { default as BracketVotingPage, FriendsBracketVotePage } from "./voting";
 export type { BracketJoinPageProps, ShareLinkAccessItem, ShareLinkWaitingRoomProps } from "./join";
 export type { BracketOutcomeNavProps, BracketOutcomeView, BracketProgressMatch, BracketProgressPageProps, BracketProgressRound, BracketProgressTournament } from "./progress";
 export type { ParallelResultsPageProps, ResultsLinkedViewOption, ResultsLinkedViewSelectProps, TournamentResultsPageProps, TournamentScoringPageProps } from "./results";

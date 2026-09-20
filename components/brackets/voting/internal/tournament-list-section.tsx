@@ -3,13 +3,59 @@ import { isVoteTournamentWaiting, openMatchesForTournament } from "./vote-match-
 
 type TournamentListSectionProps = {
   tournaments: VoteTournament[];
+  currentUserId?: string | null;
   emptyTitle: string;
   emptySubtitle?: string;
   onSelectTournament: (tournament: VoteTournament) => void;
 };
 
+function getAuthorLabel(tournament: VoteTournament) {
+  const author = tournament.creatorName || tournament.creatorEmail;
+
+  return author ? `By ${author}` : null;
+}
+
+function getActionLabel({
+  canOpen,
+  hasOpenVotes,
+  isOwnerBracket,
+  ownerCanCloseRound,
+  viewerCompletedParallel,
+  viewerWaiting,
+}: {
+  canOpen: boolean;
+  hasOpenVotes: boolean;
+  isOwnerBracket: boolean;
+  ownerCanCloseRound: boolean;
+  viewerCompletedParallel: boolean;
+  viewerWaiting: boolean;
+}) {
+  if (hasOpenVotes) {
+    return "Vote now";
+  }
+
+  if (isOwnerBracket) {
+    if (ownerCanCloseRound) {
+      return "Close round";
+    }
+
+    return "Manage bracket";
+  }
+
+  if (viewerCompletedParallel) {
+    return "View results";
+  }
+
+  if (viewerWaiting) {
+    return "Waiting for reveal";
+  }
+
+  return canOpen ? "Vote now" : "Waiting for the next round";
+}
+
 export function TournamentListSection({
   tournaments,
+  currentUserId = null,
   emptyTitle,
   emptySubtitle,
   onSelectTournament,
@@ -27,13 +73,22 @@ export function TournamentListSection({
     <div className="vote-card-grid">
       {tournaments.map((tournament) => {
         const openMatches = openMatchesForTournament(tournament);
+        const hasOpenVotes = openMatches.length > 0;
+        const isOwnerBracket = tournament.creatorUserId === currentUserId;
+        const ownerCanCloseRound = isOwnerBracket && tournament.sharingMode === "with_friends" && Boolean(tournament.allParticipantVotesReady);
         const viewerCompletedParallel = tournament.kind === "parallel_parent" && tournament.viewerParticipantStatus === "complete";
         const viewerWaiting = isVoteTournamentWaiting(tournament);
-        const canOpen = viewerCompletedParallel || viewerWaiting || openMatches.length > 0;
-        const matchCountLabel = viewerWaiting
-          ? "You finished the current round"
-          : `${openMatches.length} open ${openMatches.length === 1 ? "match" : "matches"}`;
-        const sourcePoolLabel = tournament.sourcePoolName ? ` · ${tournament.sourcePoolName}` : "";
+        const canOpen = hasOpenVotes || isOwnerBracket || viewerCompletedParallel || viewerWaiting;
+        const authorLabel = getAuthorLabel(tournament);
+        const actionLabel = getActionLabel({
+          canOpen,
+          hasOpenVotes,
+          isOwnerBracket,
+          ownerCanCloseRound,
+          viewerCompletedParallel,
+          viewerWaiting,
+        });
+        const waitingClass = viewerWaiting && !isOwnerBracket ? " vote-tournament-choice-waiting" : "";
 
         return (
           <button
@@ -41,17 +96,12 @@ export function TournamentListSection({
             type="button"
             onClick={() => onSelectTournament(tournament)}
             disabled={!canOpen}
-            className="object-list-card vote-tournament-choice"
+            className={`object-list-card vote-tournament-choice${waitingClass}`}
           >
             <h3 className="object-list-card-title display-face vote-tournament-choice-title">{tournament.title}</h3>
-            <p className="object-list-card-copy vote-tournament-choice-meta">
-              {tournament.kind === "parallel_parent"
-                ? `${tournament.completedParticipantCount ?? 0}/${tournament.participantCount ?? 0} complete`
-                : matchCountLabel}
-              {sourcePoolLabel}
-            </p>
+            {authorLabel ? <p className="object-list-card-copy vote-tournament-choice-meta">{authorLabel}</p> : null}
             <span className="object-list-card-action display-face">
-              {viewerCompletedParallel ? "View results" : viewerWaiting ? "Waiting for reveal" : canOpen ? "Vote now" : "Waiting for the next round"}
+              {actionLabel}
             </span>
           </button>
         );

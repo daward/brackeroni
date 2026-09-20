@@ -46,6 +46,7 @@ export function useVoteFocusRouting({
   );
   const waitingTournamentKey = waitingTournamentIds.join(":");
   const postRoundPollEnabled =
+    Boolean(initialFocusedTournamentId) &&
     initialReturnTo !== "create" &&
     waitingTournamentIds.length > 0 &&
     postRoundPollCount < 18 &&

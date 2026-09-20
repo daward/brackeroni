@@ -6,6 +6,7 @@ import type { BracketStageView, SetExpandedDraftId, TournamentCardRefs, Workspac
 type UseBracketRouteSelectionProps = {
   searchParams: ReadonlyURLSearchParams | null;
   setExpandedDraftTournamentId: SetExpandedDraftId;
+  setSelectedLiveTournamentId: Dispatch<SetStateAction<string | null>>;
   setTournamentStageViewState: Dispatch<SetStateAction<BracketStageView>>;
   tournamentCardRefs: TournamentCardRefs;
   tournaments: WorkspaceTournament[];
@@ -14,13 +15,14 @@ type UseBracketRouteSelectionProps = {
 export function useBracketRouteSelection({
   searchParams,
   setExpandedDraftTournamentId,
+  setSelectedLiveTournamentId,
   setTournamentStageViewState,
   tournamentCardRefs,
   tournaments,
 }: UseBracketRouteSelectionProps) {
   useEffect(() => {
     const requestedStage = searchParams?.get("stage");
-    const requestedTournamentId = searchParams?.get("tournament");
+    const requestedTournamentId = searchParams?.get("tournament") || searchParams?.get("bracket");
 
     if (requestedStage === "draft" || requestedStage === "active") {
       setTournamentStageViewState(requestedStage);
@@ -40,6 +42,7 @@ export function useBracketRouteSelection({
       setExpandedDraftTournamentId(requestedTournament.id);
     } else if (requestedTournament.status === "active") {
       setTournamentStageViewState("active");
+      setSelectedLiveTournamentId(requestedTournament.id);
     }
 
     const timer = setTimeout(() => {
@@ -50,5 +53,5 @@ export function useBracketRouteSelection({
     }, 50);
 
     return () => clearTimeout(timer);
-  }, [tournaments, searchParams, setExpandedDraftTournamentId, setTournamentStageViewState, tournamentCardRefs]);
+  }, [tournaments, searchParams, setExpandedDraftTournamentId, setSelectedLiveTournamentId, setTournamentStageViewState, tournamentCardRefs]);
 }

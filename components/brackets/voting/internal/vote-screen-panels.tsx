@@ -14,13 +14,13 @@ import { buildVoteUrl } from "./vote-routing";
 import { VoteSignInCallout } from "./vote-sign-in-callout";
 import { readStoredFocusedTournamentId, writeStoredFocusedTournamentId } from "./vote-storage";
 import { VoteTournamentRails } from "./vote-tournament-rails";
-import type { VoteMobileOpenSection } from "./vote-tournament-rails";
 import { VoteWaitingModal } from "./vote-waiting-modal";
 import { useVoteFocusRouting } from "./use-vote-focus-routing";
 import { useVoteScreenActions } from "./use-vote-screen-actions";
 
 export function VoteScreenPanels({
   activeTournaments,
+  currentUserId = null,
   initialFocusedMatchId = null,
   initialFocusedTournamentId = null,
   initialOpenVote = false,
@@ -39,7 +39,6 @@ export function VoteScreenPanels({
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [transitionMessage, setTransitionMessage] = useState("");
-  const [mobileOpenSection, setMobileOpenSection] = useState<VoteMobileOpenSection>("open");
   const replaceIfChanged = useCallback(
     (href: string) => {
       if (typeof window !== "undefined" && `${window.location.pathname}${window.location.search}` === href) {
@@ -54,9 +53,6 @@ export function VoteScreenPanels({
   const focusedTournament = active.find((tournament) => tournament.id === focusedTournamentId) ?? null;
   const votingTournament = active.find((tournament) => tournament.id === votingTournamentId) ?? null;
   const listedActiveTournaments = active.filter((tournament) => shouldShowInVoteNow(tournament, focusedTournamentId));
-  const openMatchCount = listedActiveTournaments.reduce((count, tournament) => {
-    return count + openMatchesForTournament(tournament).length;
-  }, 0);
   const focusedMatches = focusedTournament ? openMatchesForTournament(focusedTournament) : [];
   const focusedMatch = focusedMatches[0] ?? null;
   const votingMatches = votingTournament ? openMatchesForTournament(votingTournament) : [];
@@ -64,6 +60,7 @@ export function VoteScreenPanels({
   const currentRoundProgress = getCurrentRoundProgress(votingTournament, votingMatch);
 
   const { handleSelectTournament, refreshTournamentState, vote } = useVoteScreenActions({
+    currentUserId,
     focusedTournament,
     initialReturnTo,
     pendingVoteMatchId,
@@ -100,11 +97,9 @@ export function VoteScreenPanels({
       </div>
 
       <VoteTournamentRails
-        mobileOpenSection={mobileOpenSection}
+        currentUserId={currentUserId}
         onSelectTournament={handleSelectTournament}
-        openMatchCount={openMatchCount}
         openTournaments={listedActiveTournaments}
-        setMobileOpenSection={setMobileOpenSection}
       />
 
       {votingTournament && votingMatch ? (

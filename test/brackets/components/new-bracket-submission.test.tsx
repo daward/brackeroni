@@ -91,7 +91,7 @@ describe("new bracket submission", () => {
     });
 
     expect(mocks.startTournament).toHaveBeenCalledWith("tournament-1");
-    expect(mocks.routerPush).toHaveBeenCalledWith("/brackets?stage=active");
+    expect(mocks.routerPush).toHaveBeenCalledWith("/brackets?stage=active&tournament=tournament-1");
   });
 
   it("passes intent presets to parallel bracket creation", async () => {

@@ -168,26 +168,24 @@ export default async function ResultsIndexPage() {
     ...publicStandard.map((item) => normalizeStandardResult(item)),
     ...publicParallel.map((item) => normalizeParallelResult(item)),
   ])).filter((item) => !personalIds.has(item.id));
+  const createdResultCount = personalResults.filter((item) => item.resultBadgeLabel === "Created by you").length;
+  const votedResultCount = personalResults.length - createdResultCount;
 
   return (
     <div className="space-y-8">
       <section className="border-b border-[var(--line-strong)] pb-3">
-        <p className="ui-section-kicker">Results</p>
-        <div className="mt-2 flex flex-wrap items-end justify-between gap-3">
-          <h1 className="display-face text-2xl font-black uppercase sm:text-3xl">Completed Brackets</h1>
-          <p className="display-face text-xs font-bold uppercase tracking-[0.18em] text-[var(--muted)]">
-            {personalResults.length} yours · {publicResults.length} public
+        <div className="flex justify-end">
+          <p className="display-face text-xs font-bold text-[var(--muted)]">
+            {createdResultCount} created, {votedResultCount} voted, {publicResults.length} public
           </p>
         </div>
       </section>
 
-      <section className="space-y-3">
-        <h2 className="ui-section-kicker">Your Results</h2>
+      <section>
         <ResultsGrid items={personalResults} />
       </section>
 
-      <section className="space-y-3">
-        <h2 className="ui-section-kicker">Public Results</h2>
+      <section>
         <ResultsGrid items={publicResults} />
       </section>
     </div>

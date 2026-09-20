@@ -2,6 +2,8 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getOptionalCurrentUser } from "@/lib/auth/current-user";
 import { ANONYMOUS_VOTER_COOKIE } from "@/lib/auth/viewer";
+import { sortVoteTournamentsByRecentActivity } from "./vote-activity";
+import { buildCreateReturnUrl } from "./vote-routing";
 import {
   firstParam,
   getAccessibleParallelBracketByIdForVote,
@@ -96,7 +98,7 @@ export default async function BracketVotingPage({ searchParams }: { searchParams
     ...publicParallelBrackets.map(normalizeParallelBracketForVoteIndex),
   ].filter((tournament, index, items) => items.findIndex((candidate) => candidate.id === tournament.id) === index);
   const activeTournaments = await Promise.all(
-    tournaments
+    sortVoteTournamentsByRecentActivity(tournaments)
       .filter(
         (tournament) =>
           tournament.status === "active" &&
@@ -145,7 +147,7 @@ export default async function BracketVotingPage({ searchParams }: { searchParams
     !requestedTournamentHasRemainingVotes &&
     returnTo === "create"
   ) {
-    redirect("/brackets?stage=active");
+    redirect(buildCreateReturnUrl(requestedTournamentId, "active"));
   }
 
   const requestedActiveTournament =
@@ -156,7 +158,7 @@ export default async function BracketVotingPage({ searchParams }: { searchParams
         }
       : null;
   const mergedActiveTournaments = requestedActiveTournament
-    ? [
+    ? sortVoteTournamentsByRecentActivity([
         requestedActiveTournament,
         ...activeTournaments.filter(
           (tournament) =>
@@ -166,7 +168,7 @@ export default async function BracketVotingPage({ searchParams }: { searchParams
             // vote index instead of appearing as a second, indistinguishable card.
             tournament.id !== requestedActiveTournament.parentParallelTournamentId,
         ),
-      ]
+      ])
     : activeTournaments;
   const lockedFocusedTournament =
     !user && requestedTournamentId
@@ -183,6 +185,7 @@ export default async function BracketVotingPage({ searchParams }: { searchParams
     <div>
       <VoteScreenPanels
         activeTournaments={mergedActiveTournaments}
+        currentUserId={user?.id ?? null}
         initialFocusedTournamentId={requestedTournamentId}
         initialFocusedMatchId={requestedMatchId}
         initialOpenVote={requestedOpenVote}

@@ -5,3 +5,4 @@
  * the bracket application even when the public URL remains `/vote`.
  */
 export { default } from "./internal/vote-page";
+export { FriendsBracketVotePage } from "./internal/friends-bracket-vote-page";

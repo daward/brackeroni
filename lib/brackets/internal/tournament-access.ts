@@ -3,6 +3,31 @@ import { getDb } from "@/lib/db";
 import { getParallelTournamentSchemaSupport } from "@/lib/brackets/internal/tournament-schema-support";
 import { parseSeedingStructure } from "@/lib/brackets/engine/seeding-structure";
 
+export async function canAccessFriendsVotePage({ tournamentId, userId }) {
+  const sql = getDb();
+  const [access] = await sql`
+    select 1
+    from tournament t
+    left join tournament_invite invite
+      on invite.tournament_id = t.id
+     and invite.user_id = ${userId}
+     and (
+       t.started_at is null
+       or invite.joined_at <= t.started_at
+     )
+    where t.id = ${tournamentId}
+      and t.archived_at is null
+      and t.sharing_mode = 'with_friends'
+      and (
+        t.creator_user_id = ${userId}
+        or invite.user_id is not null
+      )
+    limit 1
+  `;
+
+  return Boolean(access);
+}
+
 export async function getTournamentById({ tournamentId, creatorUserId }) {
   const sql = getDb();
   const { hasTournamentIntentPreset } = await getParallelTournamentSchemaSupport(sql);
@@ -11,6 +36,8 @@ export async function getTournamentById({ tournamentId, creatorUserId }) {
     select
       t.id,
       t.creator_user_id as "creatorUserId",
+      creator.name as "creatorName",
+      creator.email as "creatorEmail",
       t.title,
       t.description,
       t.source_pool_id as "sourcePoolId",
@@ -47,6 +74,7 @@ export async function getTournamentById({ tournamentId, creatorUserId }) {
       coalesce(ranked_winner.name, winner.name) as "winnerName",
       coalesce(ranked_winner.seed, winner.seed) as "winnerSeed"
     from tournament t
+    join app_user creator on creator.id = t.creator_user_id
     left join candidate_pool p on p.id = t.source_pool_id
     left join lateral (
       select
@@ -124,6 +152,8 @@ export async function getTournamentById({ tournamentId, creatorUserId }) {
   return {
     id: tournament.id,
     creatorUserId: tournament.creatorUserId,
+    creatorName: tournament.creatorName,
+    creatorEmail: tournament.creatorEmail,
     title: tournament.title,
     description: tournament.description,
     sourcePoolId: tournament.sourcePoolId,
@@ -188,6 +218,8 @@ export async function getAccessibleTournamentById({
     select
       t.id,
       t.creator_user_id as "creatorUserId",
+      creator.name as "creatorName",
+      creator.email as "creatorEmail",
       t.title,
       t.description,
       t.source_pool_id as "sourcePoolId",
@@ -224,6 +256,7 @@ export async function getAccessibleTournamentById({
       coalesce(ranked_winner.name, winner.name) as "winnerName",
       coalesce(ranked_winner.seed, winner.seed) as "winnerSeed"
     from tournament t
+      join app_user creator on creator.id = t.creator_user_id
       left join candidate_pool p on p.id = t.source_pool_id
       left join tournament_invite invite
         on invite.tournament_id = t.id
@@ -325,6 +358,8 @@ export async function getAccessibleTournamentById({
   return {
     id: tournament.id,
     creatorUserId: tournament.creatorUserId,
+    creatorName: tournament.creatorName,
+    creatorEmail: tournament.creatorEmail,
     title: tournament.title,
     description: tournament.description,
     sourcePoolId: tournament.sourcePoolId,

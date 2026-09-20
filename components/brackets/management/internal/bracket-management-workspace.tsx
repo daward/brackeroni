@@ -111,6 +111,7 @@ export function BracketManagementWorkspace() {
   useBracketRouteSelection({
     searchParams,
     setExpandedDraftTournamentId,
+    setSelectedLiveTournamentId,
     setTournamentStageViewState,
     tournamentCardRefs,
     tournaments,

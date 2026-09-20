@@ -3,7 +3,7 @@
 import type { Dispatch, SetStateAction } from "react";
 import { getTournamentWithMatches, submitMatchVote } from "@/lib/client-api/voting";
 import { formatVoteHeader, openMatchesForTournament } from "./vote-match-state";
-import { buildResultsUrl, buildVoteUrl } from "./vote-routing";
+import { buildCompletedVotingReturnUrl, buildCreateReturnUrl, buildResultsUrl, buildVoteUrl } from "./vote-routing";
 import { writeStoredFocusedTournamentId } from "./vote-storage";
 import type { VoteTournament } from "./voting-internal-types";
 import { getErrorMessage } from "./voting-internal-types";
@@ -14,6 +14,7 @@ type VoteScreenRouter = {
 };
 
 type UseVoteScreenActionsProps = {
+  currentUserId: string | null;
   focusedTournament: VoteTournament | null;
   initialReturnTo: string | null;
   pendingVoteMatchId: string | null;
@@ -29,6 +30,7 @@ type UseVoteScreenActionsProps = {
 };
 
 export function useVoteScreenActions({
+  currentUserId,
   focusedTournament,
   initialReturnTo,
   pendingVoteMatchId,
@@ -59,7 +61,11 @@ export function useVoteScreenActions({
       setFocusedTournamentId(null);
       setVotingTournamentId(null);
       writeStoredFocusedTournamentId(null);
-      router.replace(buildResultsUrl(refreshedTournamentData));
+      router.replace(
+        initialReturnTo === "create"
+          ? buildCompletedVotingReturnUrl({ returnTo: initialReturnTo, tournamentId })
+          : buildResultsUrl(refreshedTournamentData),
+      );
       return;
     }
 
@@ -138,7 +144,11 @@ export function useVoteScreenActions({
       setVotingTournamentId(null);
       writeStoredFocusedTournamentId(null);
       setPendingVoteMatchId(null);
-      router.replace(buildResultsUrl(tournamentId));
+      router.replace(
+        initialReturnTo === "create"
+          ? buildCompletedVotingReturnUrl({ returnTo: initialReturnTo, tournamentId })
+          : buildResultsUrl(tournamentId),
+      );
       return;
     }
 
@@ -171,6 +181,7 @@ export function useVoteScreenActions({
 
     if (focusedTournament?.visibility === "private" && remainingOpenMatches === 0) {
       await refreshTournamentState(tournamentId);
+      router.replace(buildCompletedVotingReturnUrl({ returnTo: initialReturnTo, tournamentId }));
       setMessage("Vote recorded. Next round ready.");
       setPendingVoteMatchId(null);
       return;
@@ -178,6 +189,9 @@ export function useVoteScreenActions({
 
     setFocusedTournamentId(tournamentId);
     setVotingTournamentId(remainingOpenMatches > 0 ? tournamentId : null);
+    if (remainingOpenMatches === 0) {
+      router.replace(buildCompletedVotingReturnUrl({ returnTo: initialReturnTo, tournamentId }));
+    }
     setMessage(getVoteRecordedMessage({
       remainingOpenMatches,
       title: focusedTournament?.title,
@@ -187,6 +201,13 @@ export function useVoteScreenActions({
   }
 
   function handleSelectTournament(tournament: VoteTournament) {
+    const hasOpenVotes = openMatchesForTournament(tournament).length > 0;
+
+    if (tournament.creatorUserId === currentUserId && !hasOpenVotes) {
+      router.push(buildCreateReturnUrl(tournament.id, "active"));
+      return;
+    }
+
     if (tournament.kind === "parallel_parent") {
       if (tournament.viewerParticipantStatus === "complete") {
         router.push(buildResultsUrl(tournament));
@@ -195,6 +216,11 @@ export function useVoteScreenActions({
 
       const returnToParam = initialReturnTo ? `&returnTo=${initialReturnTo}` : "";
       router.push(`/vote?parallelBracket=${tournament.id}${returnToParam}`);
+      return;
+    }
+
+    if (tournament.creatorUserId !== currentUserId && tournament.sharingMode === "with_friends" && initialReturnTo !== "create") {
+      router.push(`/brackets/${tournament.id}/vote`);
       return;
     }
 

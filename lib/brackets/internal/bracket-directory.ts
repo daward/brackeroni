@@ -21,6 +21,7 @@ import * as tournamentSharing from "@/lib/brackets/internal/tournament-sharing";
 import { normalizeFlatBracketWinner, normalizeFlatBracketWinners } from "@/lib/brackets/internal/bracket-records";
 
 type CreateTournament = (options: BracketCreateInput & BracketCollectionOptions) => Promise<Bracket>;
+type CanAccessFriendsVotePage = (options: { tournamentId: string; userId: string }) => Promise<boolean>;
 type GetAccessibleTournament = (options: Omit<BracketAccessibleOptions, "bracketId"> & { tournamentId: string }) => Promise<Bracket>;
 type GetFeaturedMatchups = (options: BracketFeaturedOptions) => Promise<Array<Record<string, unknown>>>;
 type GetShareTokenTarget = (options: BracketShareTokenOptions) => Promise<Record<string, unknown>>;
@@ -31,6 +32,7 @@ type ListVotedTournaments = (options: BracketVotedListOptions) => Promise<Bracke
 type ListTournaments = (options: BracketCollectionOptions & BracketListOptions) => Promise<BracketList>;
 
 const createTournament = tournamentMutations.createTournament as unknown as CreateTournament;
+const canAccessFriendsVotePage = tournamentAccess.canAccessFriendsVotePage as unknown as CanAccessFriendsVotePage;
 const getAccessibleTournamentById = tournamentAccess.getAccessibleTournamentById as unknown as GetAccessibleTournament;
 const getFeaturedPublicMatchups = tournamentListing.getFeaturedPublicMatchups as unknown as GetFeaturedMatchups;
 const getFeaturedPublicMatchupsForHomepage =
@@ -67,6 +69,11 @@ export function brackets({ creatorUserId }: BracketCollectionOptions): BracketCo
 
 export function bracketDirectory(): BracketDirectory {
   return {
+    canAccessFriendsVotePage: (options) =>
+      canAccessFriendsVotePage({
+        tournamentId: options.bracketId,
+        userId: options.userId,
+      }),
     getAccessibleBracketById: async (options) =>
       normalizeFlatBracketWinner(await getAccessibleTournamentById({
         tournamentId: options.bracketId,

@@ -140,10 +140,18 @@ export type BracketSource = {
   entryCount?: number | null;
 };
 
+/** Public creator display fields for browse and vote cards. */
+export type BracketAuthor = {
+  creatorUserId?: string | null;
+  creatorName?: string | null;
+  creatorEmail?: string | null;
+};
+
 /** Active round progress fields used by live standard brackets. */
 export type BracketRoundProgress = {
   activeRoundNumber?: number | null;
   activeRoundOpenMatchCount?: number | null;
+  allParticipantVotesReady?: boolean | null;
   openVoteCount?: number | null;
 };
 
@@ -163,6 +171,7 @@ export type BracketVisibilityState = {
 /** The common flat record shape rendered by bracket workspace surfaces. */
 export type Bracket = BracketIdentity &
   BracketConfiguration &
+  BracketAuthor &
   BracketSource &
   BracketRoundProgress &
   ParallelBracketProgress &
@@ -336,6 +345,7 @@ export type ParallelBracketDirectory = {
 };
 
 export type BracketDirectory = {
+  canAccessFriendsVotePage(options: { bracketId: string; userId: string }): Promise<boolean>;
   getAccessibleBracketById(options: BracketAccessibleOptions): Promise<Bracket>;
   getFeaturedPublicMatchups(options?: BracketFeaturedOptions): Promise<Array<Record<string, unknown>>>;
   getFeaturedPublicMatchupsForHomepage(options?: BracketFeaturedOptions): Promise<Array<Record<string, unknown>>>;

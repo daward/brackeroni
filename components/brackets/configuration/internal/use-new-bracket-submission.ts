@@ -52,7 +52,7 @@ export function useNewBracketSubmission(draft: BracketSetupDraft | null) {
         }
 
         await startTournament(tournamentId);
-        router.push(input.audienceMode === "private" ? `/vote?bracket=${tournamentId}&returnTo=create` : "/brackets?stage=active");
+        router.push(input.audienceMode === "private" ? `/vote?bracket=${tournamentId}&returnTo=create` : buildManagementReturnUrl(tournamentId, "active"));
         return data.item;
       }
 
@@ -66,6 +66,12 @@ export function useNewBracketSubmission(draft: BracketSetupDraft | null) {
   }
 
   return { creating, createBracket };
+}
+
+function buildManagementReturnUrl(tournamentId: string, stage: "draft" | "active") {
+  const params = new URLSearchParams({ stage });
+  params.set("tournament", tournamentId);
+  return `/brackets?${params.toString()}`;
 }
 
 async function submitBracket(

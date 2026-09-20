@@ -22,6 +22,9 @@ export async function listTournaments({ creatorUserId, status = null, limit = 24
   const rows = await sql`
     select
       t.id,
+      t.creator_user_id as "creatorUserId",
+      creator.name as "creatorName",
+      creator.email as "creatorEmail",
       t.title,
       t.description,
       t.source_pool_id as "sourcePoolId",
@@ -60,6 +63,7 @@ export async function listTournaments({ creatorUserId, status = null, limit = 24
       coalesce(ranked_winner.seed, winner.seed) as "winnerSeed",
       coalesce(ranked_winner.image_url, winner.image_url) as "winnerImageUrl"
     from tournament t
+    join app_user creator on creator.id = t.creator_user_id
     left join candidate_pool p on p.id = t.source_pool_id
     left join tournament_entry e on e.tournament_id = t.id
     left join lateral (
@@ -120,6 +124,8 @@ export async function listTournaments({ creatorUserId, status = null, limit = 24
         ${status ? sql`and t.status = ${status}` : sql``}
     group by
       t.id,
+      creator.name,
+      creator.email,
       p.name,
       active_round."activeRoundNumber",
       active_round."openMatchCount",
@@ -158,6 +164,9 @@ export async function listAccessibleTournaments({ userId, statuses = null, limit
   return sql`
     select
       t.id,
+      t.creator_user_id as "creatorUserId",
+      creator.name as "creatorName",
+      creator.email as "creatorEmail",
       t.title,
       t.description,
       t.source_pool_id as "sourcePoolId",
@@ -181,11 +190,13 @@ export async function listAccessibleTournaments({ userId, statuses = null, limit
       t.created_at as "createdAt",
       t.updated_at as "updatedAt",
       count(e.id)::integer as "entryCount",
+      coalesce(participant_votes."allParticipantVotesReady", false) as "allParticipantVotesReady",
       coalesce(ranked_winner.id, winner.id) as "winnerEntryId",
       coalesce(ranked_winner.name, winner.name) as "winnerName",
       coalesce(ranked_winner.seed, winner.seed) as "winnerSeed",
       coalesce(ranked_winner.image_url, winner.image_url) as "winnerImageUrl"
     from tournament t
+    join app_user creator on creator.id = t.creator_user_id
     left join candidate_pool p on p.id = t.source_pool_id
     left join tournament_entry e on e.tournament_id = t.id
     left join tournament_invite invite
@@ -195,6 +206,42 @@ export async function listAccessibleTournaments({ userId, statuses = null, limit
        t.started_at is null
        or invite.joined_at <= t.started_at
      )
+    left join lateral (
+      select
+        r.id,
+        count(*) filter (where m.status = 'open')::integer as "openMatchCount"
+      from tournament_round r
+      join match m on m.round_id = r.id
+      where r.tournament_id = t.id
+        and r.status = 'active'
+      group by r.id, r.sequence_number
+      order by r.sequence_number desc
+      limit 1
+    ) active_round on true
+    left join lateral (
+      with participants as (
+        select t.creator_user_id as user_id
+        union
+        select locked_invite.user_id
+        from tournament_invite locked_invite
+        where locked_invite.tournament_id = t.id
+          and locked_invite.status = 'locked'
+      )
+      select
+        case
+          when coalesce(active_round."openMatchCount", 0) = 0 then true
+          else coalesce(bool_and(coalesce(vote_counts."votesCast", 0) >= active_round."openMatchCount"), false)
+        end as "allParticipantVotesReady"
+      from participants participant
+      left join lateral (
+        select count(*)::integer as "votesCast"
+        from vote voter_vote
+        join match voted_match on voted_match.id = voter_vote.match_id
+        where voter_vote.user_id = participant.user_id
+          and voted_match.round_id = active_round.id
+          and voted_match.status = 'open'
+      ) vote_counts on true
+    ) participant_votes on t.sharing_mode = 'with_friends'
     left join lateral (
       select
         ranked_entry.id,
@@ -234,7 +281,10 @@ export async function listAccessibleTournaments({ userId, statuses = null, limit
       )
     group by
       t.id,
+      creator.name,
+      creator.email,
       p.name,
+      participant_votes."allParticipantVotesReady",
       ranked_winner.id,
       ranked_winner.name,
       ranked_winner.seed,
@@ -262,6 +312,9 @@ export async function listPublicTournaments({ statuses = ["active", "complete"],
   return sql`
     select
       t.id,
+      t.creator_user_id as "creatorUserId",
+      creator.name as "creatorName",
+      creator.email as "creatorEmail",
       t.title,
       t.description,
       t.source_pool_id as "sourcePoolId",
@@ -292,6 +345,7 @@ export async function listPublicTournaments({ statuses = ["active", "complete"],
       coalesce(ranked_winner.seed, winner.seed) as "winnerSeed",
       coalesce(ranked_winner.image_url, winner.image_url) as "winnerImageUrl"
     from tournament t
+    join app_user creator on creator.id = t.creator_user_id
     left join candidate_pool p on p.id = t.source_pool_id
     left join tournament_entry e on e.tournament_id = t.id
     left join lateral (
@@ -342,6 +396,8 @@ export async function listPublicTournaments({ statuses = ["active", "complete"],
         and t.status in ${sql(statuses)}
     group by
       t.id,
+      creator.name,
+      creator.email,
       p.name,
       active_round."activeRoundNumber",
       active_round."openMatchCount",
@@ -384,6 +440,9 @@ export async function listVotedTournaments({
   return sql`
     select
       t.id,
+      t.creator_user_id as "creatorUserId",
+      creator.name as "creatorName",
+      creator.email as "creatorEmail",
       t.title,
       t.description,
       t.source_pool_id as "sourcePoolId",
@@ -414,6 +473,7 @@ export async function listVotedTournaments({
       coalesce(ranked_winner.seed, winner.seed) as "winnerSeed",
       coalesce(ranked_winner.image_url, winner.image_url) as "winnerImageUrl"
     from tournament t
+    join app_user creator on creator.id = t.creator_user_id
     left join candidate_pool p on p.id = t.source_pool_id
     left join tournament_entry e on e.tournament_id = t.id
     left join lateral (
@@ -477,6 +537,8 @@ export async function listVotedTournaments({
       )
     group by
       t.id,
+      creator.name,
+      creator.email,
       p.name,
       active_round."activeRoundNumber",
       active_round."openMatchCount",

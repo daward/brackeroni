@@ -37,6 +37,7 @@ export type VoteTournament = Bracket &
 
 export type VoteScreenPanelsProps = {
   activeTournaments: VoteTournament[];
+  currentUserId?: string | null;
   initialFocusedTournamentId?: string | null;
   initialFocusedMatchId?: string | null;
   initialOpenVote?: boolean;

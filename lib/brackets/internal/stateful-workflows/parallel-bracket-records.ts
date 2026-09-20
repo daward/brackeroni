@@ -230,6 +230,8 @@ export async function listParallelBrackets({ creatorUserId, status = null, limit
     select
       pt.id,
       pt.creator_user_id as "creatorUserId",
+      creator.name as "creatorName",
+      creator.email as "creatorEmail",
       pt.title,
       pt.description,
       pt.source_pool_id as "sourcePoolId",
@@ -259,6 +261,7 @@ export async function listParallelBrackets({ creatorUserId, status = null, limit
       access_participant.status as "viewerParticipantStatus",
       access_participant.tournament_id as "viewerTournamentId"
     from parallel_tournament pt
+    join app_user creator on creator.id = pt.creator_user_id
     join candidate_pool p on p.id = pt.source_pool_id
     left join parallel_tournament_participant access_participant
       on access_participant.parallel_tournament_id = pt.id
@@ -335,6 +338,8 @@ export async function listAccessibleParallelBrackets({
     select
       pt.id,
       pt.creator_user_id as "creatorUserId",
+      creator.name as "creatorName",
+      creator.email as "creatorEmail",
       pt.title,
       pt.description,
       pt.source_pool_id as "sourcePoolId",
@@ -357,6 +362,7 @@ export async function listAccessibleParallelBrackets({
       coalesce(participant_counts."activeParticipantCount", 0)::integer as "activeParticipantCount",
       coalesce(participant_counts."completedParticipantCount", 0)::integer as "completedParticipantCount"
     from parallel_tournament pt
+    join app_user creator on creator.id = pt.creator_user_id
     join candidate_pool p on p.id = pt.source_pool_id
     left join parallel_tournament_participant access_participant
       on access_participant.parallel_tournament_id = pt.id
@@ -415,6 +421,8 @@ export async function listPublicParallelBrackets({
     select
       pt.id,
       pt.creator_user_id as "creatorUserId",
+      creator.name as "creatorName",
+      creator.email as "creatorEmail",
       pt.title,
       pt.description,
       pt.source_pool_id as "sourcePoolId",
@@ -437,6 +445,7 @@ export async function listPublicParallelBrackets({
       coalesce(participant_counts."activeParticipantCount", 0)::integer as "activeParticipantCount",
       coalesce(participant_counts."completedParticipantCount", 0)::integer as "completedParticipantCount"
     from parallel_tournament pt
+    join app_user creator on creator.id = pt.creator_user_id
     join candidate_pool p on p.id = pt.source_pool_id
     left join lateral (
       select count(*)::integer as "candidateCount"

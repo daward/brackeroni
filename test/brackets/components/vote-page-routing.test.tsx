@@ -96,8 +96,8 @@ describe("vote page routing", () => {
 
     await expect(
       BracketVotingPage({ searchParams: Promise.resolve({ bracket: bracketId, returnTo: "create" }) }),
-    ).rejects.toThrow("redirect:/brackets?stage=active");
-    expect(scenario.redirect).toHaveBeenCalledWith("/brackets?stage=active");
+    ).rejects.toThrow(`redirect:/brackets?stage=active&tournament=${bracketId}`);
+    expect(scenario.redirect).toHaveBeenCalledWith(`/brackets?stage=active&tournament=${bracketId}`);
   });
 
   it("keeps anonymous public active brackets on the vote page after the guest has voted", async () => {

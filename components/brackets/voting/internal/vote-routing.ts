@@ -1,7 +1,27 @@
 import type { VoteTournament } from "./voting-internal-types";
 
-export function buildCreateReturnUrl(_tournamentId: string, stage = "active") {
-  return `/brackets?stage=${stage}`;
+export function buildCreateReturnUrl(tournamentId: string, stage = "active") {
+  const params = new URLSearchParams({ stage });
+
+  if (tournamentId) {
+    params.set("tournament", tournamentId);
+  }
+
+  return `/brackets?${params.toString()}`;
+}
+
+export function buildCompletedVotingReturnUrl({
+  returnTo = null,
+  tournamentId,
+}: {
+  returnTo?: string | null;
+  tournamentId: string;
+}) {
+  if (returnTo === "create") {
+    return buildCreateReturnUrl(tournamentId, "active");
+  }
+
+  return buildVoteUrl({ returnTo });
 }
 
 export function buildResultsUrl(tournamentOrId: VoteTournament | string) {

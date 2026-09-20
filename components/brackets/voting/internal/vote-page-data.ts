@@ -6,6 +6,8 @@ export type VoteStatusFilter = Array<"active" | "complete">;
 
 export type ParallelBracketVoteIndexItem = VoteTournament & {
   id: string;
+  creatorName?: string | null;
+  creatorEmail?: string | null;
   title: string;
   description?: string | null;
   sourcePoolId?: string | null;
@@ -118,6 +120,8 @@ export function normalizeParallelBracketForVoteIndex(item: ParallelBracketVoteIn
   return {
     ...item,
     id: item.id,
+    creatorName: item.creatorName,
+    creatorEmail: item.creatorEmail,
     title: item.title,
     description: item.description,
     sourcePoolId: item.sourcePoolId,

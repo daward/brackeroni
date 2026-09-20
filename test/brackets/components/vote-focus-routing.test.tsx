@@ -56,7 +56,7 @@ describe("vote focus routing", () => {
   it("returns creator flows to bracket management instead of waiting for another round", async () => {
     render(<RoutingProbe tournament={activeTournament()} />);
 
-    await waitFor(() => expect(replaceCalls).toContain("/brackets?stage=active"));
+    await waitFor(() => expect(replaceCalls).toContain("/brackets?stage=active&tournament=bracket-1"));
     expect(renderedWaitingState).toBe(false);
   });
 });
