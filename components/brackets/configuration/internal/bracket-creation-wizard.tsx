@@ -31,6 +31,8 @@ export function BracketCreationWizard({
     <WizardLayout
       fullPage={fullPage}
       step={wizard.step}
+      highestReachableStep={wizard.highestReachableStep}
+      isEditingFromReview={wizard.isEditingFromReview}
       sourceMode={wizard.sourceMode}
       sourcePoolId={wizard.sourcePoolId}
       pools={wizard.pools}
@@ -56,6 +58,7 @@ export function BracketCreationWizard({
       presetContext={presetContext}
       onCancel={onCancel}
       onStepChange={wizard.setStep}
+      onReviewEditStep={wizard.editReviewStep}
       onSelectPool={wizard.selectPool}
       onCreatePoolWorkspace={onCreatePoolWorkspace}
       onSourceModeChange={wizard.setSourceMode}

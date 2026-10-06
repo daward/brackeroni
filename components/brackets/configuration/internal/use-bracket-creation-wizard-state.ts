@@ -18,6 +18,8 @@ function getSourceMode(initialConfig: BracketCreationWizardProps["initialConfig"
 
 export function useBracketCreationWizardState({ pools, initialPoolId = "", initialConfig = null, initialStep = 0, onCancel, onCreate, onStepChange }: WizardStateParams) {
   const [step, setStep] = useState(initialStep);
+  const [highestReachableStep, setHighestReachableStep] = useState(initialStep);
+  const [reviewEditReturnStep, setReviewEditReturnStep] = useState<number | null>(null);
   const [sourceMode, setSourceMode] = useState<SourceMode>(getSourceMode(initialConfig, initialPoolId, pools));
   const [sourcePoolId, setSourcePoolId] = useState(initialConfig?.sourcePoolId || initialPoolId || pools[0]?.id || "");
   const [poolName, setPoolName] = useState("");
@@ -44,6 +46,7 @@ export function useBracketCreationWizardState({ pools, initialPoolId = "", initi
 
   useEffect(() => {
     setStep(initialStep);
+    setHighestReachableStep((current) => Math.max(current, initialStep));
   }, [initialStep]);
 
   useEffect(() => {
@@ -57,7 +60,21 @@ export function useBracketCreationWizardState({ pools, initialPoolId = "", initi
     const boundedStep = Math.min(Math.max(resolvedStep, 0), WIZARD_STEP_COUNT - 1);
     if (boundedStep === step) return;
     setStep(boundedStep);
+    setHighestReachableStep((current) => Math.max(current, boundedStep));
     onStepChange?.(boundedStep);
+  }
+
+  function editReviewStep(nextStep: number) {
+    setReviewEditReturnStep(WIZARD_STEP_COUNT - 1);
+    changeStep(nextStep);
+  }
+
+  function returnToReview() {
+    if (reviewEditReturnStep === null) return false;
+    const returnStep = reviewEditReturnStep;
+    setReviewEditReturnStep(null);
+    changeStep(returnStep);
+    return true;
   }
 
   async function chooseSeedingMode(mode: SeedingMode) {
@@ -131,6 +148,7 @@ export function useBracketCreationWizardState({ pools, initialPoolId = "", initi
     }
     setSourcePoolId(pool.id);
     setError("");
+    if (returnToReview()) return;
     changeStep(2);
   }
 
@@ -142,6 +160,7 @@ export function useBracketCreationWizardState({ pools, initialPoolId = "", initi
       return;
     }
     setError("");
+    if (returnToReview()) return;
     changeStep((current) => current + 1);
   }
 
@@ -196,6 +215,8 @@ export function useBracketCreationWizardState({ pools, initialPoolId = "", initi
 
   return {
     step,
+    highestReachableStep,
+    isEditingFromReview: reviewEditReturnStep !== null,
     sourceMode,
     sourcePoolId,
     pools: availablePools,
@@ -219,6 +240,7 @@ export function useBracketCreationWizardState({ pools, initialPoolId = "", initi
     selectedCount: getSelectedCount(sourceMode, selectedPool, candidates),
     error,
     setStep: changeStep,
+    editReviewStep,
     selectPool,
     setSourceMode,
     setPoolName,
@@ -231,7 +253,7 @@ export function useBracketCreationWizardState({ pools, initialPoolId = "", initi
     setDraggingSeedCandidateId,
     setAudienceMode: chooseAudienceMode,
     setTitle,
-    goBack: step === 0 ? onCancel : () => changeStep((current) => current - 1),
+    goBack: reviewEditReturnStep !== null ? () => returnToReview() : step === 0 ? onCancel : () => changeStep((current) => current - 1),
     goNext,
     handleCreate,
     moveCustomSeedEntry,

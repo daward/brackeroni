@@ -5,6 +5,7 @@ import type { VoteTournament } from "../../../components/brackets/voting/interna
 
 let replaceCalls: string[];
 let renderedWaitingState: boolean | null;
+let setFocusedTournamentId: ReturnType<typeof vi.fn<(tournamentId: string | null) => void>>;
 
 function replaceIfChanged(href: string) {
   replaceCalls.push(href);
@@ -35,22 +36,43 @@ function RoutingProbe({ tournament }: { tournament: VoteTournament }) {
     focusedTournament: tournament,
     focusedTournamentId: tournament.id,
     initialFocusedTournamentId: tournament.id,
+    initialOpenVote: false,
     initialReturnTo: "create",
     pendingVoteMatchId: null,
     refreshTournamentState: vi.fn(),
     replaceIfChanged,
-    setFocusedTournamentId: vi.fn(),
+    setFocusedTournamentId,
   });
 
   renderedWaitingState = routing.isFocusedTournamentWaiting;
   return null;
 }
 
+function DirectVoteLinkProbe({ tournament }: { tournament: VoteTournament }) {
+  useVoteFocusRouting({
+    active: [tournament],
+    focusedMatch: null,
+    focusedTournament: tournament,
+    focusedTournamentId: tournament.id,
+    initialFocusedTournamentId: tournament.id,
+    initialOpenVote: true,
+    initialReturnTo: null,
+    pendingVoteMatchId: null,
+    refreshTournamentState: vi.fn(),
+    replaceIfChanged,
+    setFocusedTournamentId,
+  });
+
+  return null;
+}
+
 describe("vote focus routing", () => {
   beforeEach(() => {
     localStorage.clear();
+    sessionStorage.clear();
     replaceCalls = [];
     renderedWaitingState = null;
+    setFocusedTournamentId = vi.fn<(tournamentId: string | null) => void>();
   });
 
   it("returns creator flows to bracket management instead of waiting for another round", async () => {
@@ -58,5 +80,21 @@ describe("vote focus routing", () => {
 
     await waitFor(() => expect(replaceCalls).toContain("/brackets?stage=active&tournament=bracket-1"));
     expect(renderedWaitingState).toBe(false);
+  });
+
+  it("keeps direct vote links focused after the viewer has already voted", async () => {
+    render(
+      <DirectVoteLinkProbe
+        tournament={activeTournament({
+          visibility: "public_unlisted",
+          votingAccess: "anyone",
+          matches: [{ id: "match-1", status: "open", userVoteEntryId: "entry-1" }],
+        })}
+      />,
+    );
+
+    await waitFor(() => expect(sessionStorage.getItem("brackeroni-last-open-vote-tournament")).toBe("bracket-1"));
+    expect(setFocusedTournamentId).not.toHaveBeenCalledWith(null);
+    expect(replaceCalls).toEqual([]);
   });
 });

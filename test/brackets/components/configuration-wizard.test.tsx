@@ -240,6 +240,55 @@ describe("bracket configuration wizard", () => {
     expect(screen.getByText("How will each matchup be decided?")).not.toBeNull();
   });
 
+  it("returns review edits directly to review with prior choices intact", async () => {
+    const user = userEvent.setup();
+
+    render(<BracketCreationWizard pools={[pool]} creating={false} onCancel={vi.fn()} onCreate={vi.fn()} />);
+
+    await nameBracketAndSelectPool(user);
+    await user.click(screen.getByRole("button", { name: /Share with a group/ }));
+    await user.click(screen.getByRole("button", { name: "Continue" }));
+    await user.click(screen.getByRole("button", { name: /I'll choose/ }));
+    await user.click(screen.getByRole("button", { name: "Continue" }));
+    await user.click(screen.getByRole("button", { name: "Continue" }));
+    await user.click(screen.getByRole("button", { name: "Continue" }));
+
+    await user.click(screen.getAllByRole("button", { name: /Name/i })[1]);
+    await user.clear(screen.getByPlaceholderText("Best sandwich in the world?"));
+    await user.type(screen.getByPlaceholderText("Best sandwich in the world?"), "Edited Dinner Finals");
+    await user.click(screen.getByRole("button", { name: "Back to review" }));
+
+    expect(screen.getByText("Your chosen settings")).not.toBeNull();
+    expect(screen.getByText("Edited Dinner Finals")).not.toBeNull();
+    expect(screen.getByText("Share with a group")).not.toBeNull();
+    expect(screen.getByText("You'll choose each winner")).not.toBeNull();
+  });
+
+  it("returns contender edits from review without replaying later steps", async () => {
+    const user = userEvent.setup();
+    const alternatePool: PoolSelectionOption = {
+      id: "pool-2",
+      name: "Dessert Pool",
+      description: "Sweet stuff",
+      candidateCount: 6,
+    };
+
+    render(<BracketCreationWizard pools={[pool, alternatePool]} creating={false} onCancel={vi.fn()} onCreate={vi.fn()} />);
+
+    await nameBracketAndSelectPool(user);
+    await user.click(screen.getByRole("button", { name: "Continue" }));
+    await user.click(screen.getByRole("button", { name: "Continue" }));
+    await user.click(screen.getByRole("button", { name: "Continue" }));
+    await user.click(screen.getByRole("button", { name: "Continue" }));
+
+    await user.click(screen.getAllByRole("button", { name: /Contenders/i })[1]);
+    await user.click(screen.getByRole("button", { name: /Dessert Pool/ }));
+
+    expect(screen.getByText("Your chosen settings")).not.toBeNull();
+    expect(screen.getByText("Dessert Pool")).not.toBeNull();
+    expect(screen.getByText("6 contenders")).not.toBeNull();
+  });
+
   it("does not report blocked wizard step changes", async () => {
     const user = userEvent.setup();
     const onStepChange = vi.fn();

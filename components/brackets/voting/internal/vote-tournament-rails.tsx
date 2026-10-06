@@ -4,12 +4,14 @@ import type { VoteTournament } from "./voting-internal-types";
 export type VoteMobileOpenSection = "open" | null;
 
 type VoteTournamentRailsProps = {
+  audiencePreviewTournamentId?: string | null;
   currentUserId: string | null;
   onSelectTournament: (tournament: VoteTournament) => void;
   openTournaments: VoteTournament[];
 };
 
 export function VoteTournamentRails({
+  audiencePreviewTournamentId = null,
   currentUserId,
   onSelectTournament,
   openTournaments,
@@ -18,6 +20,7 @@ export function VoteTournamentRails({
     <section className="vote-rail">
       <TournamentListSection
         tournaments={openTournaments}
+        audiencePreviewTournamentId={audiencePreviewTournamentId}
         currentUserId={currentUserId}
         emptyTitle="No Open Matches"
         emptySubtitle="Nothing is waiting on a vote."

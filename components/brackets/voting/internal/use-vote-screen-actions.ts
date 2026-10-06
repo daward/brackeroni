@@ -16,6 +16,8 @@ type VoteScreenRouter = {
 type UseVoteScreenActionsProps = {
   currentUserId: string | null;
   focusedTournament: VoteTournament | null;
+  initialFocusedTournamentId: string | null;
+  initialOpenVote: boolean;
   initialReturnTo: string | null;
   pendingVoteMatchId: string | null;
   router: VoteScreenRouter;
@@ -32,6 +34,8 @@ type UseVoteScreenActionsProps = {
 export function useVoteScreenActions({
   currentUserId,
   focusedTournament,
+  initialFocusedTournamentId,
+  initialOpenVote,
   initialReturnTo,
   pendingVoteMatchId,
   router,
@@ -204,6 +208,10 @@ export function useVoteScreenActions({
     const hasOpenVotes = openMatchesForTournament(tournament).length > 0;
 
     if (tournament.creatorUserId === currentUserId && !hasOpenVotes) {
+      if (initialOpenVote && tournament.id === initialFocusedTournamentId) {
+        return;
+      }
+
       router.push(buildCreateReturnUrl(tournament.id, "active"));
       return;
     }

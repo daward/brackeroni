@@ -100,6 +100,17 @@ describe("vote page routing", () => {
     expect(scenario.redirect).toHaveBeenCalledWith(`/brackets?stage=active&tournament=${bracketId}`);
   });
 
+  it("keeps owners who open copied vote links on the voting page", async () => {
+    const { default: BracketVotingPage } = await import("../../../components/brackets/voting/internal/vote-page");
+
+    const page = await BracketVotingPage({ searchParams: Promise.resolve({ bracket: bracketId, vote: "1" }) });
+    const panels = page.props.children;
+
+    expect(scenario.redirect).not.toHaveBeenCalled();
+    expect(panels.props.initialFocusedTournamentId).toBe(bracketId);
+    expect(panels.props.initialOpenVote).toBe(true);
+  });
+
   it("keeps anonymous public active brackets on the vote page after the guest has voted", async () => {
     scenario.user = null;
     scenario.anonymousVoterToken = "anon-1";

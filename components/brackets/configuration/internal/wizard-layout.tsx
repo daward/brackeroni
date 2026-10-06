@@ -19,6 +19,8 @@ const STEPS = ["Name", "Contenders", "Audience", "Winners", "Seeding", "Results"
 type WizardLayoutProps = {
   fullPage: boolean;
   step: number;
+  highestReachableStep: number;
+  isEditingFromReview: boolean;
   sourceMode: "existing" | "new";
   sourcePoolId: string;
   pools: PoolSelectionOption[];
@@ -44,6 +46,7 @@ type WizardLayoutProps = {
   presetContext?: BracketIntentPreset | null;
   onCancel: () => void;
   onStepChange: (step: number) => void;
+  onReviewEditStep: (step: number) => void;
   onSelectPool: (pool: PoolSelectionOption) => void;
   onCreatePoolWorkspace?: () => void;
   onSourceModeChange: (mode: "existing" | "new") => void;
@@ -66,7 +69,7 @@ type WizardLayoutProps = {
 
 export function WizardLayout(props: WizardLayoutProps) {
   const content = getStepContent(props);
-  const canContinue = props.step < STEPS.length - 1 && !(props.step === 1 && props.sourceMode === "existing");
+  const canContinue = props.step < STEPS.length - 1 && (props.isEditingFromReview || !(props.step === 1 && props.sourceMode === "existing"));
   const shellClassName = props.fullPage ? setupStyles.shell : setupStyles.modalShell;
   const showHeader = !props.fullPage;
   const pageClassName = props.fullPage ? setupStyles.page : setupStyles.modalBackdrop;
@@ -86,10 +89,10 @@ export function WizardLayout(props: WizardLayoutProps) {
             <button
               key={label}
               type="button"
-              disabled={index > props.step}
+              disabled={index > props.highestReachableStep}
               aria-current={index === props.step ? "step" : undefined}
-              onClick={() => index <= props.step && props.onStepChange(index)}
-              className={`display-face ${setupStyles.stepButton} ${getStepClassName(index, props.step)}`}
+              onClick={() => index <= props.highestReachableStep && props.onStepChange(index)}
+              className={`display-face ${setupStyles.stepButton} ${getStepClassName(index, props.step, props.highestReachableStep)}`}
             >
               <span className="hidden sm:inline">{index + 1}. </span>
               {label}
@@ -107,7 +110,7 @@ export function WizardLayout(props: WizardLayoutProps) {
           <div className={setupStyles.actionGroup}>
             {canContinue ? (
               <button type="button" onClick={props.onNext} className="ui-button ui-button-primary">
-                Continue
+                {props.isEditingFromReview ? "Back to review" : "Continue"}
               </button>
             ) : null}
             {props.step === STEPS.length - 1 ? (
@@ -127,9 +130,9 @@ export function WizardLayout(props: WizardLayoutProps) {
   );
 }
 
-function getStepClassName(index: number, step: number) {
+function getStepClassName(index: number, step: number, highestReachableStep: number) {
   if (index === step) return setupStyles.stepActive;
-  if (index < step) return setupStyles.stepComplete;
+  if (index <= highestReachableStep) return setupStyles.stepComplete;
   return setupStyles.stepLocked;
 }
 
@@ -218,7 +221,7 @@ function getStepContent(props: WizardLayoutProps) {
           advancementMode={props.advancementMode}
           tieBreakMode={props.tieBreakMode}
           audienceMode={props.audienceMode}
-          onStepChange={props.onStepChange}
+          onStepChange={props.onReviewEditStep}
         />
       );
   }

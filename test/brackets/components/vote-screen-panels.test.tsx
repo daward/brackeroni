@@ -77,6 +77,7 @@ function finalMatchBracket(overrides: Partial<VoteTournament> = {}): VoteTournam
 describe("vote screen panels", () => {
   beforeEach(() => {
     localStorage.clear();
+    sessionStorage.clear();
     replace.mockClear();
     push.mockClear();
     submitMatchVote.mockResolvedValue({ item: { tournamentStatus: "active" } });
@@ -159,6 +160,35 @@ describe("vote screen panels", () => {
 
     expect(screen.getAllByRole("button", { name: /Public bracket/ }).length).toBeGreaterThan(0);
     expect(screen.queryByText("Waiting for the next round to open")).toBeNull();
+  });
+
+  it("shows copied owner vote links as voter-facing when the owner has already voted", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <VoteScreenPanels
+        currentUserId="user-1"
+        activeTournaments={[
+          {
+            ...publicBracket(),
+            creatorUserId: "user-1",
+            viewerHasVotes: true,
+            matches: [],
+          },
+        ]}
+        initialFocusedTournamentId="bracket-1"
+        initialOpenVote
+      />,
+    );
+
+    expect(screen.queryByText("Manage bracket")).toBeNull();
+    expect(screen.getByText("Waiting for reveal")).not.toBeNull();
+    expect(screen.getByText(/This is the right voting link/)).not.toBeNull();
+    expect(screen.getByRole("link", { name: "Manage Bracket" }).getAttribute("href")).toBe("/brackets?stage=active&tournament=bracket-1");
+
+    await user.click(screen.getByRole("button", { name: /Public bracket/ }));
+
+    expect(push).not.toHaveBeenCalled();
   });
 
   it("keeps the waiting modal for friends brackets", () => {

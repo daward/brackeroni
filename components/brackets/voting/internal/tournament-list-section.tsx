@@ -3,6 +3,7 @@ import { isVoteTournamentWaiting, openMatchesForTournament } from "./vote-match-
 
 type TournamentListSectionProps = {
   tournaments: VoteTournament[];
+  audiencePreviewTournamentId?: string | null;
   currentUserId?: string | null;
   emptyTitle: string;
   emptySubtitle?: string;
@@ -55,6 +56,7 @@ function getActionLabel({
 
 export function TournamentListSection({
   tournaments,
+  audiencePreviewTournamentId = null,
   currentUserId = null,
   emptyTitle,
   emptySubtitle,
@@ -74,7 +76,8 @@ export function TournamentListSection({
       {tournaments.map((tournament) => {
         const openMatches = openMatchesForTournament(tournament);
         const hasOpenVotes = openMatches.length > 0;
-        const isOwnerBracket = tournament.creatorUserId === currentUserId;
+        const isAudiencePreview = tournament.id === audiencePreviewTournamentId;
+        const isOwnerBracket = !isAudiencePreview && tournament.creatorUserId === currentUserId;
         const ownerCanCloseRound = isOwnerBracket && tournament.sharingMode === "with_friends" && Boolean(tournament.allParticipantVotesReady);
         const viewerCompletedParallel = tournament.kind === "parallel_parent" && tournament.viewerParticipantStatus === "complete";
         const viewerWaiting = isVoteTournamentWaiting(tournament);

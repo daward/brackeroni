@@ -16,6 +16,7 @@ type UseVoteFocusRoutingProps = {
   focusedTournament: VoteTournament | null;
   focusedTournamentId: string | null;
   initialFocusedTournamentId: string | null;
+  initialOpenVote: boolean;
   initialReturnTo: string | null;
   pendingVoteMatchId: string | null;
   refreshTournamentState: (tournamentId: string) => Promise<void>;
@@ -29,6 +30,7 @@ export function useVoteFocusRouting({
   focusedTournament,
   focusedTournamentId,
   initialFocusedTournamentId,
+  initialOpenVote,
   initialReturnTo,
   pendingVoteMatchId,
   refreshTournamentState,
@@ -145,10 +147,23 @@ export function useVoteFocusRouting({
       return;
     }
 
+    if (initialOpenVote && focusedTournament.id === initialFocusedTournamentId) {
+      return;
+    }
+
     setFocusedTournamentId(null);
     writeStoredFocusedTournamentId(null);
     replaceIfChanged(buildVoteUrl({ returnTo: initialReturnTo }));
-  }, [focusedTournament, focusedMatch, isFocusedTournamentWaiting, pendingVoteMatchId, replaceIfChanged, initialReturnTo]);
+  }, [
+    focusedTournament,
+    focusedMatch,
+    initialFocusedTournamentId,
+    initialOpenVote,
+    initialReturnTo,
+    isFocusedTournamentWaiting,
+    pendingVoteMatchId,
+    replaceIfChanged,
+  ]);
 
   useEffect(() => {
     if (initialReturnTo !== "create" || !focusedTournament || focusedMatch || pendingVoteMatchId) {

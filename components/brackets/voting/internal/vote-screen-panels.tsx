@@ -5,10 +5,12 @@ import { useCallback, useState } from "react";
 import type { VoteScreenPanelsProps, VoteTournament } from "./voting-internal-types";
 import {
   getCurrentRoundProgress,
+  isVoteTournamentWaiting,
   openMatchesForTournament,
   shouldAutoRefreshWaitingTournament,
   shouldShowInVoteNow,
 } from "./vote-match-state";
+import { VoteAlreadyVotedCallout } from "./vote-already-voted-callout";
 import { VoteMatchModal } from "./vote-match-modal";
 import { buildVoteUrl } from "./vote-routing";
 import { VoteSignInCallout } from "./vote-sign-in-callout";
@@ -58,10 +60,18 @@ export function VoteScreenPanels({
   const votingMatches = votingTournament ? openMatchesForTournament(votingTournament) : [];
   const votingMatch = votingMatches.find((match) => match.id === initialFocusedMatchId) ?? votingMatches[0] ?? null;
   const currentRoundProgress = getCurrentRoundProgress(votingTournament, votingMatch);
+  const shouldShowAlreadyVotedCallout =
+    initialOpenVote &&
+    focusedTournament !== null &&
+    !focusedMatch &&
+    isVoteTournamentWaiting(focusedTournament) &&
+    !shouldAutoRefreshWaitingTournament(focusedTournament);
 
   const { handleSelectTournament, refreshTournamentState, vote } = useVoteScreenActions({
     currentUserId,
     focusedTournament,
+    initialFocusedTournamentId,
+    initialOpenVote,
     initialReturnTo,
     pendingVoteMatchId,
     router,
@@ -81,6 +91,7 @@ export function VoteScreenPanels({
     focusedTournament,
     focusedTournamentId,
     initialFocusedTournamentId,
+    initialOpenVote,
     initialReturnTo,
     pendingVoteMatchId,
     refreshTournamentState,
@@ -94,9 +105,16 @@ export function VoteScreenPanels({
         {error ? <p className="vote-message vote-message-error">{error}</p> : null}
         {message ? <p className="vote-message vote-message-success">{message}</p> : null}
         {signInRequiredTournament ? <VoteSignInCallout tournament={signInRequiredTournament} /> : null}
+        {shouldShowAlreadyVotedCallout ? (
+          <VoteAlreadyVotedCallout
+            currentUserId={currentUserId}
+            tournament={focusedTournament}
+          />
+        ) : null}
       </div>
 
       <VoteTournamentRails
+        audiencePreviewTournamentId={initialOpenVote ? initialFocusedTournamentId : null}
         currentUserId={currentUserId}
         onSelectTournament={handleSelectTournament}
         openTournaments={listedActiveTournaments}
